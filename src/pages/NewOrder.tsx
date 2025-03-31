@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
-import { Button } from "@/components/ui/button"; // Add this import
+import { Button } from "@/components/ui/button";
 
 // Import our components
 import ProductsList from "@/components/order/ProductsList";
@@ -43,7 +42,6 @@ const NewOrder = () => {
   };
 
   const handleSave = () => {
-    // Here would be logic to save the quantities
     console.log("Saved quantities for product:", selectedProduct, quantities[selectedProduct || ""]);
     setIsDialogOpen(false);
   };
@@ -53,7 +51,6 @@ const NewOrder = () => {
   };
 
   const handleOpenSummary = () => {
-    // Check if any products have been selected
     const hasSelectedProducts = Object.keys(quantities).length > 0;
     if (!hasSelectedProducts) {
       toast({
@@ -69,7 +66,6 @@ const NewOrder = () => {
   const handleSubmitOrder = () => {
     console.log("Submitting order with quantities:", quantities);
     setIsSummaryOpen(false);
-    // Logic to submit the order would go here
     toast({
       title: "הזמנה נשלחה בהצלחה",
       description: "ההזמנה שלך התקבלה ותטופל בהקדם",
@@ -97,7 +93,8 @@ const NewOrder = () => {
 
         <ProductsList 
           products={products} 
-          onSelectProduct={handleProductClick} 
+          onSelectProduct={handleProductClick}
+          quantities={quantities}
         />
 
         <ProductDialog 
