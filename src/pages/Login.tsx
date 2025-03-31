@@ -18,8 +18,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [sapCustomerId, setSapCustomerId] = useState("");
+  const [phonePassword, setPhonePassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -33,10 +33,10 @@ const Login = () => {
 
   const handleDebug = async () => {
     try {
-      console.log("Checking users with phone:", phone);
+      console.log("Checking users with SAP ID:", sapCustomerId);
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: phone,
-        user_password: password
+        user_phone: phonePassword,  // Using phone as password
+        user_password: phonePassword // Using phone as password
       });
       
       console.log("Debug response:", data);
@@ -51,14 +51,23 @@ const Login = () => {
       } else if (data && data.length === 0) {
         toast({
           title: "פעולת בדיקה",
-          description: "לא נמצא משתמש עם מספר טלפון וסיסמה אלו",
+          description: "לא נמצא משתמש עם מספר טלפון זה",
           variant: "destructive"
         });
       } else {
-        toast({
-          title: "פעולת בדיקה",
-          description: `נמצא משתמש: ${data[0]?.name}`,
-        });
+        const matchingUser = data.find(user => user.sap_customer_id === sapCustomerId);
+        if (matchingUser) {
+          toast({
+            title: "פעולת בדיקה",
+            description: `נמצא משתמש: ${matchingUser.name}, תפקיד: ${matchingUser.role}`,
+          });
+        } else {
+          toast({
+            title: "פעולת בדיקה",
+            description: "לא נמצא משתמש עם מזהה לקוח זה",
+            variant: "destructive"
+          });
+        }
       }
     } catch (err) {
       console.error("Debug error:", err);
@@ -74,10 +83,10 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    console.log("Attempting login with phone:", phone);
+    console.log("Attempting login with SAP ID:", sapCustomerId);
     
     try {
-      const success = await login(phone, password);
+      const success = await login(sapCustomerId, phonePassword);
       console.log("Login result:", success, "User:", user);
       
       if (success) {
@@ -86,7 +95,7 @@ const Login = () => {
       } else {
         toast({
           title: "התחברות נכשלה",
-          description: "שם משתמש או סיסמה לא נכונים",
+          description: "מזהה לקוח או סיסמה לא נכונים",
           variant: "destructive"
         });
       }
@@ -102,17 +111,6 @@ const Login = () => {
     }
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Remove any non-numeric characters except plus sign
-    const value = e.target.value;
-    // Allow + only at the beginning
-    if (value === "+" || (value.startsWith("+") && value.length > 1)) {
-      setPhone(value.replace(/[^\d+]/g, ""));
-    } else {
-      setPhone(value.replace(/[^\d]/g, ""));
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4 auth-container">
       <Card className="w-full max-w-sm mx-auto">
@@ -122,18 +120,18 @@ const Login = () => {
           </div>
           <CardTitle className="text-2xl">מאפיית אורבר</CardTitle>
           <CardDescription>
-            הזן את מספר הטלפון והסיסמה שלך להתחברות
+            הזן את מזהה הלקוח ומספר הטלפון שלך להתחברות
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">מספר טלפון</Label>
+              <Label htmlFor="sapCustomerId">מזהה לקוח</Label>
               <Input
-                id="phone"
-                placeholder="05X-XXXXXXX"
-                value={phone}
-                onChange={handlePhoneChange}
+                id="sapCustomerId"
+                placeholder="הזן מזהה לקוח"
+                value={sapCustomerId}
+                onChange={(e) => setSapCustomerId(e.target.value)}
                 required
                 className="text-right"
                 dir="ltr"
@@ -144,15 +142,17 @@ const Login = () => {
                 <a className="text-sm text-bakery-600 hover:underline">
                   שכחת את הסיסמה?
                 </a>
-                <Label htmlFor="password">סיסמה</Label>
+                <Label htmlFor="phonePassword">סיסמה</Label>
               </div>
               <Input
-                id="password"
+                id="phonePassword"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={phonePassword}
+                onChange={(e) => setPhonePassword(e.target.value)}
                 required
                 className="text-right"
+                dir="ltr"
+                placeholder="הזן את מספר הטלפון שלך"
               />
             </div>
           </CardContent>

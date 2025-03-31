@@ -7,7 +7,7 @@ import { toast } from "@/hooks/use-toast";
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (phone: string, password: string) => Promise<boolean>;
+  login: (sapCustomerId: string, phone: string) => Promise<boolean>;
   logout: () => void;
   updateUserProfile: (data: Partial<User>) => Promise<void>;
 }
@@ -46,16 +46,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, []);
 
-  const login = async (phone: string, password: string): Promise<boolean> => {
+  const login = async (sapCustomerId: string, phone: string): Promise<boolean> => {
     try {
-      // Ensure phone is properly formatted for the query
-      const formattedPhone = phone.startsWith("+") ? phone : phone;
-      console.log("Attempting login with formatted phone:", formattedPhone);
+      console.log("Attempting login with SAP ID:", sapCustomerId, "and phone as password");
       
       // For demo purposes, use the custom_users table with the RPC function
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: formattedPhone,
-        user_password: password
+        user_phone: phone,  // Using phone as password
+        user_password: phone // Using phone as password
       });
 
       console.log("Login response data:", data);
@@ -71,15 +69,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       if (data && data.length > 0) {
-        const userData = data[0];
+        // Find the user with matching SAP customer ID
+        const matchingUser = data.find(user => user.sap_customer_id === sapCustomerId);
+        
+        if (!matchingUser) {
+          console.log("Authentication failed: No matching SAP customer ID found");
+          toast({
+            title: "התחברות נכשלה",
+            description: "מזהה לקוח לא נמצא במערכת",
+            variant: "destructive",
+          });
+          return false;
+        }
         
         // Create a User object from the response
         const authenticatedUser: User = {
-          id: userData.id,
-          phone: userData.phone,
-          name: userData.name,
-          role: userData.role as "admin" | "customer",
-          isVerified: userData.is_verified,
+          id: matchingUser.id,
+          phone: matchingUser.phone,
+          name: matchingUser.name,
+          role: matchingUser.role as "admin" | "customer",
+          isVerified: matchingUser.is_verified,
         };
 
         console.log("Authentication successful, user:", authenticatedUser);
@@ -100,7 +109,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log("Authentication failed: No matching user found");
       toast({
         title: "התחברות נכשלה",
-        description: "שם משתמש או סיסמה לא נכונים",
+        description: "מזהה לקוח או סיסמה לא נכונים",
         variant: "destructive",
       });
       return false;

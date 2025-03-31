@@ -18,8 +18,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const AdminLogin = () => {
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [sapCustomerId, setSapCustomerId] = useState("");
+  const [phonePassword, setPhonePassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -36,10 +36,10 @@ const AdminLogin = () => {
 
   const handleDebug = async () => {
     try {
-      console.log("Checking users with phone:", phone);
+      console.log("Checking users with SAP ID:", sapCustomerId);
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: phone,
-        user_password: password
+        user_phone: phonePassword,  // Using phone as password
+        user_password: phonePassword // Using phone as password
       });
       
       console.log("Debug response:", data);
@@ -54,14 +54,23 @@ const AdminLogin = () => {
       } else if (data && data.length === 0) {
         toast({
           title: "פעולת בדיקה",
-          description: "לא נמצא משתמש עם מספר טלפון וסיסמה אלו",
+          description: "לא נמצא משתמש עם מספר טלפון זה",
           variant: "destructive"
         });
       } else {
-        toast({
-          title: "פעולת בדיקה",
-          description: `נמצא משתמש: ${data[0]?.name}, תפקיד: ${data[0]?.role}`,
-        });
+        const matchingUser = data.find(user => user.sap_customer_id === sapCustomerId);
+        if (matchingUser) {
+          toast({
+            title: "פעולת בדיקה",
+            description: `נמצא משתמש: ${matchingUser.name}, תפקיד: ${matchingUser.role}`,
+          });
+        } else {
+          toast({
+            title: "פעולת בדיקה",
+            description: "לא נמצא משתמש עם מזהה לקוח זה",
+            variant: "destructive"
+          });
+        }
       }
     } catch (err) {
       console.error("Debug error:", err);
@@ -77,10 +86,10 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    console.log("Attempting admin login with phone:", phone);
+    console.log("Attempting admin login with SAP ID:", sapCustomerId);
     
     try {
-      const success = await login(phone, password);
+      const success = await login(sapCustomerId, phonePassword);
       console.log("Admin login result:", success, "User:", user);
       
       if (success) {
@@ -106,17 +115,6 @@ const AdminLogin = () => {
     }
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Remove any non-numeric characters except plus sign
-    const value = e.target.value;
-    // Allow + only at the beginning
-    if (value === "+" || (value.startsWith("+") && value.length > 1)) {
-      setPhone(value.replace(/[^\d+]/g, ""));
-    } else {
-      setPhone(value.replace(/[^\d]/g, ""));
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4 auth-container" dir="rtl">
       <Card className="w-full max-w-md">
@@ -126,18 +124,18 @@ const AdminLogin = () => {
           </div>
           <CardTitle className="text-3xl">כניסת מנהל</CardTitle>
           <CardDescription>
-            יש להזין מספר טלפון וסיסמה
+            יש להזין מזהה לקוח וסיסמה
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">מספר טלפון</Label>
+              <Label htmlFor="sapCustomerId">מזהה לקוח</Label>
               <Input
-                id="phone"
-                placeholder="05X-XXXXXXX"
-                value={phone}
-                onChange={handlePhoneChange}
+                id="sapCustomerId"
+                placeholder="הזן מזהה לקוח"
+                value={sapCustomerId}
+                onChange={(e) => setSapCustomerId(e.target.value)}
                 required
                 dir="ltr"
               />
@@ -147,14 +145,16 @@ const AdminLogin = () => {
                 <a className="text-sm text-bakery-600 hover:underline">
                   שכחת סיסמה?
                 </a>
-                <Label htmlFor="password">סיסמה</Label>
+                <Label htmlFor="phonePassword">סיסמה</Label>
               </div>
               <Input
-                id="password"
+                id="phonePassword"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={phonePassword}
+                onChange={(e) => setPhonePassword(e.target.value)}
                 required
+                dir="ltr"
+                placeholder="הזן את מספר הטלפון שלך"
               />
             </div>
           </CardContent>
