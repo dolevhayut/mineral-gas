@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -10,12 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, ChevronDown, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 
 interface Order {
@@ -44,9 +37,23 @@ const OrderHistory = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user?.id) return;
-
+      
       try {
         setLoading(true);
+        console.log("Fetching orders for user ID:", user.id);
+        console.log("User object:", user);
+        
+        if (!user.id || typeof user.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.id)) {
+          console.error("Invalid user ID format:", user.id);
+          toast({
+            title: "שגיאה בטעינת הזמנות",
+            description: "פורמט מזהה משתמש לא תקין",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('orders')
           .select('*')
@@ -63,6 +70,7 @@ const OrderHistory = () => {
           return;
         }
 
+        console.log("Orders retrieved:", data);
         setOrders(data || []);
       } catch (error) {
         console.error("Unexpected error:", error);
@@ -81,7 +89,6 @@ const OrderHistory = () => {
   const fetchOrderDetails = async (orderId: string) => {
     if (!expandedOrders[orderId]) {
       try {
-        // Fetch order items
         const { data: items, error: itemsError } = await supabase
           .from('order_items')
           .select('*')
@@ -92,8 +99,9 @@ const OrderHistory = () => {
           return;
         }
 
+        console.log("Order items retrieved:", items);
+
         if (items && items.length > 0) {
-          // Get product details for the items
           const productIds = [...new Set(items.map(item => item.product_id))];
           
           const { data: products, error: productsError } = await supabase
@@ -105,16 +113,16 @@ const OrderHistory = () => {
             console.error("Error fetching products:", productsError);
           }
 
-          // Merge product names with items
+          console.log("Products retrieved:", products);
+
           const enrichedItems = items.map(item => {
             const product = products?.find(p => p.id === item.product_id);
             return {
               ...item,
-              product_name: product?.name || 'Unknown Product'
+              product_name: product?.name || 'מוצר לא ידוע'
             };
           });
 
-          // Update the specific order with its items
           setOrders(prevOrders => 
             prevOrders.map(order => 
               order.id === orderId ? { ...order, items: enrichedItems } : order
@@ -126,7 +134,6 @@ const OrderHistory = () => {
       }
     }
     
-    // Toggle expanded state
     setExpandedOrders(prev => ({
       ...prev,
       [orderId]: !prev[orderId]
@@ -165,7 +172,6 @@ const OrderHistory = () => {
     }
   };
 
-  // Hebrew day names mapping
   const dayMapping: Record<string, string> = {
     'sunday': 'ראשון',
     'monday': 'שני',

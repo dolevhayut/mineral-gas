@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
@@ -77,14 +76,28 @@ const NewOrder = () => {
         return;
       }
       
+      console.log("Submitting order for user:", user);
+      
+      // Check if user ID is valid UUID format before submitting
+      if (!user.id || typeof user.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.id)) {
+        console.error("Invalid user ID format:", user.id);
+        toast({
+          title: "שגיאה בשליחת ההזמנה",
+          description: "פורמט מזהה משתמש לא תקין",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const total = calculateTotal();
+      
       // Here you would submit the order to Supabase
-      // This is just a placeholder implementation
       const { data, error } = await supabase
         .from('orders')
         .insert({
           customer_id: user.id,
           status: 'pending',
-          total: calculateTotal()
+          total: total
         })
         .select();
       
@@ -98,6 +111,7 @@ const NewOrder = () => {
         return;
       }
       
+      console.log("Order created:", data);
       const orderId = data?.[0]?.id;
       
       // Add order items
@@ -115,6 +129,8 @@ const NewOrder = () => {
           }
         }
       }
+      
+      console.log("Inserting order items:", orderItems);
       
       if (orderItems.length > 0) {
         const { error: itemsError } = await supabase

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -30,6 +29,20 @@ const CurrentOrders = () => {
 
       try {
         setLoading(true);
+        console.log("Fetching current orders for user ID:", user.id);
+        
+        // Make sure we only query if we have a valid UUID format
+        if (!user.id || typeof user.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.id)) {
+          console.error("Invalid user ID format:", user.id);
+          toast({
+            title: "שגיאה בטעינת הזמנות",
+            description: "פורמט מזהה משתמש לא תקין",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('orders')
           .select('*')
@@ -47,6 +60,7 @@ const CurrentOrders = () => {
           return;
         }
 
+        console.log("Current orders retrieved:", data);
         setOrders(data || []);
       } catch (error) {
         console.error("Unexpected error:", error);
