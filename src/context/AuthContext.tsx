@@ -48,12 +48,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (sapCustomerId: string, phone: string): Promise<boolean> => {
     try {
-      console.log("Attempting login with SAP ID:", sapCustomerId, "and phone as password");
+      console.log("Attempting login with SAP ID:", sapCustomerId, "and phone:", phone);
+      
+      // Make sure the phone number is formatted correctly for comparison
+      let formattedPhone = phone;
+      
+      // If the phone doesn't start with +, add it
+      if (!formattedPhone.startsWith('+')) {
+        formattedPhone = '+' + formattedPhone.replace(/\D/g, '');
+      }
+      
+      console.log("Formatted phone:", formattedPhone);
       
       // For demo purposes, use the custom_users table with the RPC function
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: phone,  // Using phone as password
-        user_password: phone // Using phone as password
+        user_phone: formattedPhone,  // Using formatted phone
+        user_password: formattedPhone  // Using formatted phone as password
       });
 
       console.log("Login response data:", data);

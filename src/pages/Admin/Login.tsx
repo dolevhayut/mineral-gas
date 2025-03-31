@@ -13,7 +13,7 @@ import {
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
-import { CakeIcon } from "lucide-react";
+import { CakeIcon, KeyIcon, IdCardIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,6 +21,7 @@ const AdminLogin = () => {
   const [sapCustomerId, setSapCustomerId] = useState("");
   const [phonePassword, setPhonePassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
@@ -115,6 +116,10 @@ const AdminLogin = () => {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 auth-container" dir="rtl">
       <Card className="w-full max-w-md">
@@ -124,13 +129,21 @@ const AdminLogin = () => {
           </div>
           <CardTitle className="text-3xl">כניסת מנהל</CardTitle>
           <CardDescription>
-            יש להזין מזהה לקוח וסיסמה
+            התחברות למערכת ניהול
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="sapCustomerId">מזהה לקוח</Label>
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-muted-foreground">
+                  מספר הזיהוי של המנהל
+                </div>
+                <Label htmlFor="sapCustomerId" className="flex items-center gap-2">
+                  <IdCardIcon className="h-4 w-4" />
+                  <span>מזהה לקוח</span>
+                </Label>
+              </div>
               <Input
                 id="sapCustomerId"
                 placeholder="הזן מזהה לקוח"
@@ -145,17 +158,33 @@ const AdminLogin = () => {
                 <a className="text-sm text-bakery-600 hover:underline">
                   שכחת סיסמה?
                 </a>
-                <Label htmlFor="phonePassword">סיסמה</Label>
+                <Label htmlFor="phonePassword" className="flex items-center gap-2">
+                  <KeyIcon className="h-4 w-4" />
+                  <span>סיסמה (מספר טלפון)</span>
+                </Label>
               </div>
-              <Input
-                id="phonePassword"
-                type="password"
-                value={phonePassword}
-                onChange={(e) => setPhonePassword(e.target.value)}
-                required
-                dir="ltr"
-                placeholder="הזן את מספר הטלפון שלך"
-              />
+              <div className="relative">
+                <Input
+                  id="phonePassword"
+                  type={showPassword ? "text" : "password"}
+                  value={phonePassword}
+                  onChange={(e) => setPhonePassword(e.target.value)}
+                  required
+                  dir="ltr"
+                  placeholder="הזן את מספר הטלפון שלך"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute inset-y-0 left-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                </button>
+              </div>
+              <div className="text-xs text-right text-muted-foreground">
+                הסיסמה היא מספר הטלפון הנייד שלך
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
