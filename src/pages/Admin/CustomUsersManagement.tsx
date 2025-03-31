@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { User } from "@/types";
@@ -51,6 +50,17 @@ import { FormLabel } from "@/components/ui/form";
 import { useToast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+interface CustomUser {
+  id: string;
+  phone: string;
+  name: string;
+  role: string;
+  sap_customer_id: string | null;
+  is_verified: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 const CustomUsersManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,7 +71,6 @@ const CustomUsersManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Form state for add/edit user
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formRole, setFormRole] = useState("customer");
@@ -78,7 +87,7 @@ const CustomUsersManagement = () => {
     try {
       const { data, error } = await supabase
         .from('custom_users')
-        .select('*');
+        .select('*') as { data: CustomUser[] | null, error: any };
 
       if (error) {
         throw error;
@@ -143,7 +152,7 @@ const CustomUsersManagement = () => {
         user_name: formName,
         user_phone: formPhone,
         user_password: formPassword,
-        user_role: formRole,
+        user_role: formRole as 'admin' | 'customer',
         user_sap_id: formSapId || null,
         user_is_verified: formIsVerified
       });
@@ -174,22 +183,13 @@ const CustomUsersManagement = () => {
     if (!currentUser) return;
 
     try {
-      const updateData: any = {
-        name: formName,
-        phone: formPhone,
-        role: formRole,
-        sap_customer_id: formSapId || null,
-        is_verified: formIsVerified,
-      };
-
       if (formPassword) {
-        // If password is provided, update it using RPC function
         const { data, error } = await supabase.rpc('update_user_with_password', {
           user_id: currentUser.id,
           user_name: formName,
           user_phone: formPhone,
           user_password: formPassword,
-          user_role: formRole,
+          user_role: formRole as 'admin' | 'customer',
           user_sap_id: formSapId || null,
           user_is_verified: formIsVerified
         });
@@ -198,7 +198,14 @@ const CustomUsersManagement = () => {
           throw error;
         }
       } else {
-        // If no password provided, just update other fields
+        const updateData: any = {
+          name: formName,
+          phone: formPhone,
+          role: formRole,
+          sap_customer_id: formSapId || null,
+          is_verified: formIsVerified,
+        };
+
         const { error } = await supabase
           .from('custom_users')
           .update(updateData)
@@ -483,7 +490,6 @@ const CustomUsersManagement = () => {
         </div>
       </div>
 
-      {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -576,7 +582,6 @@ const CustomUsersManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>

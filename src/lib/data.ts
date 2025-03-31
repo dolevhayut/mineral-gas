@@ -7,6 +7,7 @@ export const sampleUsers: User[] = [
     phone: "+1234567890",
     name: "Admin User",
     role: "admin",
+    isVerified: true,
     createdAt: "2023-05-15T10:30:00Z",
   },
   {
@@ -14,6 +15,7 @@ export const sampleUsers: User[] = [
     phone: "+1987654321",
     name: "John Customer",
     role: "customer",
+    isVerified: true,
     createdAt: "2023-06-20T14:45:00Z",
   },
   {
@@ -21,6 +23,7 @@ export const sampleUsers: User[] = [
     phone: "+1122334455",
     name: "Jane Customer",
     role: "customer",
+    isVerified: false,
     createdAt: "2023-07-10T09:15:00Z",
   },
 ];
