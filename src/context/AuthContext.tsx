@@ -53,10 +53,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Make sure the phone number is formatted correctly for comparison
       let formattedPhone = phone;
       
-      // If the phone doesn't start with +, add it
-      if (!formattedPhone.startsWith('+')) {
-        formattedPhone = '+' + formattedPhone.replace(/\D/g, '');
+      // Remove leading + if it exists, to ensure consistent format
+      if (formattedPhone.startsWith('+')) {
+        formattedPhone = formattedPhone.substring(1);
       }
+
+      // Remove any non-digit characters
+      formattedPhone = formattedPhone.replace(/\D/g, '');
+      
+      // Add + back for the database query
+      formattedPhone = '+' + formattedPhone;
       
       console.log("Formatted phone:", formattedPhone);
       

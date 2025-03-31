@@ -34,10 +34,18 @@ const Login = () => {
 
   const handleDebug = async () => {
     try {
-      console.log("Checking users with SAP ID:", sapCustomerId);
+      // Format phone number for consistency
+      let formattedPhone = phonePassword;
+      if (formattedPhone.startsWith('+')) {
+        formattedPhone = formattedPhone.substring(1);
+      }
+      formattedPhone = formattedPhone.replace(/\D/g, '');
+      formattedPhone = '+' + formattedPhone;
+
+      console.log("Checking users with phone:", formattedPhone);
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: phonePassword,  // Using phone as password
-        user_password: phonePassword // Using phone as password
+        user_phone: formattedPhone,
+        user_password: formattedPhone
       });
       
       console.log("Debug response:", data);
