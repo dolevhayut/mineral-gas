@@ -21,6 +21,7 @@ const NewOrder = () => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -65,7 +66,7 @@ const NewOrder = () => {
     setIsSubmitting(true);
     
     try {
-      const orderId = await submitOrder(user.id, quantities, products);
+      const orderId = await submitOrder(user.id, quantities, products, targetDate);
       if (orderId) {
         setIsSummaryOpen(false);
         navigate("/dashboard");
@@ -105,6 +106,7 @@ const NewOrder = () => {
           quantities={quantities}
           products={products}
           onSubmit={handleSubmitOrder}
+          isSubmitting={isSubmitting}
         />
 
         <OrderActions 

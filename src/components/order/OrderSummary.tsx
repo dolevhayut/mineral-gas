@@ -3,8 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
-import { OrderProduct } from "./orderConstants";
-import OrderSummaryItem from "./OrderSummaryItem";
+import { OrderProduct, hebrewDays } from "./orderConstants";
 import DateSelector from "./DateSelector";
 import EmptyOrderMessage from "./EmptyOrderMessage";
 
@@ -17,6 +16,17 @@ interface OrderSummaryProps {
   isSubmitting?: boolean;
 }
 
+// Type for aggregated day items
+interface DayOrderSummary {
+  day: string;
+  dayHebrew: string;
+  items: {
+    productName: string;
+    quantity: number;
+  }[];
+  totalQuantity: number;
+}
+
 export default function OrderSummary({ 
   isOpen, 
   onClose, 
@@ -27,18 +37,68 @@ export default function OrderSummary({
 }: OrderSummaryProps) {
   const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   
-  // Calculate order summary
-  const orderItems = Object.entries(quantities).flatMap(([productId, dayQuantities]) => {
+  // Aggregate items by day
+  const dayOrderSummary: DayOrderSummary[] = [];
+  
+  // Map of English day names to Hebrew day names
+  const dayNameMap: Record<string, string> = {
+    sunday: "ראשון",
+    monday: "שני",
+    tuesday: "שלישי",
+    wednesday: "רביעי",
+    thursday: "חמישי",
+    friday: "שישי",
+    saturday: "שבת",
+  };
+  
+  // Process quantities to aggregate by day
+  Object.entries(quantities).forEach(([productId, dayQuantities]) => {
     const product = products.find(p => p.id === productId);
-    if (!product) return [];
+    if (!product) return;
     
-    return Object.entries(dayQuantities).map(([day, quantity]) => {
-      if (quantity <= 0) return null;
-      return { product, day, quantity };
-    }).filter(Boolean);
+    Object.entries(dayQuantities).forEach(([day, quantity]) => {
+      if (quantity <= 0) return;
+      
+      // Find existing day entry or create new one
+      let dayEntry = dayOrderSummary.find(d => d.day === day);
+      
+      if (!dayEntry) {
+        dayEntry = {
+          day,
+          dayHebrew: dayNameMap[day] || day,
+          items: [],
+          totalQuantity: 0
+        };
+        dayOrderSummary.push(dayEntry);
+      }
+      
+      // Add product to day entry
+      dayEntry.items.push({
+        productName: product.name,
+        quantity
+      });
+      
+      // Update total quantity for the day
+      dayEntry.totalQuantity += quantity;
+    });
   });
   
-  const hasItems = orderItems.length > 0;
+  // Sort days according to week order
+  const dayOrder: Record<string, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+  };
+  
+  dayOrderSummary.sort((a, b) => {
+    return (dayOrder[a.day] || 99) - (dayOrder[b.day] || 99);
+  });
+  
+  const hasItems = dayOrderSummary.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -51,14 +111,18 @@ export default function OrderSummary({
             <div className="space-y-6">
               <div className="space-y-4">
                 <h3 className="font-medium text-right">פריטים:</h3>
-                {orderItems.map((item, index) => (
-                  item && <OrderSummaryItem 
-                    key={`${item.product.id}-${item.day}-${index}`}
-                    product={item.product} 
-                    day={item.day} 
-                    quantity={item.quantity} 
-                    index={index} 
-                  />
+                {dayOrderSummary.map((daySummary, index) => (
+                  <div key={daySummary.day} className="flex justify-between border-b pb-3 pt-2">
+                    <div className="text-left">
+                      <span className="font-medium text-lg text-bakery-600">
+                        ×{daySummary.totalQuantity}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">פיתות אסלית לאכילה במקום</p>
+                      <p className="text-sm text-gray-500">יום: {daySummary.dayHebrew}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
 

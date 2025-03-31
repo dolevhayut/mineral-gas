@@ -6,7 +6,8 @@ import { toast } from "@/hooks/use-toast";
 export const submitOrder = async (
   userId: string,
   quantities: Record<string, Record<string, number>>,
-  products: OrderProduct[]
+  products: OrderProduct[],
+  targetDate?: Date
 ) => {
   try {
     if (!userId) {
@@ -93,14 +94,22 @@ export const submitOrder = async (
     // Use either the found customer ID or fallback to the user ID
     const finalCustomerId = customerId || userId;
     
+    // Prepare order data
+    const orderData: any = {
+      customer_id: finalCustomerId,
+      status: 'pending',
+      total: total
+    };
+    
+    // Add target date if provided
+    if (targetDate) {
+      orderData.target_date = targetDate.toISOString().split('T')[0];
+    }
+    
     // Submit the order to Supabase
     const { data, error } = await supabase
       .from('orders')
-      .insert({
-        customer_id: finalCustomerId,
-        status: 'pending',
-        total: total
-      })
+      .insert(orderData)
       .select();
     
     if (error) {
