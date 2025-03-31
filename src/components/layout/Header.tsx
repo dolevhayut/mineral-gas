@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import MobileMenu from "./MobileMenu";
@@ -26,8 +25,9 @@ export default function Header() {
 
         {/* Logo */}
         <Link to={isAuthenticated ? dashboardLink : "/"} className="flex items-center">
+          <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-8 w-auto mr-2 hidden sm:block" />
           <span className="text-xl font-serif font-bold tracking-tight">
-            אורבר
+            מאפיית אורבר
           </span>
         </Link>
 

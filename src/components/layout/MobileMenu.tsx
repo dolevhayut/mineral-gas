@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,10 @@ export default function MobileMenu({ isAuthenticated, user, logout, dashboardLin
       </SheetTrigger>
       <SheetContent side="right" className="w-[250px]">
         <SheetHeader className="mb-4">
-          <SheetTitle>מאפיית אורבר</SheetTitle>
+          <div className="flex items-center justify-center flex-col">
+            <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-10 w-auto mb-2" />
+            <SheetTitle>מאפיית אורבר</SheetTitle>
+          </div>
         </SheetHeader>
         <div className="flex flex-col space-y-2">
           <Link

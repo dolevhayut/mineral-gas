@@ -69,21 +69,25 @@ const UserDashboard = () => {
       title: "הזמנה חדשה",
       icon: <PlusIcon className="h-8 w-8 text-bakery-600" />,
       action: () => navigate("/orders/new"),
+      description: "לחץ לפרטים"
     },
     {
       title: "ביצוע או עדכון הזמנה קיימת",
       icon: <PencilIcon className="h-8 w-8 text-bakery-600" />,
       action: () => navigate("/orders/current"),
+      description: "לחץ לפרטים"
     },
     {
       title: "עדכון הזמנה למחר",
       icon: <CalendarIcon className="h-8 w-8 text-bakery-600" />,
       action: () => navigate("/orders/tomorrow"),
+      description: "לחץ לפרטים"
     },
     {
       title: "צפייה בהיסטוריה",
       icon: <HistoryIcon className="h-8 w-8 text-bakery-600" />,
       action: () => navigate("/orders"),
+      description: "לחץ לפרטים"
     },
   ];
 
@@ -110,18 +114,18 @@ const UserDashboard = () => {
     <MainLayoutWithFooter>
       <div className="container mx-auto px-4 py-6">
         {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg p-6 mb-8 shadow-sm">
-          <h1 className="text-2xl font-serif font-bold text-right">
+        <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg p-4 mb-6 shadow-sm">
+          <h1 className="text-xl font-serif font-bold text-right">
             {`שלום, ${user?.name || 'לקוח'}`}
           </h1>
-          <p className="text-gray-600 text-right mt-1">ברוכים הבאים לאורבר - מערכת הזמנות המאפיה</p>
+          <p className="text-gray-600 text-right text-sm">ברוכים הבאים למערכת הזמנות המאפיה</p>
         </div>
         
         {/* Active Order Section */}
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-3 text-right flex items-center">
             <PackageIcon className="ml-2 h-5 w-5 text-bakery-600" />
-            ה��מנה פעילה
+            הזמנה פעילה
           </h2>
           <Separator className="mb-4" />
           
@@ -131,28 +135,32 @@ const UserDashboard = () => {
             </Card>
           ) : activeOrder ? (
             <Card className="p-4 border-2 border-bakery-100">
-              <div className="flex justify-between items-start">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/orders/current')} 
-                  className="flex items-center"
-                >
-                  <span>לעדכון</span>
-                  <ArrowRightIcon className="mr-2 h-4 w-4" />
-                </Button>
+              <div className="flex flex-col">
+                <div className="flex justify-between items-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/orders/current')} 
+                    className="flex items-center"
+                  >
+                    <span>לעדכון</span>
+                    <ArrowRightIcon className="mr-2 h-4 w-4" />
+                  </Button>
+                  <div className="text-right">
+                    <h3 className="font-medium mb-1">הזמנה מספר {activeOrder.id.substring(0, 8)}</h3>
+                    <p className="text-sm text-muted-foreground">{formatDate(activeOrder.created_at)}</p>
+                  </div>
+                </div>
+                <Separator className="my-3" />
                 <div className="text-right">
-                  <h3 className="font-medium mb-1">הזמנה מספר {activeOrder.id.substring(0, 8)}</h3>
-                  <p className="text-sm text-muted-foreground">{formatDate(activeOrder.created_at)}</p>
+                  <p className="text-sm text-right">
+                    {activeOrder.order_items?.length > 0 
+                      ? `${activeOrder.order_items.length} פריטים בהזמנה` 
+                      : 'אין פריטים בהזמנה'}
+                  </p>
+                  <p className="text-sm text-bakery-600 font-medium text-right">סטטוס: ממתין לאישור</p>
                 </div>
               </div>
-              <Separator className="my-3" />
-              <p className="text-sm text-right">
-                {activeOrder.order_items?.length > 0 
-                  ? `${activeOrder.order_items.length} פריטים בהזמנה` 
-                  : 'אין פריטים בהזמנה'}
-              </p>
-              <p className="text-sm text-bakery-600 font-medium text-right">סטטוס: ממתין לאישור</p>
             </Card>
           ) : (
             <Card className="p-4 bg-muted/50">
@@ -183,12 +191,19 @@ const UserDashboard = () => {
                 className="hover:bg-accent transition-colors cursor-pointer"
                 onClick={card.action}
               >
-                <div className="p-4 flex items-center justify-between">
-                  <ArrowRightIcon className="h-5 w-5 text-bakery-600" />
-                  <div className="flex items-center">
-                    <span className="text-lg font-medium">{card.title}</span>
-                    <div className="mr-3 bg-bakery-50 p-2 rounded-full">
+                <div style={{display: 'flex', flexDirection: 'column'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', padding: '1rem'}}>
+                    <div style={{order: 1}} className="bg-bakery-50 p-2 rounded-full">
                       {card.icon}
+                    </div>
+                    <div style={{order: 0, textAlign: 'right'}}>
+                      <h3 className="text-lg font-medium">{card.title}</h3>
+                    </div>
+                  </div>
+                  <div style={{display: 'flex', justifyContent: 'space-between', padding: '0 1rem 1rem 1rem'}}>
+                    <ArrowRightIcon style={{order: 1}} className="h-5 w-5 text-bakery-600" />
+                    <div style={{order: 0, textAlign: 'right'}}>
+                      <p className="text-sm text-muted-foreground">לחץ לפרטים</p>
                     </div>
                   </div>
                 </div>
@@ -208,10 +223,12 @@ const UserDashboard = () => {
           <div className="space-y-3">
             {systemUpdates.length > 0 ? (
               systemUpdates.map((update) => (
-                <Card key={update.id} className="p-4 bg-gradient-to-r from-white to-gray-50">
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-muted-foreground bg-gray-100 px-2 py-1 rounded-md">{update.date}</span>
-                    <p className="text-right flex-1 mr-4">{update.content}</p>
+                <Card key={update.id} className="p-4 bg-gradient-to-r from-white to-gray-50 action-card">
+                  <div className="text-right card-content">
+                    <div className="flex justify-end items-center mb-2 rtl-flex action-card-item">
+                      <span className="text-sm text-muted-foreground bg-gray-100 px-2 py-1 rounded-md">{update.date}</span>
+                    </div>
+                    <p className="text-right w-full">{update.content}</p>
                   </div>
                 </Card>
               ))

@@ -19,7 +19,8 @@ import {
   XIcon,
   CheckIcon,
   XCircleIcon,
-  FilterIcon
+  FilterIcon,
+  AlertTriangleIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
@@ -63,6 +64,8 @@ const DEFAULT_IMAGE = '/placeholder-product.png';
 export default function Products() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({
     available: true,
@@ -297,9 +300,14 @@ export default function Products() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("האם אתה בטוח שברצונך למחוק מוצר זה?")) {
-      deleteProduct.mutate(id);
+  const handleDelete = (product: Product) => {
+    setProductToDelete(product);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (productToDelete) {
+      deleteProduct.mutate(productToDelete.id);
     }
   };
 
@@ -482,7 +490,7 @@ export default function Products() {
                   variant="outline"
                   size="sm"
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => handleDelete(product.id)}
+                  onClick={() => handleDelete(product)}
                 >
                   <TrashIcon className="h-4 w-4 ml-2" />
                   מחיקה
@@ -688,6 +696,73 @@ export default function Products() {
             >
               {isLoading && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
               שמור
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangleIcon className="h-5 w-5 text-red-500" />
+              אישור מחיקת מוצר
+            </DialogTitle>
+            <DialogDescription>
+              האם אתה בטוח שברצונך למחוק את המוצר? פעולה זו אינה ניתנת לשחזור.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {productToDelete && (
+            <div className="py-4">
+              <div className="flex gap-4 bg-muted p-4 rounded-md mb-4">
+                <div className="h-16 w-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                  {productToDelete.image ? (
+                    <img 
+                      src={productToDelete.image} 
+                      alt={productToDelete.name} 
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = DEFAULT_IMAGE;
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full w-full">
+                      <ImageIcon className="h-6 w-6 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium">{productToDelete.name}</p>
+                  <p className="text-sm text-muted-foreground">מק״ט: {productToDelete.sku}</p>
+                  <p className="text-sm text-muted-foreground">מחיר: ₪{productToDelete.price}</p>
+                </div>
+              </div>
+              
+              <p className="text-amber-600 text-sm">
+                מחיקת המוצר תסיר אותו מהמערכת וכל ההזמנות הקיימות שכוללות אותו.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
+              ביטול
+            </Button>
+            <Button 
+              onClick={confirmDelete}
+              disabled={isLoading}
+              variant="destructive"
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
+              {isLoading && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
+              מחק מוצר
             </Button>
           </DialogFooter>
         </DialogContent>

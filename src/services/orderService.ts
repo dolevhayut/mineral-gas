@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { OrderProduct } from "@/components/order/orderConstants";
 import { toast } from "@/hooks/use-toast";
@@ -37,66 +36,59 @@ export const submitOrder = async (
     
     const total = calculateTotal(quantities, products);
     
-    // First fetch the customer ID using the user ID
-    const { data: customerData, error: customerError } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('user_id', userId)
+    // Get user data 
+    const { data: userData, error: userError } = await supabase
+      .from('custom_users')
+      .select('name, phone')
+      .eq('id', userId)
       .single();
-    
-    let customerId: string | undefined;
-    
-    if (customerError) {
-      console.error("Error fetching customer:", customerError);
       
-      // Create a new customer if one doesn't exist
-      if (customerError.code === "PGRST116") {
-        const { data: userData } = await supabase
-          .from('custom_users')
-          .select('name, phone')
-          .eq('id', userId)
-          .single();
-          
-        if (userData) {
-          const { data: newCustomer, error: createCustomerError } = await supabase
-            .from('customers')
-            .insert({
-              user_id: userId,
-              name: userData.name,
-              phone: userData.phone
-            })
-            .select();
-            
-          if (createCustomerError) {
-            console.error("Error creating customer:", createCustomerError);
-            toast({
-              title: "שגיאה בשליחת ההזמנה",
-              description: "לא ניתן ליצור לקוח חדש",
-              variant: "destructive",
-            });
-            return null;
-          }
-          
-          customerId = newCustomer?.[0]?.id;
-        }
-      } else {
-        toast({
-          title: "שגיאה בשליחת ההזמנה",
-          description: customerError.message,
-          variant: "destructive",
-        });
-        return null;
-      }
-    } else {
-      customerId = customerData?.id;
+    if (userError) {
+      console.error("Error fetching user data:", userError);
+      toast({
+        title: "שגיאה בשליחת ההזמנה",
+        description: "לא ניתן לאתר פרטי משתמש",
+        variant: "destructive",
+      });
+      return null;
     }
     
-    // Use either the found customer ID or fallback to the user ID
-    const finalCustomerId = customerId || userId;
+    // Call server function to create/get customer
+    const { data: functionData, error: functionError } = await supabase.functions
+      .invoke('create-or-get-customer', {
+        body: { 
+          userId,
+          name: userData.name,
+          phone: userData.phone
+        }
+      });
+      
+    if (functionError) {
+      console.error("Error with customer function:", functionError);
+      toast({
+        title: "שגיאה בשליחת ההזמנה",
+        description: "לא ניתן ליצור לקוח",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
+    if (!functionData?.customerId) {
+      console.error("No customer ID returned from function");
+      toast({
+        title: "שגיאה בשליחת ההזמנה",
+        description: "לא ניתן לאתר מזהה לקוח",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
+    // Use customer ID from the function response
+    const customerId = functionData.customerId;
     
     // Prepare order data
     const orderData: any = {
-      customer_id: finalCustomerId,
+      customer_id: customerId,
       status: 'pending',
       total: total
     };

@@ -13,6 +13,11 @@ import Catalog from "@/pages/Catalog";
 import ProductDetail from "@/pages/ProductDetail";
 import Cart from "@/pages/Cart";
 import NotFound from "@/pages/NotFound";
+import UserDashboard from "@/pages/UserDashboard";
+import NewOrder from "@/pages/NewOrder";
+import CurrentOrders from "@/pages/orders/CurrentOrders";
+import TomorrowOrder from "@/pages/orders/TomorrowOrder";
+import OrderHistory from "@/pages/orders/OrderHistory";
 
 // Admin Components & Pages
 import AdminLayout from "@/components/AdminLayout";
@@ -57,6 +62,8 @@ const App = () => (
               <Route path="/catalog" element={<Catalog />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/dashboard" element={<UserDashboard />} />
+              <Route path="/orders/new" element={<NewOrder />} />
 
               {/* Admin Routes */}
               <Route

@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -29,27 +28,27 @@ export default function ProductDialog({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-full sm:max-w-md mx-4 p-6">
+      <DialogContent className="max-w-md w-full sm:max-w-md mx-auto p-8">
         <DialogHeader className="pb-4 border-b">
           <DialogTitle className="text-center">{product.name}</DialogTitle>
           <DialogDescription className="text-center text-gray-600">מק"ט-{product.sku}</DialogDescription>
         </DialogHeader>
-        <div className="py-6 max-h-[70vh] overflow-y-auto">
+        <div className="py-6">
           <img 
             src={product.image} 
             alt={product.name} 
             className="w-full h-48 object-contain mx-auto mb-6"
           />
           
-          <div className="space-y-4">
+          <div className="space-y-4 px-2">
             {hebrewDays.map((day) => (
-              <div key={day.id} className="flex items-center justify-between border-b pb-3">
-                <span className="font-medium text-right order-2 mr-2">{day.name}</span>
+              <div key={day.id} className="flex items-center justify-between border-b pb-3 px-1">
+                <span className="font-medium">{day.name}</span>
                 <Select 
                   onValueChange={(value) => onQuantityChange(day.id, value)}
                   value={quantities[product.id]?.[day.id]?.toString() || "0"}
                 >
-                  <SelectTrigger className="w-28 order-1">
+                  <SelectTrigger className="w-28">
                     <SelectValue placeholder="0" />
                   </SelectTrigger>
                   <SelectContent position="popper" className="bg-white">
@@ -64,7 +63,7 @@ export default function ProductDialog({
             ))}
           </div>
         </div>
-        <div className="pt-4 flex justify-between space-x-2 rtl:space-x-reverse bg-gray-50">
+        <div className="pt-4 flex justify-between space-x-2 rtl:space-x-reverse bg-gray-50 p-2 rounded-b-md">
           <Button 
             className="flex-1 bg-blue-500 hover:bg-blue-600 mx-2" 
             onClick={onSave}

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "110",
+    "name": "פיתה אסלית פלאפל בהקפאה",
+    "sku": "110",
+    "photo": "pita.jpeg",
+    "jump": 50
+  },
+  {
+    "id": "111",
+    "name": "פיתה אסלית שווארמה בהקפאה",
+    "sku": "111",
+    "photo": "pita.jpeg",
+    "jump": 50
+  },
+  {
+    "id": "114",
+    "name": "פיתה ביס (פנדה ) בהקפאה",
+    "sku": "114",
+    "photo": "pita.jpeg",
+    "jump": 50
+  },
+  {
+    "id": "11",
+    "name": "פיתה אסלית טרייה",
+    "sku": "11",
+    "photo": "pita.jpeg",
+    "jump": 50
+  },
+  {
+    "id": "12",
+    "name": "פיתה קמח מלא טרייה",
+    "sku": "12",
+    "photo": "pita-full.jpeg",
+    "jump": 50
+  },
+  {
+    "id": "120",
+    "name": "פיתה קמח מלא בהקפאה",
+    "sku": "120",
+    "photo": "pita-full.jpeg",
+    "jump": 50
+  },
+  {
+    "id": "13",
+    "name": "לאפה טרייה",
+    "sku": "13",
+    "photo": "lafa.jpeg",
+    "jump": 50
+  },
+  {
+    "id": "130",
+    "name": "לאפה בהקפאה",
+    "sku": "130",
+    "photo": "lafa.jpeg",
+    "jump": 50
+  },
+  {
+    "id": "15",
+    "name": "בגט טרי",
+    "sku": "15",
+    "photo": "baget.jpeg",
+    "jump": 25
+  },
+  {
+    "id": "150",
+    "name": "בגט אפוי-קפוא",
+    "sku": "150",
+    "photo": "baget.jpeg",
+    "jump": 25
+  }
+]

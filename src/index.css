@@ -234,3 +234,36 @@ label {
 .tooltip {
   direction: rtl;
 }
+
+/* Ensure proper RTL support for action cards */
+.action-card {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Fix alignment for card content in dashboard */
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* Ensure all flexbox items are properly aligned in RTL */
+.rtl-flex {
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+/* Override any LTR alignment in action cards */
+[dir="rtl"] .action-card-item {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+/* Fix dropdown alignment issues in RTL context */
+[dir="rtl"] .dropdown-menu {
+  left: auto;
+  right: 0;
+  text-align: right;
+}

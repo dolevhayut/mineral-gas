@@ -22,7 +22,9 @@ import {
   UserIcon, 
   PencilIcon, 
   Loader2Icon,
-  PlusIcon 
+  PlusIcon,
+  TrashIcon,
+  AlertTriangleIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
@@ -61,6 +63,8 @@ export default function CustomUsers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [currentUser, setCurrentUser] = useState<Partial<User>>({
     role: "customer",
     can_order_fresh: true,
@@ -197,6 +201,39 @@ export default function CustomUsers() {
     },
   });
 
+  // Delete user mutation
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      setIsLoading(true);
+      
+      const { error } = await supabase
+        .from("custom_users")
+        .delete()
+        .eq("id", userId);
+        
+      if (error) throw error;
+      
+      setIsLoading(false);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["custom_users"] });
+      toast({
+        title: "משתמש נמחק",
+        description: "המשתמש נמחק בהצלחה",
+      });
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+    },
+    onError: (error) => {
+      setIsLoading(false);
+      toast({
+        title: "שגיאה במחיקת משתמש",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredUsers = users?.filter((user) =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.phone.includes(searchQuery) ||
@@ -214,6 +251,17 @@ export default function CustomUsers() {
       can_order_fresh: true,
     });
     setIsAddDialogOpen(true);
+  };
+
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (userToDelete) {
+      deleteUser.mutate(userToDelete.id);
+    }
   };
 
   const renderUserDialog = (isAdd: boolean) => {
@@ -392,10 +440,21 @@ export default function CustomUsers() {
                     </TableCell>
                     <TableCell>{user.orders_count}</TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
-                        <PencilIcon className="h-4 w-4 ml-2" />
-                        עריכה
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
+                          <PencilIcon className="h-4 w-4 ml-2" />
+                          עריכה
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteUser(user)}
+                        >
+                          <TrashIcon className="h-4 w-4 ml-2" />
+                          מחיקה
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -418,6 +477,55 @@ export default function CustomUsers() {
       
       {/* User Add Dialog */}
       {renderUserDialog(true)}
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangleIcon className="h-5 w-5 text-red-500" />
+              אישור מחיקת לקוח
+            </DialogTitle>
+            <DialogDescription>
+              האם אתה בטוח שברצונך למחוק את הלקוח? פעולה זו אינה ניתנת לשחזור.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {userToDelete && (
+            <div className="py-4">
+              <div className="bg-muted p-4 rounded-md mb-4">
+                <p className="font-medium">{userToDelete.name}</p>
+                <p className="text-sm text-muted-foreground">{userToDelete.phone}</p>
+                <p className="text-sm text-muted-foreground">מזהה לקוח: {userToDelete.sap_customer_id}</p>
+              </div>
+              
+              <p className="text-amber-600 text-sm">
+                מחיקת הלקוח תסיר גם את כל ההיסטוריה והנתונים הקשורים אליו.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
+              ביטול
+            </Button>
+            <Button 
+              onClick={confirmDelete}
+              disabled={isLoading}
+              variant="destructive"
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
+              {isLoading && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
+              מחק לקוח
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

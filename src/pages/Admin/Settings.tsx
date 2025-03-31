@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,15 +18,53 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
+import { ImageIcon, XIcon, Loader2Icon } from "lucide-react";
 
 export default function Settings() {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string>("/assets/logo.png");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setLogoFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setLogoPreview(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview("/assets/logo.png");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSave = () => {
-    toast({
-      title: "הגדרות נשמרו",
-      description: "ההגדרות עודכנו בהצלחה",
-    });
+    setIsLoading(true);
+    
+    // כאן תהיה הלוגיקה לשמירת הלוגו החדש לשרת
+    // לדוגמה, באמצעות Supabase Storage
+    
+    // סימולציה של העלאת קובץ
+    setTimeout(() => {
+      setIsLoading(false);
+      toast({
+        title: "הגדרות נשמרו",
+        description: "ההגדרות עודכנו בהצלחה",
+      });
+    }, 1000);
   };
 
   return (
@@ -49,6 +88,59 @@ export default function Settings() {
             <div className="space-y-2">
               <Label htmlFor="store-description">תיאור החנות</Label>
               <Input id="store-description" defaultValue="קונדיטוריה מתוקה" />
+            </div>
+            <div className="space-y-2">
+              <Label>לוגו החנות</Label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="h-32 w-32 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                  {logoPreview ? (
+                    <img 
+                      src={logoPreview} 
+                      alt="לוגו" 
+                      className="h-full w-full object-contain p-2"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full w-full bg-gray-100">
+                      <ImageIcon className="h-8 w-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2 flex-1">
+                  <div>
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full sm:w-auto"
+                    >
+                      בחר לוגו חדש
+                    </Button>
+                  </div>
+                  {logoFile && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleRemoveLogo}
+                      className="w-full sm:w-auto"
+                    >
+                      <XIcon className="h-4 w-4 ml-2" />
+                      הסר לוגו חדש
+                    </Button>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    מומלץ להעלות תמונה בגודל 200x200 פיקסלים או יותר, בפורמט PNG עם רקע שקוף
+                  </p>
+                </div>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="currency">מטבע</Label>
@@ -134,7 +226,10 @@ export default function Settings() {
         </Card>
 
         <div className="flex justify-end">
-          <Button onClick={handleSave}>שמור הגדרות</Button>
+          <Button onClick={handleSave} disabled={isLoading}>
+            {isLoading && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
+            שמור הגדרות
+          </Button>
         </div>
       </div>
     </div>

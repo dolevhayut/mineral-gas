@@ -4,7 +4,6 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   BarChart3Icon,
-  CakeIcon,
   HomeIcon,
   PackageIcon,
   ShoppingCartIcon,
@@ -46,7 +45,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       title: "מוצרים",
       href: "/admin/products",
-      icon: <CakeIcon className="h-5 w-5 ml-2" />,
+      icon: <PackageIcon className="h-5 w-5 ml-2" />,
       description: "ניהול מוצרים וקטגוריות"
     },
     {
@@ -90,20 +89,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar border-l hidden md:block">
         <div className="p-6">
-          <Link to="/admin/dashboard" className="flex items-center gap-2">
-            <CakeIcon className="h-6 w-6 text-bakery-600" />
-            <h1 className="text-xl font-noto font-bold">מאפיית אורבר</h1>
+          <Link to="/admin/dashboard" className="flex items-center justify-center gap-2">
+            <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-14 w-auto" />
           </Link>
-          <div className="mt-2 text-sm font-noto text-muted-foreground">פאנל ניהול</div>
         </div>
 
         <nav className="mt-6 px-4">
-          <div className="space-y-1">
+          <div className="space-y-3">
             {navItems.map((item) => (
-              <Link key={item.href} to={item.href}>
+              <Link key={item.href} to={item.href} className="block">
                 <Button
                   variant={isActive(item.href) ? "secondary" : "ghost"}
-                  className="w-full justify-start relative group"
+                  className="w-full justify-start relative group hover:py-3 transition-all"
                 >
                   {item.icon}
                   <span>{item.title}</span>
@@ -143,19 +140,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[240px] p-0">
-              <div className="p-6">
-                <Link to="/admin/dashboard" className="flex items-center gap-2">
-                  <CakeIcon className="h-6 w-6 text-bakery-600" />
-                  <SheetTitle className="font-noto">מאפיית אורבר</SheetTitle>
-                </Link>
-                <div className="text-sm font-noto text-muted-foreground">פאנל ניהול</div>
+              <div className="p-6 flex flex-col items-center">
+                <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-12 w-auto mb-2" />
               </div>
               <nav className="px-2">
                 {navItems.map((item) => (
-                  <Link key={item.href} to={item.href}>
+                  <Link key={item.href} to={item.href} className="block mb-3">
                     <Button
                       variant={isActive(item.href) ? "secondary" : "ghost"}
-                      className="w-full justify-start mb-1"
+                      className="w-full justify-start hover:py-3 transition-all"
                     >
                       {item.icon}
                       <span>{item.title}</span>
@@ -179,8 +172,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-noto font-bold">פאנל ניהול</h1>
-            <CakeIcon className="h-5 w-5 text-bakery-600" />
+            <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-10 w-auto" />
           </div>
         </div>
       </div>
