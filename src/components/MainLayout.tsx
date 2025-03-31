@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/context/AuthContext";
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -267,63 +268,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       <main className="flex-grow">{children}</main>
 
-      <footer className="bg-cream-100 border-t">
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="font-serif text-xl mb-4">Sweet Savor Bakery</h3>
-              <p className="text-muted-foreground">
-                Artisanal bakery offering fresh bread, pastries, and cakes made
-                from scratch daily.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium mb-4">Quick Links</h4>
-              <ul className="space-y-2">
-                <li>
-                  <Link to="/" className="hover:text-bakery-600">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/catalog" className="hover:text-bakery-600">
-                    Catalog
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/about" className="hover:text-bakery-600">
-                    About Us
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium mb-4">Contact</h4>
-              <address className="not-italic text-muted-foreground">
-                <p>123 Baker Street</p>
-                <p>Caketown, CT 12345</p>
-                <p className="mt-2">Phone: (123) 456-7890</p>
-                <p>Email: info@sweetsavor.com</p>
-              </address>
-            </div>
-            <div>
-              <h4 className="font-medium mb-4">Hours</h4>
-              <p className="text-muted-foreground">
-                <span className="font-medium">Mon-Fri:</span> 7am - 7pm
-              </p>
-              <p className="text-muted-foreground">
-                <span className="font-medium">Sat:</span> 8am - 6pm
-              </p>
-              <p className="text-muted-foreground">
-                <span className="font-medium">Sun:</span> 8am - 3pm
-              </p>
-            </div>
-          </div>
-          <div className="border-t border-gray-200 mt-8 pt-6 text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Sweet Savor Bakery. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      {/* Footer has been removed */}
     </div>
   );
 }

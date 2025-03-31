@@ -109,20 +109,9 @@ const NewOrder = () => {
     <MainLayout>
       <div className="container mx-auto px-4 pb-20">
         <div className="text-center py-4 space-y-1">
-          <img 
-            src="/lovable-uploads/512529e2-f308-401e-b298-51a1e8c9ffc2.png"
-            alt="לוגו"
-            className="mx-auto w-24 h-24"
-          />
           <h1 className="text-xl font-bold">הזמנה חדשה</h1>
           <p className="text-sm text-gray-600">ניתן להזמין עד השעה 00:00</p>
         </div>
-
-        <Button 
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-md py-3 mb-4"
-        >
-          צפייה בהיסטוריה
-        </Button>
 
         <div className="bg-amber-50 p-3 mb-4 rounded-md border border-amber-300">
           <div className="flex items-start gap-2">
@@ -154,12 +143,12 @@ const NewOrder = () => {
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md w-full sm:max-w-md mx-4 p-0">
-            <DialogHeader className="p-4 border-b">
+          <DialogContent className="max-w-md w-full sm:max-w-md mx-4 p-6">
+            <DialogHeader className="pb-4 border-b">
               <DialogTitle className="text-center">{currentProduct?.name}</DialogTitle>
               <p className="text-center text-gray-600">{currentProduct?.sku}</p>
             </DialogHeader>
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
+            <div className="py-6 max-h-[70vh] overflow-y-auto">
               <img 
                 src={currentProduct?.image} 
                 alt={currentProduct?.name} 
@@ -191,7 +180,7 @@ const NewOrder = () => {
                 ))}
               </div>
             </div>
-            <div className="p-4 flex space-x-2 bg-gray-50 rtl:space-x-reverse">
+            <div className="pt-4 flex space-x-2 bg-gray-50 rtl:space-x-reverse">
               <Button 
                 className="flex-1" 
                 variant="outline"

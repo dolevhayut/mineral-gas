@@ -2,7 +2,7 @@
 import React from "react";
 
 const StickyFooter: React.FC = () => {
-  // Rendering an empty component since we're removing the footer
+  // Empty component that doesn't render anything
   return null;
 };
 
