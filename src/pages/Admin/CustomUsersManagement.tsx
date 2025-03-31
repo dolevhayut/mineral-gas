@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { User } from "@/types";
@@ -38,7 +37,9 @@ import {
   TrashIcon, 
   UserIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  FrownIcon,
+  SmileIcon
 } from "lucide-react";
 import {
   Select,
@@ -50,6 +51,7 @@ import {
 import { FormLabel } from "@/components/ui/form";
 import { useToast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 
 interface CustomUser {
   id: string;
@@ -58,6 +60,7 @@ interface CustomUser {
   role: string;
   sap_customer_id: string | null;
   is_verified: boolean;
+  can_order_fresh: boolean;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -78,6 +81,7 @@ const CustomUsersManagement = () => {
   const [formSapId, setFormSapId] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formIsVerified, setFormIsVerified] = useState(false);
+  const [formCanOrderFresh, setFormCanOrderFresh] = useState(true);
 
   useEffect(() => {
     fetchUsers();
@@ -102,6 +106,7 @@ const CustomUsersManagement = () => {
           role: user.role as 'admin' | 'customer',
           sapCustomerId: user.sap_customer_id,
           isVerified: user.is_verified,
+          canOrderFresh: user.can_order_fresh ?? true,
           createdAt: user.created_at
         }));
         setUsers(typedUsers);
@@ -125,6 +130,7 @@ const CustomUsersManagement = () => {
     setFormSapId("");
     setFormPassword("");
     setFormIsVerified(false);
+    setFormCanOrderFresh(true);
   };
 
   const handleEditDialogOpen = (user: User) => {
@@ -134,6 +140,7 @@ const CustomUsersManagement = () => {
     setFormRole(user.role);
     setFormSapId(user.sapCustomerId || "");
     setFormIsVerified(user.isVerified);
+    setFormCanOrderFresh(user.canOrderFresh ?? true);
     setFormPassword("");
     setIsEditDialogOpen(true);
   };
@@ -157,6 +164,17 @@ const CustomUsersManagement = () => {
         user_sap_id: formSapId || null,
         user_is_verified: formIsVerified
       });
+
+      if (!error && data) {
+        const { error: updateError } = await supabase
+          .from('custom_users')
+          .update({ can_order_fresh: formCanOrderFresh })
+          .eq('id', data);
+          
+        if (updateError) {
+          console.error("Error updating can_order_fresh:", updateError);
+        }
+      }
 
       if (error) {
         throw error;
@@ -195,6 +213,15 @@ const CustomUsersManagement = () => {
           user_is_verified: formIsVerified
         });
 
+        const { error: updateError } = await supabase
+          .from('custom_users')
+          .update({ can_order_fresh: formCanOrderFresh })
+          .eq('id', currentUser.id);
+          
+        if (updateError) {
+          console.error("Error updating can_order_fresh:", updateError);
+        }
+
         if (error) {
           throw error;
         }
@@ -205,6 +232,7 @@ const CustomUsersManagement = () => {
           role: formRole,
           sap_customer_id: formSapId || null,
           is_verified: formIsVerified,
+          can_order_fresh: formCanOrderFresh
         };
 
         const { error } = await supabase
@@ -355,6 +383,23 @@ const CustomUsersManagement = () => {
                   />
                   <FormLabel htmlFor="isVerified">User is verified</FormLabel>
                 </div>
+                <div className="mb-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="can-order-fresh" 
+                      checked={formCanOrderFresh} 
+                      onCheckedChange={setFormCanOrderFresh} 
+                    />
+                    <FormLabel htmlFor="can-order-fresh">
+                      Allow Fresh Products Orders
+                    </FormLabel>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {formCanOrderFresh 
+                      ? "This user can order both fresh and frozen products" 
+                      : "This user can only order frozen products"}
+                  </p>
+                </div>
               </div>
               <DialogFooter>
                 <Button
@@ -397,6 +442,7 @@ const CustomUsersManagement = () => {
                 <TableHead>Phone Number</TableHead>
                 <TableHead>SAP ID</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Fresh Products</TableHead>
                 <TableHead>Verified</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="w-[80px]">Actions</TableHead>
@@ -444,6 +490,18 @@ const CustomUsersManagement = () => {
                       >
                         {user.role === "admin" ? "Admin" : "Customer"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.canOrderFresh ? 
+                        <Badge variant="secondary" className="bg-green-100 text-green-800">
+                          <SmileIcon className="w-3.5 h-3.5 mr-1" />
+                          Fresh Allowed
+                        </Badge> : 
+                        <Badge variant="destructive" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                          <FrownIcon className="w-3.5 h-3.5 mr-1" />
+                          Frozen Only
+                        </Badge>
+                      }
                     </TableCell>
                     <TableCell>
                       {user.isVerified ? (
@@ -561,6 +619,23 @@ const CustomUsersManagement = () => {
                 className="h-4 w-4 rounded border-gray-300 text-bakery-600 focus:ring-bakery-500"
               />
               <FormLabel htmlFor="edit-isVerified">User is verified</FormLabel>
+            </div>
+            <div className="mb-4">
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="can-order-fresh" 
+                  checked={formCanOrderFresh} 
+                  onCheckedChange={setFormCanOrderFresh} 
+                />
+                <FormLabel htmlFor="can-order-fresh">
+                  Allow Fresh Products Orders
+                </FormLabel>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                {formCanOrderFresh 
+                  ? "This user can order both fresh and frozen products" 
+                  : "This user can only order frozen products"}
+              </p>
             </div>
           </div>
           <DialogFooter>

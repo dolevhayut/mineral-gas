@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   phone: string;
@@ -6,6 +5,7 @@ export interface User {
   role: 'admin' | 'customer';
   sapCustomerId?: string;
   isVerified: boolean;
+  canOrderFresh?: boolean;
   createdAt?: string;
 }
 

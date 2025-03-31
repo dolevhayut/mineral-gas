@@ -20,6 +20,7 @@ export type Database = {
           role: string
           sap_customer_id: string | null
           updated_at: string | null
+          can_order_fresh: boolean | null
         }
         Insert: {
           created_at?: string | null
@@ -31,6 +32,7 @@ export type Database = {
           role?: string
           sap_customer_id?: string | null
           updated_at?: string | null
+          can_order_fresh?: boolean | null
         }
         Update: {
           created_at?: string | null
@@ -42,6 +44,7 @@ export type Database = {
           role?: string
           sap_customer_id?: string | null
           updated_at?: string | null
+          can_order_fresh?: boolean | null
         }
         Relationships: []
       }

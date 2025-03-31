@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,16 +33,36 @@ const Login = () => {
       : <Navigate to="/dashboard" />;
   }
 
+  // Handle phone number input
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Remove any non-digit characters except +
+    let value = e.target.value.replace(/[^\d+]/g, '');
+    
+    // Ensure only one + at the start and it's the first character
+    if (!value.startsWith('+')) {
+      value = '+' + value.replace(/\+/g, '');
+    } else {
+      value = '+' + value.slice(1).replace(/\+/g, '');
+    }
+    
+    // Remove any spaces or invisible characters
+    value = value.trim();
+    
+    console.log("Setting phone value:", value);
+    setPassword(value);
+  };
+
   const handleDebug = async () => {
     setErrorMessage(null);
     try {
-      console.log("Debug - Checking user with SAP ID:", sapCustomerId, "and password:", password);
+      console.log("Debug - Checking user with SAP ID:", sapCustomerId, "and phone:", password);
       
-      // Send request directly to check credentials
-      const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: '+1234567890', // placeholder, we're checking by SAP ID and password
-        user_password: password
-      });
+      // Query custom_users table directly
+      const { data, error } = await supabase
+        .from('custom_users')
+        .select('*')
+        .eq('sap_customer_id', sapCustomerId)
+        .eq('phone', password);
       
       console.log("Debug response:", data);
       console.log("Debug error:", error);
@@ -55,42 +74,20 @@ const Login = () => {
           description: `שגיאה: ${error.message}`,
           variant: "destructive"
         });
-      } else if (data && data.length === 0) {
-        setErrorMessage("לא נמצא משתמש עם הסיסמה שהוזנה");
+      } else if (!data || data.length === 0) {
+        setErrorMessage("לא נמצא משתמש עם הפרטים שהוזנו");
         toast({
           title: "פעולת בדיקה",
-          description: "לא נמצא משתמש עם הסיסמה שהוזנה",
+          description: "לא נמצא משתמש עם הפרטים שהוזנו",
           variant: "destructive"
         });
       } else {
-        // ניסיון למצוא משתמש עם מזהה לקוח תואם
-        const matchingUser = data.find(user => user.sap_customer_id === sapCustomerId);
-        if (matchingUser) {
-          setErrorMessage(null);
-          toast({
-            title: "פעולת בדיקה",
-            description: `נמצא משתמש: ${matchingUser.name}, תפקיד: ${matchingUser.role}`,
-          });
-        } else {
-          // אם יש משתמשים עם הסיסמה הזאת אבל אף אחד לא תואם ל-SAP ID
-          if (data.length > 0) {
-            setErrorMessage(`הסיסמה תקינה, אך מזהה הלקוח ${sapCustomerId} לא נמצא`);
-            toast({
-              title: "פעולת בדיקה",
-              description: `הסיסמה תקינה, אך מזהה הלקוח ${sapCustomerId} לא נמצא`,
-              variant: "destructive"
-            });
-            // הצגת מזהי לקוח קיימים לדיבאג
-            console.log("Available SAP IDs:", data.map(u => u.sap_customer_id));
-          } else {
-            setErrorMessage("לא נמצא משתמש עם מזהה לקוח זה");
-            toast({
-              title: "פעולת בדיקה",
-              description: "לא נמצא משתמש עם מזהה לקוח זה",
-              variant: "destructive"
-            });
-          }
-        }
+        const user = data[0];
+        setErrorMessage(null);
+        toast({
+          title: "פעולת בדיקה",
+          description: `נמצא משתמש: ${user.name}, תפקיד: ${user.role}`,
+        });
       }
     } catch (err) {
       console.error("Debug error:", err);
@@ -105,13 +102,28 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clean up the phone number before submitting
+    const cleanPhone = password.trim();
+    
+    // Validate phone number format before submitting
+    if (!cleanPhone.match(/^\+\d{6,}$/)) {
+      setErrorMessage("מספר טלפון חייב להתחיל עם + ולהכיל לפחות 6 ספרות");
+      toast({
+        title: "שגיאת קלט",
+        description: "מספר טלפון חייב להתחיל עם + ולהכיל לפחות 6 ספרות",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsLoading(true);
     setErrorMessage(null);
     
-    console.log("Attempting login with SAP ID:", sapCustomerId, "and password:", password);
+    console.log("Submitting with phone:", cleanPhone);
     
     try {
-      const success = await login(sapCustomerId, password);
+      const success = await login(sapCustomerId, cleanPhone);
       console.log("Login result:", success, "User:", user);
       
       if (success) {
@@ -185,11 +197,11 @@ const Login = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <a className="text-sm text-bakery-600 hover:underline">
-                  שכחת את הסיסמה?
+                  שכחת את מספר הטלפון?
                 </a>
                 <Label htmlFor="password" className="flex items-center gap-2">
                   <KeyIcon className="h-4 w-4" />
-                  <span>סיסמה</span>
+                  <span>מספר טלפון</span>
                 </Label>
               </div>
               <div className="relative">
@@ -197,11 +209,12 @@ const Login = () => {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePhoneChange}
                   required
                   className="text-right pr-10"
                   dir="ltr"
-                  placeholder="הזן את הסיסמה שלך"
+                  placeholder="הזן את מספר הטלפון שלך"
+                  inputMode="tel"
                 />
                 <button
                   type="button"
@@ -212,7 +225,7 @@ const Login = () => {
                 </button>
               </div>
               <div className="text-xs text-right text-muted-foreground">
-                פנה למנהל המערכת אם שכחת את הסיסמה שלך
+                פנה למנהל המערכת אם שכחת את מספר הטלפון שלך
               </div>
             </div>
           </CardContent>

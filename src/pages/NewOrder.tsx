@@ -1,8 +1,8 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 // Import our components
 import ProductsList from "@/components/order/ProductsList";
@@ -10,9 +10,14 @@ import ProductDialog from "@/components/order/ProductDialog";
 import OrderSummary from "@/components/order/OrderSummary";
 import OrderHeader from "@/components/order/OrderHeader";
 import OrderActions from "@/components/order/OrderActions";
-import { products, quantityOptions, hebrewDays } from "@/components/order/orderConstants";
+import { quantityOptions, hebrewDays, OrderProduct } from "@/components/order/orderConstants";
 import { submitOrder } from "@/services/orderService";
 import { toast } from "@/hooks/use-toast";
+
+// Define the Product interface based on our new schema
+interface Product extends OrderProduct {
+  is_frozen: boolean;
+}
 
 const NewOrder = () => {
   const { isAuthenticated, user } = useAuth();
@@ -23,6 +28,79 @@ const NewOrder = () => {
   const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [canOrderFresh, setCanOrderFresh] = useState(true);
+  
+  useEffect(() => {
+    const fetchUserPermissionsAndProducts = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Fetch user's fresh products permission
+        if (user && user.id) {
+          const { data: userData, error: userError } = await supabase
+            .from('custom_users')
+            .select('can_order_fresh')
+            .eq('id', user.id)
+            .single();
+            
+          if (userError) {
+            console.error("Error fetching user permissions:", userError);
+            toast({
+              title: "שגיאה",
+              description: "לא ניתן לטעון הרשאות משתמש",
+              variant: "destructive"
+            });
+          } else {
+            setCanOrderFresh(userData?.can_order_fresh ?? true);
+          }
+        }
+        
+        // Fetch products based on user permissions
+        const query = supabase.from('products').select('*');
+        
+        // If user can't order fresh products, filter to only show frozen products
+        if (!canOrderFresh) {
+          query.eq('is_frozen', true);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching products:", error);
+          toast({
+            title: "שגיאה",
+            description: "לא ניתן לטעון את רשימת המוצרים",
+            variant: "destructive"
+          });
+        } else {
+          // Convert database products to our Product interface
+          const formattedProducts: Product[] = (data || []).map(product => ({
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            price: product.price,
+            image: product.image || '/placeholder.png',
+            category: product.category || '',
+            is_frozen: product.is_frozen || false,
+            sku: product.sku || `מק"ט-${product.id}`,
+            available: product.available !== false,
+            featured: product.featured || false,
+            createdAt: product.created_at || new Date().toISOString()
+          }));
+          
+          setProducts(formattedProducts);
+        }
+      } catch (error) {
+        console.error("Unexpected error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUserPermissionsAndProducts();
+  }, [user, canOrderFresh]);
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -109,12 +187,26 @@ const NewOrder = () => {
     <MainLayout>
       <div className="container mx-auto px-4 pb-20">
         <OrderHeader />
-
-        <ProductsList 
-          products={products} 
-          onSelectProduct={handleProductClick}
-          quantities={quantities}
-        />
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center h-48">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <>
+            {!canOrderFresh && (
+              <div className="bg-amber-100 border border-amber-300 text-amber-800 p-4 rounded mb-4 text-center">
+                ⚠️ חשוב לשים לב: חשבונך מוגבל להזמנת מוצרים קפואים בלבד
+              </div>
+            )}
+            
+            <ProductsList 
+              products={products} 
+              onSelectProduct={handleProductClick}
+              quantities={quantities}
+            />
+          </>
+        )}
 
         <ProductDialog 
           isOpen={isDialogOpen}

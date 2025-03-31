@@ -1,4 +1,3 @@
-
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -19,12 +18,11 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center gap-8">
             <div className="flex-1 text-center lg:text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-4">
-                Freshly Baked <span className="text-bakery-600">Goodness</span>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-noto font-bold mb-4">
+                <span className="text-bakery-600">מאפיית אורבר</span>
               </h1>
-              <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-xl mx-auto lg:mx-0">
-                Discover our artisanal baked goods made with love and
-                tradition. From crusty breads to delicate pastries.
+              <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-xl mx-auto lg:mx-0 font-noto">
+                טעמים מקוריים ואיכות ללא פשרות. מהמאפים הטריים ועד העוגות המיוחדות שלנו.
               </p>
               <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
                 <Button
@@ -85,8 +83,8 @@ const Home = () => {
       {/* Features */}
       <section className="py-16 bg-cream-50">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-serif font-bold mb-8 text-center">
-            Why Choose Sweet Savor?
+          <h2 className="text-3xl font-noto font-bold mb-8 text-center">
+            למה לבחור במאפיית אורבר?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="bg-white p-6 rounded-lg shadow-sm text-center">

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,54 +47,57 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (sapCustomerId: string, password: string): Promise<boolean> => {
     try {
-      console.log("Attempting login with SAP ID:", sapCustomerId, "and password:", password);
+      console.log("Attempting login with SAP ID:", sapCustomerId, "and phone:", password);
       
-      // CRITICAL FIX: We're using the raw password as given by user
-      // We are NOT trying to treat it as a phone number
-      const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: '+1234567890', // This is a placeholder, the function ignores it and checks only sap_customer_id and password
-        user_password: password
-      });
+      // First try to get the user by SAP ID only
+      const { data: userBySap, error: sapError } = await supabase
+        .from('custom_users')
+        .select('*')
+        .eq('sap_customer_id', sapCustomerId)
+        .maybeSingle();
 
-      console.log("Login response data:", data);
-      
-      if (error) {
-        console.error("Login RPC error:", error);
+      console.log("Query by SAP ID result:", { userBySap, sapError });
+
+      if (sapError) {
+        console.error("SAP ID query error:", sapError);
         toast({
           title: "התחברות נכשלה",
-          description: `שגיאת שרת: ${error.message}`,
+          description: `שגיאת שרת: ${sapError.message}`,
           variant: "destructive",
         });
         return false;
       }
 
-      if (data && data.length > 0) {
-        // Find the user with matching SAP customer ID
-        const matchingUser = data.find(user => user.sap_customer_id === sapCustomerId);
-        
-        if (!matchingUser) {
-          console.log("Authentication failed: No matching SAP customer ID found");
-          toast({
-            title: "התחברות נכשלה",
-            description: "מזהה לקוח לא נמצא במערכת",
-            variant: "destructive",
-          });
-          return false;
-        }
-        
-        // Create a User object from the response
+      if (!userBySap) {
+        console.log("No user found with this SAP ID");
+        toast({
+          title: "התחברות נכשלה",
+          description: "מזהה לקוח לא נמצא",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log("Found user:", userBySap);
+      console.log("Comparing phones:", {
+        stored: userBySap.phone,
+        input: password,
+        match: userBySap.phone === password
+      });
+
+      // Now check if the phone matches
+      if (userBySap.phone === password) {
         const authenticatedUser: User = {
-          id: matchingUser.id,
-          phone: matchingUser.phone,
-          name: matchingUser.name,
-          role: matchingUser.role as "admin" | "customer",
-          isVerified: matchingUser.is_verified,
-          sapCustomerId: matchingUser.sap_customer_id,
+          id: userBySap.id,
+          phone: userBySap.phone,
+          name: userBySap.name,
+          role: userBySap.role as "admin" | "customer",
+          isVerified: userBySap.is_verified,
+          sapCustomerId: userBySap.sap_customer_id,
         };
 
         console.log("Authentication successful, user:", authenticatedUser);
         
-        // Store user in state and localStorage
         setUser(authenticatedUser);
         setIsAuthenticated(true);
         localStorage.setItem("user", JSON.stringify(authenticatedUser));
@@ -108,10 +110,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return true;
       }
       
-      console.log("Authentication failed: No matching user found");
+      console.log("Phone number doesn't match");
       toast({
         title: "התחברות נכשלה",
-        description: "מזהה לקוח או סיסמה לא נכונים",
+        description: "מספר טלפון שגוי",
         variant: "destructive",
       });
       return false;
