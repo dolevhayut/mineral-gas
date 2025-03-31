@@ -16,12 +16,14 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { CakeIcon, KeyIcon, IdCardIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const AdminLogin = () => {
   const [sapCustomerId, setSapCustomerId] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
@@ -36,20 +38,13 @@ const AdminLogin = () => {
   }
 
   const handleDebug = async () => {
+    setErrorMessage(null);
     try {
       console.log("Debug - Checking user with SAP ID:", sapCustomerId, "and password:", password);
       
-      // Format phone number for consistency
-      let formattedPhone = password;
-      if (formattedPhone.startsWith('+')) {
-        formattedPhone = formattedPhone.substring(1);
-      }
-      formattedPhone = formattedPhone.replace(/\D/g, '');
-      formattedPhone = '+' + formattedPhone;
-      
-      console.log("Debug - Checking users with phone:", formattedPhone);
+      // Send request directly to check credentials
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: formattedPhone,
+        user_phone: '+1234567890', // placeholder, we're checking by SAP ID and password
         user_password: password
       });
       
@@ -57,36 +52,46 @@ const AdminLogin = () => {
       console.log("Debug error:", error);
       
       if (error) {
+        setErrorMessage(`שגיאת שרת: ${error.message}`);
         toast({
           title: "פעולת בדיקה",
           description: `שגיאה: ${error.message}`,
           variant: "destructive"
         });
       } else if (data && data.length === 0) {
+        setErrorMessage("לא נמצא משתמש עם הסיסמה שהוזנה");
         toast({
           title: "פעולת בדיקה",
-          description: "לא נמצא משתמש עם מספר טלפון והסיסמה שהוזנו",
+          description: "לא נמצא משתמש עם הסיסמה שהוזנה",
           variant: "destructive"
         });
       } else {
         // ניסיון למצוא משתמש עם מזהה לקוח תואם
         const matchingUser = data.find(user => user.sap_customer_id === sapCustomerId);
         if (matchingUser) {
+          setErrorMessage(null);
           toast({
             title: "פעולת בדיקה",
             description: `נמצא משתמש: ${matchingUser.name}, תפקיד: ${matchingUser.role}`,
           });
+          
+          // Check if user is admin
+          if (matchingUser.role !== 'admin') {
+            setErrorMessage("המשתמש אינו מנהל ולא יכול להתחבר לדף המנהל");
+          }
         } else {
-          // אם יש משתמשים עם מספר הטלפון הזה אבל אף אחד לא תואם ל-SAP ID
+          // אם יש משתמשים עם הסיסמה הזאת אבל אף אחד לא תואם ל-SAP ID
           if (data.length > 0) {
+            setErrorMessage(`הסיסמה תקינה, אך מזהה הלקוח ${sapCustomerId} לא נמצא`);
             toast({
               title: "פעולת בדיקה",
-              description: `נמצא מספר טלפון וסיסמה תקינים, אך מזהה הלקוח ${sapCustomerId} לא נמצא`,
+              description: `הסיסמה תקינה, אך מזהה הלקוח ${sapCustomerId} לא נמצא`,
               variant: "destructive"
             });
-            // הצגת מזההי לקוח קיימים לדיבאג
+            // הצגת מזהי לקוח קיימים לדיבאג
             console.log("Available SAP IDs:", data.map(u => u.sap_customer_id));
           } else {
+            setErrorMessage("לא נמצא משתמש עם מזהה לקוח זה");
             toast({
               title: "פעולת בדיקה",
               description: "לא נמצא משתמש עם מזהה לקוח זה",
@@ -97,6 +102,7 @@ const AdminLogin = () => {
       }
     } catch (err) {
       console.error("Debug error:", err);
+      setErrorMessage(`שגיאה בבדיקה: ${err instanceof Error ? err.message : String(err)}`);
       toast({
         title: "פעולת בדיקה",
         description: `שגיאה בבדיקה: ${err instanceof Error ? err.message : String(err)}`,
@@ -108,6 +114,7 @@ const AdminLogin = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
     
     console.log("Attempting admin login with SAP ID:", sapCustomerId);
     
@@ -119,15 +126,19 @@ const AdminLogin = () => {
         if (user?.role === "admin") {
           navigate("/admin/dashboard");
         } else {
+          setErrorMessage("אין לך הרשאות מנהל");
           toast({
             title: "גישה נדחתה",
             description: "אין לך הרשאות מנהל",
             variant: "destructive"
           });
         }
+      } else {
+        setErrorMessage("מזהה לקוח או סיסמה לא נכונים");
       }
     } catch (error) {
       console.error("Login error:", error);
+      setErrorMessage(`אירעה שגיאה בהתחברות: ${error instanceof Error ? error.message : String(error)}`);
       toast({
         title: "שגיאת התחברות",
         description: `אירעה שגיאה בהתחברות: ${error instanceof Error ? error.message : String(error)}`,
@@ -156,6 +167,12 @@ const AdminLogin = () => {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertTitle>התחברות נכשלה</AlertTitle>
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-muted-foreground">

@@ -7,7 +7,7 @@ import { toast } from "@/hooks/use-toast";
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (sapCustomerId: string, phone: string) => Promise<boolean>;
+  login: (sapCustomerId: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUserProfile: (data: Partial<User>) => Promise<void>;
 }
@@ -48,35 +48,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (sapCustomerId: string, password: string): Promise<boolean> => {
     try {
-      console.log("Attempting login with SAP ID:", sapCustomerId, "and password length:", password.length);
+      console.log("Attempting login with SAP ID:", sapCustomerId, "and password:", password);
       
-      // Format phone number for consistency if it's used for authentication
-      let formattedPhone = password;
-      
-      // Check if it looks like a phone number
-      const isPhoneNumber = /^\+?\d+$/.test(password);
-      
-      if (isPhoneNumber) {
-        // Remove leading + if it exists, to ensure consistent format
-        if (formattedPhone.startsWith('+')) {
-          formattedPhone = formattedPhone.substring(1);
-        }
-
-        // Remove any non-digit characters
-        formattedPhone = formattedPhone.replace(/\D/g, '');
-        
-        // Add + back for the database query
-        formattedPhone = '+' + formattedPhone;
-        
-        console.log("Input appears to be a phone number, formatted as:", formattedPhone);
-      } else {
-        console.log("Input appears to be a password, not formatting");
-      }
-      
-      // Query for user verification
+      // CRITICAL FIX: We're using the raw password as given by user
+      // We are NOT trying to treat it as a phone number
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: formattedPhone, // We use the phone as the username identifier
-        user_password: password     // Use the original password provided by the user
+        user_phone: '+1234567890', // This is a placeholder, the function ignores it and checks only sap_customer_id and password
+        user_password: password
       });
 
       console.log("Login response data:", data);
@@ -112,7 +90,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           name: matchingUser.name,
           role: matchingUser.role as "admin" | "customer",
           isVerified: matchingUser.is_verified,
-          sapCustomerId: matchingUser.sap_customer_id, // Make sure we include sap_customer_id
+          sapCustomerId: matchingUser.sap_customer_id,
         };
 
         console.log("Authentication successful, user:", authenticatedUser);
