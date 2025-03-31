@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -45,17 +47,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (phone: string, password: string): Promise<boolean> => {
     try {
-      // For testing purposes, mock a successful login
-      if (phone && password) {
-        // For demo, hard coding a user with proper UUID format
+      // For demo purposes, use the custom_users table with the RPC function
+      const { data, error } = await supabase.rpc('verify_user_password', {
+        user_phone: phone,
+        user_password: password
+      });
+
+      if (error) {
+        console.error("Login error:", error);
+        toast({
+          title: "התחברות נכשלה",
+          description: "שם משתמש או סיסמה לא נכונים",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (data && data.length > 0) {
+        const userData = data[0];
+        
+        // Create a User object from the response
         const authenticatedUser: User = {
-          id: phone === "admin" 
-            ? "f47ac10b-58cc-4372-a567-0e02b2c3d479" // Admin UUID
-            : "550e8400-e29b-41d4-a716-446655440000", // Regular user UUID
-          phone: phone,
-          name: "ישראל ישראלי",
-          role: phone === "admin" ? "admin" : "customer",
-          isVerified: true,
+          id: userData.id,
+          phone: userData.phone,
+          name: userData.name,
+          role: userData.role,
+          isVerified: userData.is_verified,
         };
 
         // Store user in state and localStorage
@@ -64,9 +81,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         localStorage.setItem("user", JSON.stringify(authenticatedUser));
         return true;
       }
+      
+      toast({
+        title: "התחברות נכשלה",
+        description: "שם משתמש או סיסמה לא נכונים",
+        variant: "destructive",
+      });
       return false;
     } catch (error) {
       console.error("Login error:", error);
+      toast({
+        title: "שגיאת התחברות",
+        description: "אירעה שגיאה בעת נסיון ההתחברות",
+        variant: "destructive",
+      });
       return false;
     }
   };

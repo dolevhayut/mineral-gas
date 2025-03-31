@@ -20,12 +20,15 @@ export const submitOrder = async (
     
     console.log("Submitting order for user:", userId);
     
-    // Check if user ID is valid UUID format before submitting
-    if (typeof userId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
-      console.error("Invalid user ID format:", userId);
+    // Check if there are items in the order
+    const hasItems = Object.values(quantities).some(
+      dayQuantities => Object.values(dayQuantities).some(qty => qty > 0)
+    );
+    
+    if (!hasItems) {
       toast({
         title: "שגיאה בשליחת ההזמנה",
-        description: "פורמט מזהה משתמש לא תקין",
+        description: "לא נבחרו מוצרים להזמנה",
         variant: "destructive",
       });
       return null;
