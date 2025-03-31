@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser) as User;
+        console.log("Loaded saved user from localStorage:", parsedUser);
         setUser(parsedUser);
         setIsAuthenticated(true);
       } catch (error) {
@@ -47,17 +48,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (phone: string, password: string): Promise<boolean> => {
     try {
+      // Ensure phone is properly formatted for the query
+      const formattedPhone = phone.startsWith("+") ? phone : phone;
+      console.log("Attempting login with formatted phone:", formattedPhone);
+      
       // For demo purposes, use the custom_users table with the RPC function
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: phone,
+        user_phone: formattedPhone,
         user_password: password
       });
 
+      console.log("Login response data:", data);
+      
       if (error) {
-        console.error("Login error:", error);
+        console.error("Login RPC error:", error);
         toast({
           title: "התחברות נכשלה",
-          description: "שם משתמש או סיסמה לא נכונים",
+          description: `שגיאת שרת: ${error.message}`,
           variant: "destructive",
         });
         return false;
@@ -75,13 +82,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           isVerified: userData.is_verified,
         };
 
+        console.log("Authentication successful, user:", authenticatedUser);
+        
         // Store user in state and localStorage
         setUser(authenticatedUser);
         setIsAuthenticated(true);
         localStorage.setItem("user", JSON.stringify(authenticatedUser));
+        
+        toast({
+          title: "ברוכים הבאים",
+          description: `התחברת בהצלחה, ${authenticatedUser.name}`,
+        });
+        
         return true;
       }
       
+      console.log("Authentication failed: No matching user found");
       toast({
         title: "התחברות נכשלה",
         description: "שם משתמש או סיסמה לא נכונים",
