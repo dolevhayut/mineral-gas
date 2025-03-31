@@ -10,12 +10,12 @@ interface OrderSummaryItemProps {
 
 export default function OrderSummaryItem({ product, day, quantity, index }: OrderSummaryItemProps) {
   return (
-    <div key={`${product.id}-${day}-${index}`} className="flex justify-between border-b pb-2">
+    <div key={`${product.id}-${day}-${index}`} className="flex justify-between border-b pb-3 pt-2">
       <div className="text-left">
-        <span className="font-medium">{quantity}×</span>
+        <span className="font-medium text-lg text-bakery-600">{quantity}×</span>
       </div>
       <div className="text-right">
-        <p>{product.name}</p>
+        <p className="font-medium">{product.name}</p>
         <p className="text-sm text-gray-500">יום: {getHebrewDayName(day)}</p>
       </div>
     </div>
