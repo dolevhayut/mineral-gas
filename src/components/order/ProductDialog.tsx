@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { OrderProduct } from "./orderConstants";
@@ -32,7 +32,7 @@ export default function ProductDialog({
       <DialogContent className="max-w-md w-full sm:max-w-md mx-4 p-6">
         <DialogHeader className="pb-4 border-b">
           <DialogTitle className="text-center">{product.name}</DialogTitle>
-          <p className="text-center text-gray-600">{product.sku}</p>
+          <DialogDescription className="text-center text-gray-600">מק"ט-{product.sku}</DialogDescription>
         </DialogHeader>
         <div className="py-6 max-h-[70vh] overflow-y-auto">
           <img 
@@ -46,9 +46,9 @@ export default function ProductDialog({
               <div key={day.id} className="flex items-center justify-between border-b pb-3">
                 <Select 
                   onValueChange={(value) => onQuantityChange(day.id, value)}
-                  value={product && quantities[product.id]?.[day.id]?.toString() || "0"}
+                  value={quantities[product.id]?.[day.id]?.toString() || "0"}
                 >
-                  <SelectTrigger className="w-full text-right">
+                  <SelectTrigger className="w-28">
                     <SelectValue placeholder="0" />
                   </SelectTrigger>
                   <SelectContent position="popper" className="bg-white">
@@ -59,7 +59,7 @@ export default function ProductDialog({
                     ))}
                   </SelectContent>
                 </Select>
-                <span className="font-medium">{day.name}</span>
+                <span className="font-medium text-right">{day.name}</span>
               </div>
             ))}
           </div>
