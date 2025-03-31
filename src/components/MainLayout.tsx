@@ -55,64 +55,64 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <MenuIcon />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[250px]">
+              <SheetContent side="right" className="w-[250px]">
                 <SheetHeader className="mb-4">
-                  <SheetTitle>Sweet Savor Bakery</SheetTitle>
+                  <SheetTitle>מאפיית סוויט סייבור</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col space-y-2">
                   <Link
                     to="/dashboard"
-                    className="px-4 py-2 rounded-md hover:bg-accent"
+                    className="px-4 py-2 rounded-md hover:bg-accent text-right"
                   >
-                    Dashboard
+                    לוח בקרה
                   </Link>
                   <Link
                     to="/orders/new"
-                    className="px-4 py-2 rounded-md hover:bg-accent"
+                    className="px-4 py-2 rounded-md hover:bg-accent text-right"
                   >
-                    New Order
+                    הזמנה חדשה
                   </Link>
                   <Link
                     to="/orders"
-                    className="px-4 py-2 rounded-md hover:bg-accent"
+                    className="px-4 py-2 rounded-md hover:bg-accent text-right"
                   >
-                    History
+                    היסטוריה
                   </Link>
                   <Link
                     to="/settings"
-                    className="px-4 py-2 rounded-md hover:bg-accent"
+                    className="px-4 py-2 rounded-md hover:bg-accent text-right"
                   >
-                    Settings
+                    הגדרות
                   </Link>
                   <Link
                     to="/reports"
-                    className="px-4 py-2 rounded-md hover:bg-accent"
+                    className="px-4 py-2 rounded-md hover:bg-accent text-right"
                   >
-                    Reports
+                    דוחות
                   </Link>
                   {user?.role === "admin" && (
                     <Link
                       to="/admin"
-                      className="px-4 py-2 rounded-md hover:bg-accent"
+                      className="px-4 py-2 rounded-md hover:bg-accent text-right"
                     >
-                      Admin Dashboard
+                      ניהול
                     </Link>
                   )}
                   {isAuthenticated ? (
                     <Button
                       variant="ghost"
-                      className="justify-start px-4 py-2 h-auto font-normal"
+                      className="justify-end px-4 py-2 h-auto font-normal"
                       onClick={() => logout()}
                     >
-                      Logout
+                      התנתקות
                     </Button>
                   ) : (
                     <Button
                       variant="ghost"
-                      className="justify-start px-4 py-2 h-auto font-normal"
+                      className="justify-end px-4 py-2 h-auto font-normal"
                       onClick={() => navigate("/login")}
                     >
-                      Login
+                      התחברות
                     </Button>
                   )}
                 </div>
@@ -122,9 +122,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <CakeIcon className="h-6 w-6 mr-2 text-bakery-600" />
+            <CakeIcon className="h-6 w-6 ml-2 text-bakery-600" />
             <span className="text-xl font-serif font-bold tracking-tight">
-              Sweet Savor
+              סוויט סייבור
             </span>
           </Link>
 
@@ -137,12 +137,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <NavigationMenuLink
                       className={navigationMenuTriggerStyle()}
                     >
-                      Dashboard
+                      לוח בקרה
                     </NavigationMenuLink>
                   </Link>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger>Orders</NavigationMenuTrigger>
+                  <NavigationMenuTrigger>הזמנות</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
                       <li>
@@ -151,10 +151,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
                           <div className="text-sm font-medium leading-none">
-                            New Order
+                            הזמנה חדשה
                           </div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Create a new order
+                            יצירת הזמנה חדשה
                           </p>
                         </Link>
                       </li>
@@ -164,10 +164,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
                           <div className="text-sm font-medium leading-none">
-                            History
+                            היסטוריה
                           </div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            View your order history
+                            צפייה בהיסטוריית ההזמנות שלך
                           </p>
                         </Link>
                       </li>
@@ -179,7 +179,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <NavigationMenuLink
                       className={navigationMenuTriggerStyle()}
                     >
-                      Reports
+                      דוחות
                     </NavigationMenuLink>
                   </Link>
                 </NavigationMenuItem>
@@ -188,7 +188,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <NavigationMenuLink
                       className={navigationMenuTriggerStyle()}
                     >
-                      Settings
+                      הגדרות
                     </NavigationMenuLink>
                   </Link>
                 </NavigationMenuItem>
@@ -201,7 +201,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           "text-bakery-600"
                         )}
                       >
-                        Admin
+                        ניהול
                       </NavigationMenuLink>
                     </Link>
                   </NavigationMenuItem>
@@ -211,7 +211,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </div>
 
           {/* Right Side - User & Cart */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 rtl:space-x-reverse">
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -223,33 +223,35 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <Avatar className="h-8 w-8 border">
                       <AvatarFallback className="bg-bakery-100 text-bakery-800">
                         {user?.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
+                          ? user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                          : ""}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>
-                    {user?.name || "My Account"}
+                    {user?.name || "החשבון שלי"}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => navigate("/settings")}
                   >
-                    Settings
+                    הגדרות
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => navigate("/orders")}
                   >
-                    History
+                    היסטוריה
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => logout()}
                   >
-                    Logout
+                    התנתקות
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -259,7 +261,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 className="bg-bakery-600 hover:bg-bakery-700"
                 onClick={() => navigate("/login")}
               >
-                Log In
+                התחברות
               </Button>
             )}
           </div>
@@ -267,8 +269,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </header>
 
       <main className="flex-grow">{children}</main>
-
-      {/* Footer has been removed */}
     </div>
   );
 }

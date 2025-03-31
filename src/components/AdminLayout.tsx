@@ -28,29 +28,29 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const navItems = [
     {
-      title: "Dashboard",
+      title: "לוח בקרה",
       href: "/admin",
-      icon: <HomeIcon className="h-5 w-5 mr-2" />,
+      icon: <HomeIcon className="h-5 w-5 ml-2" />,
     },
     {
-      title: "Products",
+      title: "מוצרים",
       href: "/admin/products",
-      icon: <CakeIcon className="h-5 w-5 mr-2" />,
+      icon: <CakeIcon className="h-5 w-5 ml-2" />,
     },
     {
-      title: "Orders",
+      title: "הזמנות",
       href: "/admin/orders",
-      icon: <ShoppingCartIcon className="h-5 w-5 mr-2" />,
+      icon: <ShoppingCartIcon className="h-5 w-5 ml-2" />,
     },
     {
-      title: "Users",
+      title: "משתמשים",
       href: "/admin/users",
-      icon: <UsersIcon className="h-5 w-5 mr-2" />,
+      icon: <UsersIcon className="h-5 w-5 ml-2" />,
     },
     {
-      title: "Analytics",
+      title: "נתונים",
       href: "/admin/analytics",
-      icon: <BarChart3Icon className="h-5 w-5 mr-2" />,
+      icon: <BarChart3Icon className="h-5 w-5 ml-2" />,
     },
   ];
 
@@ -61,13 +61,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-r hidden md:block">
+      <aside className="w-64 bg-sidebar border-l hidden md:block">
         <div className="p-6">
           <Link to="/" className="flex items-center">
+            <h1 className="text-xl font-serif font-bold">סוויט סייבור</h1>
             <CakeIcon className="h-6 w-6 mr-2 text-bakery-600" />
-            <h1 className="text-xl font-serif font-bold">Sweet Savor</h1>
           </Link>
-          <div className="mt-2 text-sm text-muted-foreground">Admin Panel</div>
+          <div className="mt-2 text-sm text-muted-foreground text-right">פאנל ניהול</div>
         </div>
 
         <nav className="mt-6 px-4 pb-4">
@@ -78,13 +78,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start",
+                      "w-full justify-end",
                       isActive(item.href) &&
                         "bg-accent text-accent-foreground font-medium"
                     )}
                   >
-                    {item.icon}
                     {item.title}
+                    {item.icon}
                   </Button>
                 </Link>
               </li>
@@ -95,10 +95,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <Link to="/catalog">
               <Button
                 variant="outline"
-                className="w-full justify-start"
+                className="w-full justify-end"
               >
-                <PackageIcon className="h-5 w-5 mr-2" />
-                View Store
+                צפייה בחנות
+                <PackageIcon className="h-5 w-5 ml-2" />
               </Button>
             </Link>
           </div>
@@ -109,11 +109,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div className="flex-1 flex flex-col">
         <div className="md:hidden bg-sidebar p-4 border-b">
           <div className="flex justify-between items-center">
+            <div className="text-sm font-medium">ניהול</div>
             <Link to="/" className="flex items-center">
+              <h1 className="text-lg font-serif font-bold">סוויט סייבור</h1>
               <CakeIcon className="h-6 w-6 mr-2 text-bakery-600" />
-              <h1 className="text-lg font-serif font-bold">Sweet Savor</h1>
             </Link>
-            <div className="text-sm font-medium">Admin</div>
           </div>
 
           {/* Mobile Navigation */}
@@ -126,7 +126,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   className="whitespace-nowrap"
                 >
                   {item.icon}
-                  <span className="hidden sm:inline ml-2">{item.title}</span>
+                  <span className="hidden sm:inline mr-2">{item.title}</span>
                 </Button>
               </Link>
             ))}

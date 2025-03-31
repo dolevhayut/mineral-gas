@@ -115,10 +115,10 @@ const NewOrder = () => {
 
         <div className="bg-amber-50 p-3 mb-4 rounded-md border border-amber-300">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-1" />
             <p className="text-amber-700 text-sm">
               יש ללחוץ על פריט כדי להוסיפו להזמנה, ולאחר מכן לבחור כמות רצויה. בסוף התהליך יש ללחוץ שמור עבור כל פריט ואז שליחת ההזמנה בתחתית המסך
             </p>
+            <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-1" />
           </div>
         </div>
 
@@ -129,15 +129,15 @@ const NewOrder = () => {
               className="overflow-hidden flex items-center border border-gray-200 cursor-pointer"
               onClick={() => handleProductClick(product.id)}
             >
-              <div className="flex-1 p-4 text-right">
-                <h3 className="font-medium">{product.name}</h3>
-                <p className="text-sm text-gray-500">{product.sku}</p>
-              </div>
               <img 
                 src={product.image} 
                 alt={product.name} 
                 className="w-24 h-24 object-cover"
               />
+              <div className="flex-1 p-4 text-right">
+                <h3 className="font-medium">{product.name}</h3>
+                <p className="text-sm text-gray-500">{product.sku}</p>
+              </div>
             </Card>
           ))}
         </div>
@@ -182,17 +182,17 @@ const NewOrder = () => {
             </div>
             <div className="pt-4 flex space-x-2 bg-gray-50 rtl:space-x-reverse">
               <Button 
+                className="flex-1 bg-blue-500 hover:bg-blue-600" 
+                onClick={handleSave}
+              >
+                שמור
+              </Button>
+              <Button 
                 className="flex-1" 
                 variant="outline"
                 onClick={handleCancel}
               >
                 חזור
-              </Button>
-              <Button 
-                className="flex-1 bg-blue-500 hover:bg-blue-600" 
-                onClick={handleSave}
-              >
-                שמור
               </Button>
             </div>
           </DialogContent>

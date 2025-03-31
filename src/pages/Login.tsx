@@ -38,13 +38,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 auth-container" dir="rtl">
+    <div className="min-h-screen flex items-center justify-center px-4 auth-container">
       <Card className="w-full max-w-sm mx-auto">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
             <CakeIcon className="h-12 w-12 text-bakery-500" />
           </div>
-          <CardTitle className="text-2xl">Sweet Savor Bakery</CardTitle>
+          <CardTitle className="text-2xl">מאפיית סוויט סייבור</CardTitle>
           <CardDescription>
             הזן את מספר הטלפון והסיסמה שלך להתחברות
           </CardDescription>

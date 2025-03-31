@@ -1,6 +1,5 @@
 
-import { useState } from "react";
-import MainLayoutWithFooter from "@/components/MainLayoutWithFooter";
+import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
 import { sampleOrders } from "@/lib/data";
@@ -31,10 +30,20 @@ const Orders = () => {
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
+
+  const translateStatus = (status: string) => {
+    switch (status) {
+      case "pending": return "ממתין";
+      case "processing": return "בתהליך";
+      case "completed": return "הושלם";
+      case "cancelled": return "בוטל";
+      default: return status;
+    }
+  };
   
   if (userOrders.length === 0) {
     return (
-      <MainLayoutWithFooter>
+      <MainLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-md mx-auto text-center">
             <h1 className="text-2xl font-bold mb-4">ההזמנות שלי</h1>
@@ -43,12 +52,12 @@ const Orders = () => {
             </p>
           </div>
         </div>
-      </MainLayoutWithFooter>
+      </MainLayout>
     );
   }
   
   return (
-    <MainLayoutWithFooter>
+    <MainLayout>
       <div className="container mx-auto px-4 py-8 pb-20">
         <h1 className="text-2xl font-bold mb-6 text-center">ההזמנות שלי</h1>
         
@@ -57,42 +66,42 @@ const Orders = () => {
             <Card key={order.id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">הזמנה #{order.id}</h3>
-                    <p className="text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
                   <Badge 
                     variant="outline"
                     className={getStatusColor(order.status)}
                   >
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    {translateStatus(order.status)}
                   </Badge>
+                  <div className="text-right">
+                    <h3 className="font-medium">הזמנה #{order.id}</h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(order.createdAt).toLocaleDateString('he-IL')}
+                    </p>
+                  </div>
                 </div>
                 
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <h4 className="text-sm font-medium mb-1">פריטים:</h4>
+                  <h4 className="text-sm font-medium mb-1 text-right">פריטים:</h4>
                   <ul className="space-y-1">
                     {order.items.map((item, index) => (
                       <li key={index} className="text-sm flex justify-between">
-                        <span>{item.productName}</span>
                         <span className="text-gray-500">x{item.quantity}</span>
+                        <span>{item.productName}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
                 
                 <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
-                  <span className="text-sm font-medium">סה"כ:</span>
                   <span className="font-bold">{formatCurrency(order.total)}</span>
+                  <span className="text-sm font-medium">סה"כ:</span>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
-    </MainLayoutWithFooter>
+    </MainLayout>
   );
 };
 
