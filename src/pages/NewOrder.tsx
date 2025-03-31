@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
+import { Button } from "@/components/ui/button"; // Add this import
 
 // Import our components
 import ProductsList from "@/components/order/ProductsList";
