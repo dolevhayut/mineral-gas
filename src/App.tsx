@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/Admin/Dashboard";
 import ProductsManagement from "./pages/Admin/ProductsManagement";
 import UsersManagement from "./pages/Admin/UsersManagement";
+import CustomUsersManagement from "./pages/Admin/CustomUsersManagement";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
 import AdminLogin from "./pages/Admin/Login";
 
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/products" element={<ProductsManagement />} />
               <Route path="/admin/users" element={<UsersManagement />} />
+              <Route path="/admin/custom-users" element={<CustomUsersManagement />} />
               <Route path="/admin/orders" element={<OrdersManagement />} />
               
               {/* 404 Not Found */}

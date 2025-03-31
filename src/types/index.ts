@@ -4,7 +4,9 @@ export interface User {
   phone: string;
   name: string;
   role: 'admin' | 'customer';
-  createdAt: string;
+  sapCustomerId?: string;
+  isVerified: boolean;
+  createdAt?: string;
 }
 
 export interface Product {

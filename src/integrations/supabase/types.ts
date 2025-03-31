@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      custom_users: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_verified: boolean | null
+          name: string
+          password: string
+          phone: string
+          role: string
+          sap_customer_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          name: string
+          password: string
+          phone: string
+          role?: string
+          sap_customer_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          name?: string
+          password?: string
+          phone?: string
+          role?: string
+          sap_customer_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -193,7 +229,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      verify_user_password: {
+        Args: {
+          user_phone: string
+          user_password: string
+        }
+        Returns: {
+          id: string
+          phone: string
+          name: string
+          role: string
+          sap_customer_id: string
+          is_verified: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

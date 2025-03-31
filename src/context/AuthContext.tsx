@@ -2,7 +2,7 @@
 import { User } from "@/types";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { sampleUsers } from "@/lib/data";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
@@ -39,19 +39,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (phone: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // For demo purposes, we'll use a simple check
-      // In a real app, this would be a proper API call with password hashing
-      const foundUser = sampleUsers.find(u => u.phone === phone);
-      
-      if (foundUser && password === "password") { // Simple password for demo
-        setUser(foundUser);
-        localStorage.setItem("bakery_user", JSON.stringify(foundUser));
+      // Use our custom SQL function to verify the user's credentials
+      const { data, error } = await supabase
+        .rpc('verify_user_password', {
+          user_phone: phone,
+          user_password: password
+        });
+
+      if (error) {
+        toast({
+          title: "Login Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (data && data.length > 0) {
+        const userData: User = {
+          id: data[0].id,
+          phone: data[0].phone,
+          name: data[0].name,
+          role: data[0].role as 'admin' | 'customer',
+          sapCustomerId: data[0].sap_customer_id,
+          isVerified: data[0].is_verified
+        };
+
+        setUser(userData);
+        localStorage.setItem("bakery_user", JSON.stringify(userData));
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${foundUser.name}!`,
+          description: `Welcome back, ${userData.name}!`,
         });
         return true;
       } else {
@@ -63,6 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return false;
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Login Error",
         description: "Something went wrong. Please try again.",
