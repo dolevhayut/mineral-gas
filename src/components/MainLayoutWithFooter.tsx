@@ -13,6 +13,7 @@ export default function MainLayoutWithFooter({ children }: MainLayoutWithFooterP
       <MainLayout>
         {children}
       </MainLayout>
+      <StickyFooter />
     </div>
   );
 }
