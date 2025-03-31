@@ -2,12 +2,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Product } from "@/types";
+import { OrderProduct } from "./orderConstants";
 
 interface ProductDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  product: Product | null;
+  product: OrderProduct | null;
   quantities: Record<string, Record<string, number>>;
   onQuantityChange: (day: string, value: string) => void;
   onSave: () => void;

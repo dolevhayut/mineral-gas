@@ -1,9 +1,9 @@
 
-import { Product } from "@/types";
+import { OrderProduct } from "./orderConstants";
 import ProductCard from "./ProductCard";
 
 interface ProductsListProps {
-  products: Product[];
+  products: OrderProduct[];
   onSelectProduct: (productId: string) => void;
 }
 

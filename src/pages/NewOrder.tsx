@@ -5,11 +5,11 @@ import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
 
-// Import our new components
+// Import our components
 import ProductsList from "@/components/order/ProductsList";
 import ProductDialog from "@/components/order/ProductDialog";
 import OrderSubmitButton from "@/components/order/OrderSubmitButton";
-import { products, quantityOptions, hebrewDays } from "@/components/order/orderConstants";
+import { products, quantityOptions, hebrewDays, OrderProduct } from "@/components/order/orderConstants";
 
 const NewOrder = () => {
   const { isAuthenticated } = useAuth();

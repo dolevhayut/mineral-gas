@@ -1,9 +1,9 @@
 
 import { Card } from "@/components/ui/card";
-import { Product } from "@/types";
+import { OrderProduct } from "./orderConstants";
 
 interface ProductCardProps {
-  product: Product;
+  product: OrderProduct;
   onSelect: (productId: string) => void;
 }
 
