@@ -29,6 +29,11 @@ const menuItems = [
 
 const StickyFooter: React.FC = () => {
   const location = useLocation();
+  
+  // Do not show footer in admin routes
+  if (location.pathname.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
