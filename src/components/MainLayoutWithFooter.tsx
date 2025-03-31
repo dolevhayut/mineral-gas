@@ -1,7 +1,6 @@
 
 import { ReactNode } from "react";
 import MainLayout from "./MainLayout";
-import StickyFooter from "./StickyFooter";
 
 interface MainLayoutWithFooterProps {
   children: ReactNode;
@@ -13,7 +12,6 @@ export default function MainLayoutWithFooter({ children }: MainLayoutWithFooterP
       <MainLayout>
         {children}
       </MainLayout>
-      <StickyFooter />
     </div>
   );
 }

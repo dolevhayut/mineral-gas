@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, ChevronDown } from "lucide-react";
-import MainLayoutWithFooter from "@/components/MainLayoutWithFooter";
+import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -106,7 +106,7 @@ const NewOrder = () => {
   const currentProduct = products.find(p => p.id === selectedProduct);
 
   return (
-    <MainLayoutWithFooter>
+    <MainLayout>
       <div className="container mx-auto px-4 pb-20">
         <div className="text-center py-4 space-y-1">
           <img 
@@ -154,19 +154,19 @@ const NewOrder = () => {
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="p-0 max-w-md w-full">
+          <DialogContent className="max-w-md w-full sm:max-w-md mx-4 p-0">
             <DialogHeader className="p-4 border-b">
               <DialogTitle className="text-center">{currentProduct?.name}</DialogTitle>
               <p className="text-center text-gray-600">{currentProduct?.sku}</p>
             </DialogHeader>
-            <div className="p-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
               <img 
                 src={currentProduct?.image} 
                 alt={currentProduct?.name} 
-                className="w-full h-48 object-contain mx-auto"
+                className="w-full h-48 object-contain mx-auto mb-6"
               />
               
-              <div className="space-y-4 mt-4">
+              <div className="space-y-4">
                 {hebrewDays.map((day) => (
                   <div key={day.id} className="flex items-center justify-between border-b pb-3">
                     <div className="relative w-48">
@@ -191,7 +191,7 @@ const NewOrder = () => {
                 ))}
               </div>
             </div>
-            <div className="p-2 flex space-x-2 bg-gray-50 rtl:space-x-reverse">
+            <div className="p-4 flex space-x-2 bg-gray-50 rtl:space-x-reverse">
               <Button 
                 className="flex-1" 
                 variant="outline"
@@ -217,7 +217,7 @@ const NewOrder = () => {
           </Button>
         </div>
       </div>
-    </MainLayoutWithFooter>
+    </MainLayout>
   );
 };
 

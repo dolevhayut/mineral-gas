@@ -1,19 +1,11 @@
 
 import { useState } from "react";
-import MainLayout from "@/components/MainLayout";
+import MainLayoutWithFooter from "@/components/MainLayoutWithFooter";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
 import { sampleOrders } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const Orders = () => {
@@ -42,70 +34,65 @@ const Orders = () => {
   
   if (userOrders.length === 0) {
     return (
-      <MainLayout>
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-3xl font-serif font-bold mb-4">Your Orders</h1>
-            <p className="text-muted-foreground mb-8">
-              You haven't placed any orders yet.
+      <MainLayoutWithFooter>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto text-center">
+            <h1 className="text-2xl font-bold mb-4">ההזמנות שלי</h1>
+            <p className="text-gray-500 mb-8">
+              אין לך הזמנות קודמות.
             </p>
           </div>
         </div>
-      </MainLayout>
+      </MainLayoutWithFooter>
     );
   }
   
   return (
-    <MainLayout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-serif font-bold mb-6">Your Orders</h1>
+    <MainLayoutWithFooter>
+      <div className="container mx-auto px-4 py-8 pb-20">
+        <h1 className="text-2xl font-bold mb-6 text-center">ההזמנות שלי</h1>
         
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <Table>
-            <TableCaption>A list of your recent orders.</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {userOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">#{order.id}</TableCell>
-                  <TableCell>
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <ul className="text-sm">
-                      {order.items.map((item, index) => (
-                        <li key={index}>
-                          {item.quantity} × {item.productName}
-                        </li>
-                      ))}
-                    </ul>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="outline"
-                      className={getStatusColor(order.status)}
-                    >
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(order.total)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="space-y-4">
+          {userOrders.map((order) => (
+            <Card key={order.id} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium">הזמנה #{order.id}</h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Badge 
+                    variant="outline"
+                    className={getStatusColor(order.status)}
+                  >
+                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  </Badge>
+                </div>
+                
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <h4 className="text-sm font-medium mb-1">פריטים:</h4>
+                  <ul className="space-y-1">
+                    {order.items.map((item, index) => (
+                      <li key={index} className="text-sm flex justify-between">
+                        <span>{item.productName}</span>
+                        <span className="text-gray-500">x{item.quantity}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+                  <span className="text-sm font-medium">סה"כ:</span>
+                  <span className="font-bold">{formatCurrency(order.total)}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
-    </MainLayout>
+    </MainLayoutWithFooter>
   );
 };
 

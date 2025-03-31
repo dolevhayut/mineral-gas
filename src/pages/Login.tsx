@@ -39,12 +39,12 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 auth-container" dir="rtl">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-sm mx-auto">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
             <CakeIcon className="h-12 w-12 text-bakery-500" />
           </div>
-          <CardTitle className="text-3xl">Sweet Savor Bakery</CardTitle>
+          <CardTitle className="text-2xl">Sweet Savor Bakery</CardTitle>
           <CardDescription>
             הזן את מספר הטלפון והסיסמה שלך להתחברות
           </CardDescription>
@@ -55,18 +55,19 @@ const Login = () => {
               <Label htmlFor="phone">מספר טלפון</Label>
               <Input
                 id="phone"
-                placeholder="+1234567890"
+                placeholder="05X-XXXXXXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
+                className="text-right"
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">סיסמה</Label>
                 <a className="text-sm text-bakery-600 hover:underline">
                   שכחת את הסיסמה?
                 </a>
+                <Label htmlFor="password">סיסמה</Label>
               </div>
               <Input
                 id="password"
@@ -74,6 +75,7 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="text-right"
               />
             </div>
           </CardContent>
