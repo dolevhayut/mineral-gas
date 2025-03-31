@@ -43,6 +43,8 @@ export const submitOrder = async (
       .eq('user_id', userId)
       .single();
     
+    let customerId: string | undefined;
+    
     if (customerError) {
       console.error("Error fetching customer:", customerError);
       
@@ -74,7 +76,7 @@ export const submitOrder = async (
             return null;
           }
           
-          customerData = newCustomer[0];
+          customerId = newCustomer?.[0]?.id;
         }
       } else {
         toast({
@@ -84,15 +86,18 @@ export const submitOrder = async (
         });
         return null;
       }
+    } else {
+      customerId = customerData?.id;
     }
     
-    const customerId = customerData?.id || userId;
+    // Use either the found customer ID or fallback to the user ID
+    const finalCustomerId = customerId || userId;
     
     // Submit the order to Supabase
     const { data, error } = await supabase
       .from('orders')
       .insert({
-        customer_id: customerId,
+        customer_id: finalCustomerId,
         status: 'pending',
         total: total
       })
