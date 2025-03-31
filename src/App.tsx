@@ -15,6 +15,7 @@ import Catalog from "./pages/Catalog";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
+import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
 
 // Admin page imports
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/cart" element={<Cart />} />
               
               {/* Protected Routes */}
+              <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/orders" element={<Orders />} />
               
               {/* Admin Routes */}

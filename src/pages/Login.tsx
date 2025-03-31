@@ -22,9 +22,9 @@ const Login = () => {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // If already authenticated, redirect to the catalog page
+  // If already authenticated, redirect to the dashboard page
   if (isAuthenticated) {
-    return <Navigate to="/catalog" />;
+    return <Navigate to="/dashboard" />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,7 +33,7 @@ const Login = () => {
     const success = await login(phone, password);
     setIsLoading(false);
     if (success) {
-      navigate("/catalog");
+      navigate("/dashboard");
     }
   };
 
