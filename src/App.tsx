@@ -18,6 +18,9 @@ import UserDashboard from "./pages/UserDashboard";
 import NewOrder from "./pages/NewOrder";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
+import CurrentOrders from "./pages/orders/CurrentOrders";
+import TomorrowOrder from "./pages/orders/TomorrowOrder";
+import OrderHistory from "./pages/orders/OrderHistory";
 
 // Admin page imports
 import AdminDashboard from "./pages/Admin/Dashboard";
@@ -47,7 +50,9 @@ const App = () => (
               {/* Customer Routes */}
               <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/orders/new" element={<NewOrder />} />
-              <Route path="/orders" element={<Orders />} />
+              <Route path="/orders" element={<OrderHistory />} />
+              <Route path="/orders/current" element={<CurrentOrders />} />
+              <Route path="/orders/tomorrow" element={<TomorrowOrder />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/reports" element={<NotFound />} />
               

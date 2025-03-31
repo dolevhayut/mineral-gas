@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 // Import our components
@@ -12,9 +13,11 @@ import OrderSummary from "@/components/order/OrderSummary";
 import OrderSubmitButton from "@/components/order/OrderSubmitButton";
 import { products, quantityOptions, hebrewDays, OrderProduct } from "@/components/order/orderConstants";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const NewOrder = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
@@ -63,13 +66,100 @@ const NewOrder = () => {
     setIsSummaryOpen(true);
   };
 
-  const handleSubmitOrder = () => {
-    console.log("Submitting order with quantities:", quantities);
-    setIsSummaryOpen(false);
-    toast({
-      title: "הזמנה נשלחה בהצלחה",
-      description: "ההזמנה שלך התקבלה ותטופל בהקדם",
-    });
+  const handleSubmitOrder = async () => {
+    try {
+      if (!user) {
+        toast({
+          title: "שגיאה",
+          description: "יש להתחבר כדי לשלוח הזמנה",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Here you would submit the order to Supabase
+      // This is just a placeholder implementation
+      const { data, error } = await supabase
+        .from('orders')
+        .insert({
+          customer_id: user.id,
+          status: 'pending',
+          total: calculateTotal()
+        })
+        .select();
+      
+      if (error) {
+        console.error("Error submitting order:", error);
+        toast({
+          title: "שגיאה בשליחת ההזמנה",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const orderId = data?.[0]?.id;
+      
+      // Add order items
+      const orderItems = [];
+      for (const [productId, dayQuantities] of Object.entries(quantities)) {
+        for (const [day, quantity] of Object.entries(dayQuantities)) {
+          if (quantity > 0) {
+            orderItems.push({
+              order_id: orderId,
+              product_id: productId,
+              day_of_week: day,
+              quantity: quantity,
+              price: products.find(p => p.id === productId)?.price || 0
+            });
+          }
+        }
+      }
+      
+      if (orderItems.length > 0) {
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(orderItems);
+        
+        if (itemsError) {
+          console.error("Error submitting order items:", itemsError);
+          toast({
+            title: "שגיאה בשליחת פרטי ההזמנה",
+            description: itemsError.message,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
+      setIsSummaryOpen(false);
+      toast({
+        title: "הזמנה נשלחה בהצלחה",
+        description: "ההזמנה שלך התקבלה ותטופל בהקדם",
+      });
+      
+      // Redirect to dashboard after successful submission
+      navigate("/dashboard");
+      
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast({
+        title: "שגיאה לא צפויה",
+        description: "אירעה שגיאה בעת שליחת ההזמנה",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const calculateTotal = () => {
+    let total = 0;
+    for (const [productId, dayQuantities] of Object.entries(quantities)) {
+      const productPrice = products.find(p => p.id === productId)?.price || 0;
+      for (const quantity of Object.values(dayQuantities)) {
+        total += productPrice * quantity;
+      }
+    }
+    return total;
   };
 
   const currentProduct = products.find(p => p.id === selectedProduct) || null;

@@ -33,7 +33,7 @@ const UserDashboard = () => {
     {
       title: "צפייה בהיסטוריה",
       icon: <HistoryIcon className="h-8 w-8 text-bakery-600" />,
-      action: () => navigate("/orders/history"),
+      action: () => navigate("/orders"),
     },
   ];
 
