@@ -44,23 +44,21 @@ export default function ProductDialog({
           <div className="space-y-4">
             {hebrewDays.map((day) => (
               <div key={day.id} className="flex items-center justify-between border-b pb-3">
-                <div className="relative w-48">
-                  <Select 
-                    onValueChange={(value) => onQuantityChange(day.id, value)}
-                    value={product && quantities[product.id]?.[day.id]?.toString() || "0"}
-                  >
-                    <SelectTrigger className="w-full text-right">
-                      <SelectValue placeholder="0" />
-                    </SelectTrigger>
-                    <SelectContent position="popper" className="bg-white">
-                      {quantityOptions.map((qty) => (
-                        <SelectItem key={qty} value={qty.toString()}>
-                          {qty}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select 
+                  onValueChange={(value) => onQuantityChange(day.id, value)}
+                  value={product && quantities[product.id]?.[day.id]?.toString() || "0"}
+                >
+                  <SelectTrigger className="w-full text-right">
+                    <SelectValue placeholder="0" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" className="bg-white">
+                    {quantityOptions.map((qty) => (
+                      <SelectItem key={qty} value={qty.toString()}>
+                        {qty}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <span className="font-medium">{day.name}</span>
               </div>
             ))}
