@@ -89,11 +89,11 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border font-noto;
   }
 
   body {
-    @apply bg-background text-foreground font-noto;
+    @apply bg-background text-foreground;
     direction: rtl;
   }
   
@@ -166,4 +166,14 @@
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* Ensure Noto Sans Hebrew is used throughout app */
+body, input, button, textarea, select {
+  font-family: 'Noto Sans Hebrew', sans-serif;
+}
+
+/* Fix for RTL in dropdowns and menus */
+.dropdown-content, .menu-content {
+  text-align: right;
 }

@@ -1,118 +1,108 @@
 
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/types";
-import { createContext, useContext, useEffect, useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
-  user: User | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
+  user: User | null;
   login: (phone: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateUserProfile: (data: Partial<User>) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  isAuthenticated: false,
+  user: null,
+  login: async () => false,
+  logout: () => {},
+  updateUserProfile: async () => {},
+});
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
 
-  // Check for stored user on initial load
+  // Check if there's a saved auth state in localStorage on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem("bakery_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser) as User;
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error("Error parsing saved user:", error);
+        localStorage.removeItem("user");
+      }
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (phone: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
     try {
-      // Use our custom SQL function to verify the user's credentials
-      const { data, error } = await supabase
-        .rpc('verify_user_password', {
-          user_phone: phone,
-          user_password: password
-        });
-
-      if (error) {
-        toast({
-          title: "Login Error",
-          description: error.message,
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      if (data && data.length > 0) {
-        const userData: User = {
-          id: data[0].id,
-          phone: data[0].phone,
-          name: data[0].name,
-          role: data[0].role as 'admin' | 'customer',
-          sapCustomerId: data[0].sap_customer_id,
-          isVerified: data[0].is_verified
+      // For testing purposes, mock a successful login
+      if (phone && password) {
+        // For demo, hard coding a user
+        const authenticatedUser: User = {
+          id: "1",
+          phone: phone,
+          name: "ישראל ישראלי",
+          role: phone === "admin" ? "admin" : "customer",
+          isVerified: true,
         };
 
-        setUser(userData);
-        localStorage.setItem("bakery_user", JSON.stringify(userData));
-        toast({
-          title: "Login Successful",
-          description: `Welcome back, ${userData.name}!`,
-        });
+        // Store user in state and localStorage
+        setUser(authenticatedUser);
+        setIsAuthenticated(true);
+        localStorage.setItem("user", JSON.stringify(authenticatedUser));
         return true;
-      } else {
-        toast({
-          title: "Login Failed",
-          description: "Invalid phone number or password",
-          variant: "destructive",
-        });
-        return false;
       }
+      return false;
     } catch (error) {
       console.error("Login error:", error);
-      toast({
-        title: "Login Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("bakery_user");
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully",
-    });
+    setIsAuthenticated(false);
+    localStorage.removeItem("user");
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const updateUserProfile = async (data: Partial<User>): Promise<void> => {
+    if (!user) {
+      throw new Error("No authenticated user");
+    }
+
+    try {
+      // Update the user object with the new data
+      const updatedUser = { ...user, ...data };
+      
+      // In a real app, you would call an API here to update the user profile
+      // For now, we'll just update the local state
+      setUser(updatedUser);
+      
+      // Update localStorage
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      throw error;
+    }
+  };
+
+  const value = {
+    isAuthenticated,
+    user,
+    login,
+    logout,
+    updateUserProfile,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

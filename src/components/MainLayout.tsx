@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CakeIcon, MenuIcon, ShoppingCartIcon, UserIcon } from "lucide-react";
+import { MenuIcon, ShoppingCartIcon, UserIcon } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import {
   Sheet,
@@ -120,9 +120,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </Sheet>
           </div>
 
-          {/* Logo */}
+          {/* Logo - Removed the CakeIcon as requested */}
           <Link to="/" className="flex items-center">
-            <CakeIcon className="h-6 w-6 ml-2 text-bakery-600" />
             <span className="text-xl font-serif font-bold tracking-tight">
               אורבר
             </span>

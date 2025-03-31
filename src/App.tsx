@@ -17,6 +17,7 @@ import Orders from "./pages/Orders";
 import UserDashboard from "./pages/UserDashboard";
 import NewOrder from "./pages/NewOrder";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
 
 // Admin page imports
 import AdminDashboard from "./pages/Admin/Dashboard";
@@ -47,7 +48,7 @@ const App = () => (
               <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/orders/new" element={<NewOrder />} />
               <Route path="/orders" element={<Orders />} />
-              <Route path="/settings" element={<NotFound />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/reports" element={<NotFound />} />
               
               {/* Admin Routes - All under /admin path */}
