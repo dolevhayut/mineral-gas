@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const AdminLogin = () => {
   const [sapCustomerId, setSapCustomerId] = useState("");
-  const [phonePassword, setPhonePassword] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login, isAuthenticated, user } = useAuth();
@@ -37,18 +37,20 @@ const AdminLogin = () => {
 
   const handleDebug = async () => {
     try {
+      console.log("Debug - Checking user with SAP ID:", sapCustomerId, "and password:", password);
+      
       // Format phone number for consistency
-      let formattedPhone = phonePassword;
+      let formattedPhone = password;
       if (formattedPhone.startsWith('+')) {
         formattedPhone = formattedPhone.substring(1);
       }
       formattedPhone = formattedPhone.replace(/\D/g, '');
       formattedPhone = '+' + formattedPhone;
-
-      console.log("Checking users with phone:", formattedPhone);
+      
+      console.log("Debug - Checking users with phone:", formattedPhone);
       const { data, error } = await supabase.rpc('verify_user_password', {
         user_phone: formattedPhone,
-        user_password: formattedPhone // Using phone as password
+        user_password: password
       });
       
       console.log("Debug response:", data);
@@ -63,7 +65,7 @@ const AdminLogin = () => {
       } else if (data && data.length === 0) {
         toast({
           title: "פעולת בדיקה",
-          description: "לא נמצא משתמש עם מספר טלפון זה",
+          description: "לא נמצא משתמש עם מספר טלפון והסיסמה שהוזנו",
           variant: "destructive"
         });
       } else {
@@ -79,7 +81,7 @@ const AdminLogin = () => {
           if (data.length > 0) {
             toast({
               title: "פעולת בדיקה",
-              description: `נמצא מספר טלפון תקין, אך מזהה הלקוח ${sapCustomerId} לא נמצא`,
+              description: `נמצא מספר טלפון וסיסמה תקינים, אך מזהה הלקוח ${sapCustomerId} לא נמצא`,
               variant: "destructive"
             });
             // הצגת מזההי לקוח קיימים לדיבאג
@@ -110,7 +112,7 @@ const AdminLogin = () => {
     console.log("Attempting admin login with SAP ID:", sapCustomerId);
     
     try {
-      const success = await login(sapCustomerId, phonePassword);
+      const success = await login(sapCustomerId, password);
       console.log("Admin login result:", success, "User:", user);
       
       if (success) {
@@ -178,20 +180,20 @@ const AdminLogin = () => {
                 <a className="text-sm text-bakery-600 hover:underline">
                   שכחת סיסמה?
                 </a>
-                <Label htmlFor="phonePassword" className="flex items-center gap-2">
+                <Label htmlFor="password" className="flex items-center gap-2">
                   <KeyIcon className="h-4 w-4" />
-                  <span>סיסמה (מספר טלפון)</span>
+                  <span>סיסמה</span>
                 </Label>
               </div>
               <div className="relative">
                 <Input
-                  id="phonePassword"
+                  id="password"
                   type={showPassword ? "text" : "password"}
-                  value={phonePassword}
-                  onChange={(e) => setPhonePassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                   dir="ltr"
-                  placeholder="הזן את מספר הטלפון שלך"
+                  placeholder="הזן את הסיסמה שלך"
                   className="pr-10"
                 />
                 <button
@@ -203,7 +205,7 @@ const AdminLogin = () => {
                 </button>
               </div>
               <div className="text-xs text-right text-muted-foreground">
-                הסיסמה היא מספר הטלפון הנייד שלך
+                פנה למנהל המערכת אם שכחת את הסיסמה שלך
               </div>
             </div>
           </CardContent>

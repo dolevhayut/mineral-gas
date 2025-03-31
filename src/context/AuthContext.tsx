@@ -46,30 +46,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, []);
 
-  const login = async (sapCustomerId: string, phone: string): Promise<boolean> => {
+  const login = async (sapCustomerId: string, password: string): Promise<boolean> => {
     try {
-      console.log("Attempting login with SAP ID:", sapCustomerId, "and phone:", phone);
+      console.log("Attempting login with SAP ID:", sapCustomerId, "and password length:", password.length);
       
-      // Format phone number for consistency
-      let formattedPhone = phone;
+      // Format phone number for consistency if it's used for authentication
+      let formattedPhone = password;
       
-      // Remove leading + if it exists, to ensure consistent format
-      if (formattedPhone.startsWith('+')) {
-        formattedPhone = formattedPhone.substring(1);
-      }
+      // Check if it looks like a phone number
+      const isPhoneNumber = /^\+?\d+$/.test(password);
+      
+      if (isPhoneNumber) {
+        // Remove leading + if it exists, to ensure consistent format
+        if (formattedPhone.startsWith('+')) {
+          formattedPhone = formattedPhone.substring(1);
+        }
 
-      // Remove any non-digit characters
-      formattedPhone = formattedPhone.replace(/\D/g, '');
+        // Remove any non-digit characters
+        formattedPhone = formattedPhone.replace(/\D/g, '');
+        
+        // Add + back for the database query
+        formattedPhone = '+' + formattedPhone;
+        
+        console.log("Input appears to be a phone number, formatted as:", formattedPhone);
+      } else {
+        console.log("Input appears to be a password, not formatting");
+      }
       
-      // Add + back for the database query
-      formattedPhone = '+' + formattedPhone;
-      
-      console.log("Formatted phone:", formattedPhone);
-      
-      // Query for user verification - note we're checking phone as both input and password
+      // Query for user verification
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: formattedPhone,
-        user_password: formattedPhone  // Using formatted phone as password
+        user_phone: formattedPhone, // We use the phone as the username identifier
+        user_password: password     // Use the original password provided by the user
       });
 
       console.log("Login response data:", data);
