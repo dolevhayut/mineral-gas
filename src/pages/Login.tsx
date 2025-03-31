@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,12 +18,14 @@ const Login = () => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
-  // If already authenticated, redirect to the dashboard page
+  // If already authenticated, redirect to the appropriate dashboard
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" />;
+    return user?.role === "admin" 
+      ? <Navigate to="/admin/dashboard" /> 
+      : <Navigate to="/dashboard" />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,7 +34,8 @@ const Login = () => {
     const success = await login(phone, password);
     setIsLoading(false);
     if (success) {
-      navigate("/dashboard");
+      // Login redirects user to appropriate dashboard based on role
+      navigate(user?.role === "admin" ? "/admin/dashboard" : "/dashboard");
     }
   };
 

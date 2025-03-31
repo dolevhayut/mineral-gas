@@ -10,10 +10,12 @@ interface MobileMenuProps {
   isAuthenticated: boolean;
   user: any;
   logout: () => void;
+  dashboardLink: string;
 }
 
-export default function MobileMenu({ isAuthenticated, user, logout }: MobileMenuProps) {
+export default function MobileMenu({ isAuthenticated, user, logout, dashboardLink }: MobileMenuProps) {
   const navigate = useNavigate();
+  const isAdmin = user?.role === "admin";
 
   return (
     <Sheet>
@@ -28,43 +30,63 @@ export default function MobileMenu({ isAuthenticated, user, logout }: MobileMenu
         </SheetHeader>
         <div className="flex flex-col space-y-2">
           <Link
-            to="/dashboard"
+            to={dashboardLink}
             className="px-4 py-2 rounded-md hover:bg-accent text-right"
           >
             לוח בקרה
           </Link>
-          <Link
-            to="/orders/new"
-            className="px-4 py-2 rounded-md hover:bg-accent text-right"
-          >
-            הזמנה חדשה
-          </Link>
-          <Link
-            to="/orders"
-            className="px-4 py-2 rounded-md hover:bg-accent text-right"
-          >
-            היסטוריה
-          </Link>
+
+          {isAdmin ? (
+            <>
+              <Link
+                to="/admin/products"
+                className="px-4 py-2 rounded-md hover:bg-accent text-right"
+              >
+                ניהול מוצרים
+              </Link>
+              <Link
+                to="/admin/orders"
+                className="px-4 py-2 rounded-md hover:bg-accent text-right"
+              >
+                ניהול הזמנות
+              </Link>
+              <Link
+                to="/admin/custom-users"
+                className="px-4 py-2 rounded-md hover:bg-accent text-right"
+              >
+                ניהול משתמשים
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/orders/new"
+                className="px-4 py-2 rounded-md hover:bg-accent text-right"
+              >
+                הזמנה חדשה
+              </Link>
+              <Link
+                to="/orders"
+                className="px-4 py-2 rounded-md hover:bg-accent text-right"
+              >
+                היסטוריה
+              </Link>
+              <Link
+                to="/reports"
+                className="px-4 py-2 rounded-md hover:bg-accent text-right"
+              >
+                דוחות
+              </Link>
+            </>
+          )}
+
           <Link
             to="/settings"
             className="px-4 py-2 rounded-md hover:bg-accent text-right"
           >
             הגדרות
           </Link>
-          <Link
-            to="/reports"
-            className="px-4 py-2 rounded-md hover:bg-accent text-right"
-          >
-            דוחות
-          </Link>
-          {user?.role === "admin" && (
-            <Link
-              to="/admin"
-              className="px-4 py-2 rounded-md hover:bg-accent text-right"
-            >
-              ניהול
-            </Link>
-          )}
+          
           {isAuthenticated ? (
             <Button
               variant="ghost"

@@ -8,6 +8,9 @@ import UserMenu from "./UserMenu";
 export default function Header() {
   const { isAuthenticated, user, logout } = useAuth();
 
+  // Determine dashboard link based on user role
+  const dashboardLink = user?.role === "admin" ? "/admin/dashboard" : "/dashboard";
+
   return (
     <header className="border-b sticky top-0 bg-background z-10">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -17,11 +20,12 @@ export default function Header() {
             isAuthenticated={isAuthenticated}
             user={user}
             logout={logout}
+            dashboardLink={dashboardLink}
           />
         </div>
 
-        {/* Logo - No icon as requested */}
-        <Link to="/" className="flex items-center">
+        {/* Logo */}
+        <Link to={isAuthenticated ? dashboardLink : "/"} className="flex items-center">
           <span className="text-xl font-serif font-bold tracking-tight">
             אורבר
           </span>
@@ -36,6 +40,7 @@ export default function Header() {
             user={user}
             logout={logout}
             isAuthenticated={isAuthenticated}
+            dashboardLink={dashboardLink}
           />
         </div>
       </div>

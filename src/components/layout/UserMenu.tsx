@@ -16,10 +16,12 @@ interface UserMenuProps {
   user: User | null;
   logout: () => void;
   isAuthenticated: boolean;
+  dashboardLink: string;
 }
 
-export default function UserMenu({ user, logout, isAuthenticated }: UserMenuProps) {
+export default function UserMenu({ user, logout, isAuthenticated, dashboardLink }: UserMenuProps) {
   const navigate = useNavigate();
+  const isAdmin = user?.role === "admin";
 
   if (!isAuthenticated) {
     return (
@@ -56,18 +58,30 @@ export default function UserMenu({ user, logout, isAuthenticated }: UserMenuProp
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>
           {user?.name || "החשבון שלי"}
+          {isAdmin && <span className="block text-xs text-muted-foreground">מנהל מערכת</span>}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        
+        <DropdownMenuItem
+          onClick={() => navigate(dashboardLink)}
+        >
+          לוח בקרה
+        </DropdownMenuItem>
+        
         <DropdownMenuItem
           onClick={() => navigate("/settings")}
         >
           הגדרות
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => navigate("/orders")}
-        >
-          היסטוריה
-        </DropdownMenuItem>
+        
+        {!isAdmin && (
+          <DropdownMenuItem
+            onClick={() => navigate("/orders")}
+          >
+            היסטוריה
+          </DropdownMenuItem>
+        )}
+        
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => logout()}

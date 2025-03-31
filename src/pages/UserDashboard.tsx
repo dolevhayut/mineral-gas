@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +23,16 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Redirect admin users to admin dashboard
+  if (isAuthenticated && user?.role === "admin") {
+    return <Navigate to="/admin/dashboard" />;
+  }
+
+  // Redirect unauthenticated users to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
 
   useEffect(() => {
     if (!user?.id) return;
@@ -54,10 +63,6 @@ const UserDashboard = () => {
 
     fetchActiveOrder();
   }, [user]);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
 
   const actionCards = [
     {
@@ -116,7 +121,7 @@ const UserDashboard = () => {
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-3 text-right flex items-center">
             <PackageIcon className="ml-2 h-5 w-5 text-bakery-600" />
-            הזמנה פעילה
+            ה��מנה פעילה
           </h2>
           <Separator className="mb-4" />
           

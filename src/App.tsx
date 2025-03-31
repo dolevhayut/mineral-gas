@@ -15,6 +15,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import UserDashboard from "./pages/UserDashboard";
+import AdminDashboard from "./pages/Admin/Dashboard";
 import NewOrder from "./pages/NewOrder";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
@@ -23,12 +24,10 @@ import TomorrowOrder from "./pages/orders/TomorrowOrder";
 import OrderHistory from "./pages/orders/OrderHistory";
 
 // Admin page imports
-import AdminDashboard from "./pages/Admin/Dashboard";
 import ProductsManagement from "./pages/Admin/ProductsManagement";
 import UsersManagement from "./pages/Admin/UsersManagement";
 import CustomUsersManagement from "./pages/Admin/CustomUsersManagement";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
-import AdminLogin from "./pages/Admin/Login";
 
 const queryClient = new QueryClient();
 
@@ -56,8 +55,7 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/reports" element={<NotFound />} />
               
-              {/* Admin Routes - All under /admin path */}
-              <Route path="/admin" element={<AdminLogin />} />
+              {/* Admin Routes - Using the same layout structure */}
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/products" element={<ProductsManagement />} />
               <Route path="/admin/custom-users" element={<CustomUsersManagement />} />
