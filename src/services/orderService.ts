@@ -36,11 +36,63 @@ export const submitOrder = async (
     
     const total = calculateTotal(quantities, products);
     
+    // First fetch the customer ID using the user ID
+    const { data: customerData, error: customerError } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+    
+    if (customerError) {
+      console.error("Error fetching customer:", customerError);
+      
+      // Create a new customer if one doesn't exist
+      if (customerError.code === "PGRST116") {
+        const { data: userData } = await supabase
+          .from('custom_users')
+          .select('name, phone')
+          .eq('id', userId)
+          .single();
+          
+        if (userData) {
+          const { data: newCustomer, error: createCustomerError } = await supabase
+            .from('customers')
+            .insert({
+              user_id: userId,
+              name: userData.name,
+              phone: userData.phone
+            })
+            .select();
+            
+          if (createCustomerError) {
+            console.error("Error creating customer:", createCustomerError);
+            toast({
+              title: "שגיאה בשליחת ההזמנה",
+              description: "לא ניתן ליצור לקוח חדש",
+              variant: "destructive",
+            });
+            return null;
+          }
+          
+          customerData = newCustomer[0];
+        }
+      } else {
+        toast({
+          title: "שגיאה בשליחת ההזמנה",
+          description: customerError.message,
+          variant: "destructive",
+        });
+        return null;
+      }
+    }
+    
+    const customerId = customerData?.id || userId;
+    
     // Submit the order to Supabase
     const { data, error } = await supabase
       .from('orders')
       .insert({
-        customer_id: userId,
+        customer_id: customerId,
         status: 'pending',
         total: total
       })

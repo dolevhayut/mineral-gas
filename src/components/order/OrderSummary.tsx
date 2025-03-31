@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 import { OrderProduct } from "./orderConstants";
 import OrderSummaryItem from "./OrderSummaryItem";
 import DateSelector from "./DateSelector";
@@ -14,9 +14,17 @@ interface OrderSummaryProps {
   quantities: Record<string, Record<string, number>>;
   products: OrderProduct[];
   onSubmit: () => void;
+  isSubmitting?: boolean;
 }
 
-export default function OrderSummary({ isOpen, onClose, quantities, products, onSubmit }: OrderSummaryProps) {
+export default function OrderSummary({ 
+  isOpen, 
+  onClose, 
+  quantities, 
+  products, 
+  onSubmit,
+  isSubmitting = false
+}: OrderSummaryProps) {
   const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   
   // Calculate order summary
@@ -73,14 +81,22 @@ export default function OrderSummary({ isOpen, onClose, quantities, products, on
           <Button 
             className="flex-1 bg-green-500 hover:bg-green-600" 
             onClick={onSubmit}
-            disabled={!hasItems || !targetDate}
+            disabled={!hasItems || !targetDate || isSubmitting}
           >
-            שלח הזמנה
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                מעבד הזמנה...
+              </>
+            ) : (
+              'שלח הזמנה'
+            )}
           </Button>
           <Button 
             className="flex-1" 
             variant="outline"
             onClick={onClose}
+            disabled={isSubmitting}
           >
             חזור
           </Button>

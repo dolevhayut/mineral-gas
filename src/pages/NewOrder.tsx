@@ -20,6 +20,7 @@ const NewOrder = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -56,10 +57,21 @@ const NewOrder = () => {
   };
 
   const handleSubmitOrder = async () => {
-    const orderId = await submitOrder(user?.id || "", quantities, products);
-    if (orderId) {
-      setIsSummaryOpen(false);
-      navigate("/dashboard");
+    if (!user || !user.id) {
+      console.error("No user ID available for order");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const orderId = await submitOrder(user.id, quantities, products);
+      if (orderId) {
+        setIsSummaryOpen(false);
+        navigate("/dashboard");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
