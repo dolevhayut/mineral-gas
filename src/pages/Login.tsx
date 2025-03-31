@@ -22,7 +22,7 @@ const Login = () => {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // If already authenticated, redirect to appropriate page
+  // If already authenticated, redirect to the catalog page
   if (isAuthenticated) {
     return <Navigate to="/catalog" />;
   }
