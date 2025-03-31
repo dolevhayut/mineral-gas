@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
@@ -14,13 +14,16 @@ interface OrderSummaryProps {
   products: OrderProduct[];
   onSubmit: () => void;
   isSubmitting?: boolean;
+  targetDate?: Date;
+  onTargetDateChange: (date: Date | undefined) => void;
 }
 
 // Type for aggregated day items
 interface DayOrderSummary {
   day: string;
   dayHebrew: string;
-  items: {
+  products: {
+    productId: string;
     productName: string;
     quantity: number;
   }[];
@@ -33,13 +36,11 @@ export default function OrderSummary({
   quantities, 
   products, 
   onSubmit,
-  isSubmitting = false
+  isSubmitting = false,
+  targetDate,
+  onTargetDateChange
 }: OrderSummaryProps) {
-  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
-  
-  // Aggregate items by day
-  const dayOrderSummary: DayOrderSummary[] = [];
-  
+
   // Map of English day names to Hebrew day names
   const dayNameMap: Record<string, string> = {
     sunday: "ראשון",
@@ -52,6 +53,8 @@ export default function OrderSummary({
   };
   
   // Process quantities to aggregate by day
+  const dayOrderSummary: DayOrderSummary[] = [];
+  
   Object.entries(quantities).forEach(([productId, dayQuantities]) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -66,14 +69,15 @@ export default function OrderSummary({
         dayEntry = {
           day,
           dayHebrew: dayNameMap[day] || day,
-          items: [],
+          products: [],
           totalQuantity: 0
         };
         dayOrderSummary.push(dayEntry);
       }
       
       // Add product to day entry
-      dayEntry.items.push({
+      dayEntry.products.push({
+        productId,
         productName: product.name,
         quantity
       });
@@ -110,18 +114,20 @@ export default function OrderSummary({
           {hasItems ? (
             <div className="space-y-6">
               <div className="space-y-4">
-                <h3 className="font-medium text-right">פריטים:</h3>
-                {dayOrderSummary.map((daySummary, index) => (
-                  <div key={daySummary.day} className="flex justify-between border-b pb-3 pt-2">
-                    <div className="text-left">
-                      <span className="font-medium text-lg text-bakery-600">
-                        ×{daySummary.totalQuantity}
-                      </span>
+                <h3 className="font-medium text-right">פריטים לפי ימים:</h3>
+                {dayOrderSummary.map((daySummary) => (
+                  <div key={daySummary.day} className="flex flex-col border-b pb-3 pt-2">
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-500">סה"כ: {daySummary.totalQuantity} יח׳</span>
+                      <h4 className="font-medium">יום {daySummary.dayHebrew}</h4>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">פיתות אסלית לאכילה במקום</p>
-                      <p className="text-sm text-gray-500">יום: {daySummary.dayHebrew}</p>
-                    </div>
+                    
+                    {daySummary.products.map((product, idx) => (
+                      <div key={`${daySummary.day}-${product.productId}-${idx}`} className="flex justify-between my-1 pr-4">
+                        <span className="text-sm">{product.quantity} יח׳</span>
+                        <span className="text-sm text-gray-700">{product.productName}</span>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -130,7 +136,7 @@ export default function OrderSummary({
                 <h3 className="font-medium mb-2 text-right">תאריך יעד להזמנה:</h3>
                 <DateSelector 
                   targetDate={targetDate} 
-                  setTargetDate={setTargetDate} 
+                  setTargetDate={onTargetDateChange} 
                 />
                 <p className="text-sm text-gray-500 mt-2 text-right">
                   ההזמנה תחזור על עצמה עד לתאריך היעד
@@ -141,15 +147,15 @@ export default function OrderSummary({
             <EmptyOrderMessage />
           )}
         </div>
-        <div className="pt-4 flex space-x-2 bg-gray-50 rtl:space-x-reverse">
+        <div className="pt-4 flex justify-between space-x-2 rtl:space-x-reverse bg-gray-50">
           <Button 
-            className="flex-1 bg-green-500 hover:bg-green-600" 
+            className="flex-1 bg-green-500 hover:bg-green-600 mx-2" 
             onClick={onSubmit}
             disabled={!hasItems || !targetDate || isSubmitting}
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 מעבד הזמנה...
               </>
             ) : (
@@ -157,7 +163,7 @@ export default function OrderSummary({
             )}
           </Button>
           <Button 
-            className="flex-1" 
+            className="flex-1 mx-2" 
             variant="outline"
             onClick={onClose}
             disabled={isSubmitting}

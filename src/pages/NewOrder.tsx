@@ -12,6 +12,7 @@ import OrderHeader from "@/components/order/OrderHeader";
 import OrderActions from "@/components/order/OrderActions";
 import { products, quantityOptions, hebrewDays } from "@/components/order/orderConstants";
 import { submitOrder } from "@/services/orderService";
+import { toast } from "@/hooks/use-toast";
 
 const NewOrder = () => {
   const { isAuthenticated, user } = useAuth();
@@ -60,17 +61,43 @@ const NewOrder = () => {
   const handleSubmitOrder = async () => {
     if (!user || !user.id) {
       console.error("No user ID available for order");
+      toast({
+        title: "שגיאה",
+        description: "לא ניתן לשלוח הזמנה ללא משתמש מחובר",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!targetDate) {
+      toast({
+        title: "שגיאה",
+        description: "יש לבחור תאריך יעד להזמנה",
+        variant: "destructive"
+      });
       return;
     }
     
     setIsSubmitting(true);
     
     try {
+      console.log("Submitting order with target date:", targetDate);
       const orderId = await submitOrder(user.id, quantities, products, targetDate);
       if (orderId) {
         setIsSummaryOpen(false);
+        toast({
+          title: "הזמנה נשלחה בהצלחה",
+          description: "ההזמנה שלך נקלטה במערכת",
+        });
         navigate("/dashboard");
       }
+    } catch (error) {
+      console.error("Error submitting order:", error);
+      toast({
+        title: "שגיאה בשליחת ההזמנה",
+        description: "אירעה שגיאה בעת שליחת ההזמנה. אנא נסה שנית",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -107,6 +134,8 @@ const NewOrder = () => {
           products={products}
           onSubmit={handleSubmitOrder}
           isSubmitting={isSubmitting}
+          targetDate={targetDate}
+          onTargetDateChange={setTargetDate}
         />
 
         <OrderActions 

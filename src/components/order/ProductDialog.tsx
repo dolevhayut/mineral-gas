@@ -44,11 +44,12 @@ export default function ProductDialog({
           <div className="space-y-4">
             {hebrewDays.map((day) => (
               <div key={day.id} className="flex items-center justify-between border-b pb-3">
+                <span className="font-medium text-right order-2 mr-2">{day.name}</span>
                 <Select 
                   onValueChange={(value) => onQuantityChange(day.id, value)}
                   value={quantities[product.id]?.[day.id]?.toString() || "0"}
                 >
-                  <SelectTrigger className="w-28">
+                  <SelectTrigger className="w-28 order-1">
                     <SelectValue placeholder="0" />
                   </SelectTrigger>
                   <SelectContent position="popper" className="bg-white">
@@ -59,20 +60,19 @@ export default function ProductDialog({
                     ))}
                   </SelectContent>
                 </Select>
-                <span className="font-medium text-right">{day.name}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="pt-4 flex space-x-2 bg-gray-50 rtl:space-x-reverse">
+        <div className="pt-4 flex justify-between space-x-2 rtl:space-x-reverse bg-gray-50">
           <Button 
-            className="flex-1 bg-blue-500 hover:bg-blue-600" 
+            className="flex-1 bg-blue-500 hover:bg-blue-600 mx-2" 
             onClick={onSave}
           >
             שמור
           </Button>
           <Button 
-            className="flex-1" 
+            className="flex-1 mx-2" 
             variant="outline"
             onClick={onClose}
           >
