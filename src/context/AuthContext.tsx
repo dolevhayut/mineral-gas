@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           id: userData.id,
           phone: userData.phone,
           name: userData.name,
-          role: userData.role,
+          role: userData.role as "admin" | "customer",
           isVerified: userData.is_verified,
         };
 
