@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/context/AuthContext";
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -61,16 +60,34 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 </SheetHeader>
                 <div className="flex flex-col space-y-2">
                   <Link
-                    to="/"
+                    to="/dashboard"
                     className="px-4 py-2 rounded-md hover:bg-accent"
                   >
-                    Home
+                    Dashboard
                   </Link>
                   <Link
-                    to="/catalog"
+                    to="/orders/new"
                     className="px-4 py-2 rounded-md hover:bg-accent"
                   >
-                    Catalog
+                    New Order
+                  </Link>
+                  <Link
+                    to="/orders"
+                    className="px-4 py-2 rounded-md hover:bg-accent"
+                  >
+                    History
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="px-4 py-2 rounded-md hover:bg-accent"
+                  >
+                    Settings
+                  </Link>
+                  <Link
+                    to="/reports"
+                    className="px-4 py-2 rounded-md hover:bg-accent"
+                  >
+                    Reports
                   </Link>
                   {user?.role === "admin" && (
                     <Link
@@ -81,21 +98,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     </Link>
                   )}
                   {isAuthenticated ? (
-                    <>
-                      <Link
-                        to="/orders"
-                        className="px-4 py-2 rounded-md hover:bg-accent"
-                      >
-                        My Orders
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        className="justify-start px-4 py-2 h-auto font-normal"
-                        onClick={() => logout()}
-                      >
-                        Logout
-                      </Button>
-                    </>
+                    <Button
+                      variant="ghost"
+                      className="justify-start px-4 py-2 h-auto font-normal"
+                      onClick={() => logout()}
+                    >
+                      Logout
+                    </Button>
                   ) : (
                     <Button
                       variant="ghost"
@@ -123,71 +132,41 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link to="/">
+                  <Link to="/dashboard">
                     <NavigationMenuLink
                       className={navigationMenuTriggerStyle()}
                     >
-                      Home
+                      Dashboard
                     </NavigationMenuLink>
                   </Link>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+                  <NavigationMenuTrigger>Orders</NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      <li className="row-span-3">
-                        <NavigationMenuLink asChild>
-                          <Link
-                            to="/catalog"
-                            className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-bakery-100 to-bakery-200 p-6 no-underline outline-none focus:shadow-md"
-                          >
-                            <CakeIcon className="h-6 w-6 text-bakery-600" />
-                            <div className="mb-2 mt-4 text-lg font-medium">
-                              Catalog
-                            </div>
-                            <p className="text-sm leading-tight text-muted-foreground">
-                              Browse our delicious selection of freshly baked
-                              goods
-                            </p>
-                          </Link>
-                        </NavigationMenuLink>
-                      </li>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
                       <li>
                         <Link
-                          to="/catalog?category=Bread"
+                          to="/orders/new"
                           className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
                           <div className="text-sm font-medium leading-none">
-                            Bread
+                            New Order
                           </div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Artisanal breads baked fresh daily
+                            Create a new order
                           </p>
                         </Link>
                       </li>
                       <li>
                         <Link
-                          to="/catalog?category=Cakes"
+                          to="/orders"
                           className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
                           <div className="text-sm font-medium leading-none">
-                            Cakes
+                            History
                           </div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Celebration cakes for every occasion
-                          </p>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          to="/catalog?category=Pastries"
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                        >
-                          <div className="text-sm font-medium leading-none">
-                            Pastries
-                          </div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Delicate pastries made with butter and love
+                            View your order history
                           </p>
                         </Link>
                       </li>
@@ -195,11 +174,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <Link to="/about">
+                  <Link to="/reports">
                     <NavigationMenuLink
                       className={navigationMenuTriggerStyle()}
                     >
-                      About
+                      Reports
+                    </NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <Link to="/settings">
+                    <NavigationMenuLink
+                      className={navigationMenuTriggerStyle()}
+                    >
+                      Settings
                     </NavigationMenuLink>
                   </Link>
                 </NavigationMenuItem>
@@ -223,20 +211,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
           {/* Right Side - User & Cart */}
           <div className="flex items-center space-x-4">
-            <Link to="/cart" className="relative">
-              <Button variant="ghost" size="icon">
-                <ShoppingCartIcon />
-                {totalItems > 0 && (
-                  <Badge
-                    className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-bakery-500"
-                    variant="secondary"
-                  >
-                    {totalItems}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
-
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -261,14 +235,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() => navigate("/profile")}
+                    onClick={() => navigate("/settings")}
                   >
-                    Profile
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => navigate("/orders")}
                   >
-                    My Orders
+                    History
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

@@ -86,14 +86,7 @@ const Login = () => {
               {isLoading ? "מתחבר..." : "התחברות"}
             </Button>
             <div className="text-center text-sm text-gray-500">
-              <span>אין לך חשבון? </span>
-              <a
-                className="text-bakery-600 hover:underline"
-                onClick={() => navigate("/register")}
-                style={{ cursor: "pointer" }}
-              >
-                הרשמה
-              </a>
+              לשאלות בנוגע לחשבון, פנה למנהל המערכת
             </div>
           </CardFooter>
         </form>

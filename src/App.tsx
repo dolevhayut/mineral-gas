@@ -10,7 +10,6 @@ import { CartProvider } from "./context/CartContext";
 // Page imports
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Catalog from "./pages/Catalog";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -43,28 +42,18 @@ const App = () => (
               
               {/* Public Routes */}
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
               
               {/* Customer Routes */}
-              <Route path="/home" element={<Home />} />
               <Route path="/dashboard" element={<UserDashboard />} />
-              <Route path="/catalog" element={<Catalog />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/orders" element={<Orders />} />
               <Route path="/orders/new" element={<NewOrder />} />
-              <Route path="/orders/current" element={<Orders />} />
-              <Route path="/orders/tomorrow" element={<Orders />} />
-              <Route path="/orders/history" element={<Orders />} />
-              <Route path="/profile" element={<NotFound />} />
-              <Route path="/reports" element={<NotFound />} />
+              <Route path="/orders" element={<Orders />} />
               <Route path="/settings" element={<NotFound />} />
+              <Route path="/reports" element={<NotFound />} />
               
               {/* Admin Routes - All under /admin path */}
               <Route path="/admin" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/products" element={<ProductsManagement />} />
-              <Route path="/admin/users" element={<UsersManagement />} />
               <Route path="/admin/custom-users" element={<CustomUsersManagement />} />
               <Route path="/admin/orders" element={<OrdersManagement />} />
               
