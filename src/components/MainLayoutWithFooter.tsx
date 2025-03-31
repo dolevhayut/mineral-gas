@@ -9,7 +9,7 @@ interface MainLayoutWithFooterProps {
 
 export default function MainLayoutWithFooter({ children }: MainLayoutWithFooterProps) {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen" dir="rtl">
       <MainLayout>
         {children}
       </MainLayout>

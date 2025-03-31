@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 
@@ -16,6 +16,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import UserDashboard from "./pages/UserDashboard";
+import NewOrder from "./pages/NewOrder";
 import NotFound from "./pages/NotFound";
 
 // Admin page imports
@@ -23,6 +24,7 @@ import AdminDashboard from "./pages/Admin/Dashboard";
 import ProductsManagement from "./pages/Admin/ProductsManagement";
 import UsersManagement from "./pages/Admin/UsersManagement";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
+import AdminLogin from "./pages/Admin/Login";
 
 const queryClient = new QueryClient();
 
@@ -35,21 +37,28 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Redirect root to login */}
+              <Route path="/" element={<Navigate to="/login" />} />
+              
               {/* Public Routes */}
-              <Route path="/" element={<Login />} />
-              <Route path="/home" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              
+              {/* Customer Routes */}
+              <Route path="/home" element={<Home />} />
+              <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/catalog" element={<Catalog />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
-              
-              {/* Protected Routes */}
-              <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/orders" element={<Orders />} />
+              <Route path="/orders/new" element={<NewOrder />} />
+              <Route path="/orders/current" element={<Orders />} />
+              <Route path="/orders/tomorrow" element={<Orders />} />
+              <Route path="/orders/history" element={<Orders />} />
               
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminDashboard />} />
+              {/* Admin Routes - All under /admin path */}
+              <Route path="/admin" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/products" element={<ProductsManagement />} />
               <Route path="/admin/users" element={<UsersManagement />} />
               <Route path="/admin/orders" element={<OrdersManagement />} />

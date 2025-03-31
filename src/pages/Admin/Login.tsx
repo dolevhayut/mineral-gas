@@ -15,15 +15,20 @@ import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import { CakeIcon } from "lucide-react";
 
-const Login = () => {
+const AdminLogin = () => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
-  // If already authenticated, redirect to the dashboard page
-  if (isAuthenticated) {
+  // If already authenticated as admin, redirect to admin dashboard
+  if (isAuthenticated && user?.role === "admin") {
+    return <Navigate to="/admin/dashboard" />;
+  }
+  
+  // If authenticated but not as admin, redirect to user dashboard
+  if (isAuthenticated && user?.role !== "admin") {
     return <Navigate to="/dashboard" />;
   }
 
@@ -33,7 +38,11 @@ const Login = () => {
     const success = await login(phone, password);
     setIsLoading(false);
     if (success) {
-      navigate("/dashboard");
+      if (user?.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     }
   };
 
@@ -44,9 +53,9 @@ const Login = () => {
           <div className="flex justify-center mb-2">
             <CakeIcon className="h-12 w-12 text-bakery-500" />
           </div>
-          <CardTitle className="text-3xl">Sweet Savor Bakery</CardTitle>
+          <CardTitle className="text-3xl">כניסת מנהל</CardTitle>
           <CardDescription>
-            הזן את מספר הטלפון והסיסמה שלך להתחברות
+            יש להזין מספר טלפון וסיסמה
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -65,7 +74,7 @@ const Login = () => {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">סיסמה</Label>
                 <a className="text-sm text-bakery-600 hover:underline">
-                  שכחת את הסיסמה?
+                  שכחת סיסמה?
                 </a>
               </div>
               <Input
@@ -86,13 +95,13 @@ const Login = () => {
               {isLoading ? "מתחבר..." : "התחברות"}
             </Button>
             <div className="text-center text-sm text-gray-500">
-              <span>אין לך חשבון? </span>
+              <span>חזור לאתר </span>
               <a
                 className="text-bakery-600 hover:underline"
-                onClick={() => navigate("/register")}
+                onClick={() => navigate("/login")}
                 style={{ cursor: "pointer" }}
               >
-                הרשמה
+                כניסת לקוח
               </a>
             </div>
           </CardFooter>
@@ -102,4 +111,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default AdminLogin;

@@ -94,6 +94,7 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    direction: rtl;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -112,4 +113,13 @@
   background-position: bottom;
   background-repeat: no-repeat;
   background-size: contain;
+}
+
+/* RTL Specific Styles */
+.ltr {
+  direction: ltr;
+}
+
+.rtl {
+  direction: rtl;
 }
