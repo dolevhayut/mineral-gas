@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/MainLayout";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check, Loader2 } from "lucide-react";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -67,70 +70,88 @@ const Register = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto max-w-md py-24">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold">Create an account</h2>
-            <p className="text-muted-foreground">
-              Enter your details below to create your account
+      <div className="container mx-auto max-w-md py-12 px-4 auth-container">
+        <Card className="border-bakery-200 shadow-lg">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">הרשמה לחשבון חדש</CardTitle>
+            <CardDescription className="text-center">
+              הזינו את הפרטים שלכם כדי ליצור חשבון
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">שם</Label>
+                <Input
+                  type="text"
+                  id="name"
+                  placeholder="הזינו את השם שלכם"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="border-bakery-200 focus:ring-bakery-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">מספר טלפון</Label>
+                <Input
+                  type="tel"
+                  id="phone"
+                  placeholder="+972501234567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  className="border-bakery-200 focus:ring-bakery-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">סיסמה</Label>
+                <Input
+                  type="password"
+                  id="password"
+                  placeholder="הזינו סיסמה"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="border-bakery-200 focus:ring-bakery-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">אימות סיסמה</Label>
+                <Input
+                  type="password"
+                  id="confirmPassword"
+                  placeholder="אימות סיסמה"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="border-bakery-200 focus:ring-bakery-500"
+                />
+              </div>
+              <Button disabled={isLoading} type="submit" className="w-full bg-bakery-500 hover:bg-bakery-600">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    יוצר חשבון...
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    יצירת חשבון
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <p className="text-sm text-center">
+              כבר יש לך חשבון?{" "}
+              <Button variant="link" onClick={() => navigate("/login")} className="text-bakery-600 hover:text-bakery-800 px-1">
+                התחברות
+              </Button>
             </p>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input
-                type="text"
-                id="name"
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                type="tel"
-                id="phone"
-                placeholder="+1234567890"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                type="password"
-                id="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                type="password"
-                id="confirmPassword"
-                placeholder="Confirm password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button disabled={isLoading} type="submit" className="w-full">
-              {isLoading ? "Creating Account..." : "Create Account"}
-            </Button>
-          </form>
-          <p className="text-sm text-center">
-            Already have an account?{" "}
-            <Button variant="link" onClick={() => navigate("/login")}>
-              Log in
-            </Button>
-          </p>
-        </div>
+          </CardFooter>
+        </Card>
       </div>
     </MainLayout>
   );

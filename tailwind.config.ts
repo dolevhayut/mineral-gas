@@ -120,6 +120,7 @@ export default {
 			fontFamily: {
 				sans: ['Inter', 'sans-serif'],
 				serif: ['Playfair Display', 'serif'],
+				noto: ['"Noto Sans Hebrew"', 'sans-serif'],
 			},
 		}
 	},
