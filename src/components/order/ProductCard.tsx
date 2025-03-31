@@ -11,7 +11,7 @@ export default function ProductCard({ product, onSelect }: ProductCardProps) {
   return (
     <Card 
       key={product.id}
-      className="overflow-hidden flex items-center border border-gray-200 cursor-pointer"
+      className="overflow-hidden flex items-center border border-gray-200 cursor-pointer hover:bg-gray-50"
       onClick={() => onSelect(product.id)}
     >
       <img 
