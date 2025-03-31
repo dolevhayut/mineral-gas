@@ -57,7 +57,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </SheetTrigger>
               <SheetContent side="right" className="w-[250px]">
                 <SheetHeader className="mb-4">
-                  <SheetTitle>מאפיית סוויט סייבור</SheetTitle>
+                  <SheetTitle>מאפיית אורבר</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col space-y-2">
                   <Link
@@ -124,7 +124,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           <Link to="/" className="flex items-center">
             <CakeIcon className="h-6 w-6 ml-2 text-bakery-600" />
             <span className="text-xl font-serif font-bold tracking-tight">
-              סוויט סייבור
+              אורבר
             </span>
           </Link>
 

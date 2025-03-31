@@ -44,7 +44,7 @@ const Login = () => {
           <div className="flex justify-center mb-2">
             <CakeIcon className="h-12 w-12 text-bakery-500" />
           </div>
-          <CardTitle className="text-2xl">מאפיית סוויט סייבור</CardTitle>
+          <CardTitle className="text-2xl">מאפיית אורבר</CardTitle>
           <CardDescription>
             הזן את מספר הטלפון והסיסמה שלך להתחברות
           </CardDescription>
