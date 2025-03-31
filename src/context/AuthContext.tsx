@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       console.log("Attempting login with SAP ID:", sapCustomerId, "and phone:", phone);
       
-      // Make sure the phone number is formatted correctly for comparison
+      // Format phone number for consistency
       let formattedPhone = phone;
       
       // Remove leading + if it exists, to ensure consistent format
@@ -66,9 +66,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       console.log("Formatted phone:", formattedPhone);
       
-      // For demo purposes, use the custom_users table with the RPC function
+      // Query for user verification - note we're checking phone as both input and password
       const { data, error } = await supabase.rpc('verify_user_password', {
-        user_phone: formattedPhone,  // Using formatted phone
+        user_phone: formattedPhone,
         user_password: formattedPhone  // Using formatted phone as password
       });
 
@@ -105,6 +105,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           name: matchingUser.name,
           role: matchingUser.role as "admin" | "customer",
           isVerified: matchingUser.is_verified,
+          sapCustomerId: matchingUser.sap_customer_id, // Make sure we include sap_customer_id
         };
 
         console.log("Authentication successful, user:", authenticatedUser);

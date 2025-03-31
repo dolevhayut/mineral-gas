@@ -45,7 +45,7 @@ const Login = () => {
       console.log("Checking users with phone:", formattedPhone);
       const { data, error } = await supabase.rpc('verify_user_password', {
         user_phone: formattedPhone,
-        user_password: formattedPhone
+        user_password: formattedPhone // Using phone as password
       });
       
       console.log("Debug response:", data);
@@ -64,6 +64,7 @@ const Login = () => {
           variant: "destructive"
         });
       } else {
+        // ניסיון למצוא משתמש עם מזהה לקוח תואם
         const matchingUser = data.find(user => user.sap_customer_id === sapCustomerId);
         if (matchingUser) {
           toast({
@@ -71,11 +72,22 @@ const Login = () => {
             description: `נמצא משתמש: ${matchingUser.name}, תפקיד: ${matchingUser.role}`,
           });
         } else {
-          toast({
-            title: "פעולת בדיקה",
-            description: "לא נמצא משתמש עם מזהה לקוח זה",
-            variant: "destructive"
-          });
+          // אם יש משתמשים עם מספר הטלפון הזה אבל אף אחד לא תואם ל-SAP ID
+          if (data.length > 0) {
+            toast({
+              title: "פעולת בדיקה",
+              description: `נמצא מספר טלפון תקין, אך מזהה הלקוח ${sapCustomerId} לא נמצא`,
+              variant: "destructive"
+            });
+            // הצגת מזההי לקוח קיימים לדיבאג
+            console.log("Available SAP IDs:", data.map(u => u.sap_customer_id));
+          } else {
+            toast({
+              title: "פעולת בדיקה",
+              description: "לא נמצא משתמש עם מזהה לקוח זה",
+              variant: "destructive"
+            });
+          }
         }
       }
     } catch (err) {
