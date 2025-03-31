@@ -47,9 +47,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       // For testing purposes, mock a successful login
       if (phone && password) {
-        // For demo, hard coding a user
+        // For demo, hard coding a user with proper UUID format
         const authenticatedUser: User = {
-          id: "1",
+          id: phone === "admin" 
+            ? "f47ac10b-58cc-4372-a567-0e02b2c3d479" // Admin UUID
+            : "550e8400-e29b-41d4-a716-446655440000", // Regular user UUID
           phone: phone,
           name: "ישראל ישראלי",
           role: phone === "admin" ? "admin" : "customer",
