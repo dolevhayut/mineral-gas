@@ -16,7 +16,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { sampleOrders, sampleProducts, sampleUsers } from "@/lib/data";
+import { sampleOrders, sampleProducts, sampleUsers, sampleCategories } from "@/lib/data";
 import { BarChart3Icon, CakeIcon, ShoppingCartIcon, UsersIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
