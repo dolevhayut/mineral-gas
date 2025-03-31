@@ -9,4 +9,15 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// Create a custom type that extends the Database type with our custom RPC functions
+type CustomSupabaseClient = ReturnType<typeof createClient<Database>> & {
+  rpc: <T extends "verify_user_password" | "add_custom_user" | "update_user_with_password">(
+    fn: T,
+    params: Record<string, any>
+  ) => any;
+};
+
+export const supabase = createClient<Database>(
+  SUPABASE_URL, 
+  SUPABASE_PUBLISHABLE_KEY
+) as CustomSupabaseClient;

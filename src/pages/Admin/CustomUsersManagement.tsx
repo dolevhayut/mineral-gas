@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { User } from "@/types";
@@ -148,7 +149,7 @@ const CustomUsersManagement = () => {
         return;
       }
 
-      const { data, error } = await supabase.rpc('add_custom_user', {
+      const { data, error } = await supabase.rpc("add_custom_user", {
         user_name: formName,
         user_phone: formPhone,
         user_password: formPassword,
@@ -184,7 +185,7 @@ const CustomUsersManagement = () => {
 
     try {
       if (formPassword) {
-        const { data, error } = await supabase.rpc('update_user_with_password', {
+        const { data, error } = await supabase.rpc("update_user_with_password", {
           user_id: currentUser.id,
           user_name: formName,
           user_phone: formPhone,

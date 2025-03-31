@@ -229,6 +229,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_custom_user: {
+        Args: {
+          user_name: string
+          user_phone: string
+          user_password: string
+          user_role?: string
+          user_sap_id?: string
+          user_is_verified?: boolean
+        }
+        Returns: string
+      }
+      update_user_with_password: {
+        Args: {
+          user_id: string
+          user_name: string
+          user_phone: string
+          user_password: string
+          user_role?: string
+          user_sap_id?: string
+          user_is_verified?: boolean
+        }
+        Returns: undefined
+      }
       verify_user_password: {
         Args: {
           user_phone: string
