@@ -35,11 +35,58 @@ interface Order {
   target_date?: string;
 }
 
+// Define interface for system updates
+interface SystemUpdate {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string | null;
+  is_active: boolean;
+  expiry_date: string | null;
+}
+
 const UserDashboard = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [systemUpdates, setSystemUpdates] = useState<SystemUpdate[]>([]);
+  const [isLoadingUpdates, setIsLoadingUpdates] = useState(true);
+
+  // Fetch system updates
+  useEffect(() => {
+    const fetchSystemUpdates = async () => {
+      try {
+        setIsLoadingUpdates(true);
+        
+        const { data, error } = await supabase
+          .from('system_updates')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error("Error fetching system updates:", error);
+          toast({
+            title: "שגיאה בטעינת עדכוני מערכת",
+            description: error.message,
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        console.log("System updates loaded:", data);
+        setSystemUpdates(data || []);
+      } catch (error) {
+        console.error("Unexpected error fetching updates:", error);
+      } finally {
+        setIsLoadingUpdates(false);
+      }
+    };
+    
+    fetchSystemUpdates();
+  }, []);
 
   useEffect(() => {
     const fetchActiveOrder = async () => {
@@ -180,24 +227,17 @@ const UserDashboard = () => {
     }
   ];
 
-  // Sample system updates - in a real app, these would come from the backend
-  const systemUpdates = [
-    {
-      id: 1,
-      date: "24/07/2023",
-      content: "המאפייה תהיה סגורה בתאריך 30/07 עקב שיפוצים."
-    },
-    {
-      id: 2,
-      date: "18/07/2023",
-      content: "מוצר חדש! לחם כוסמין מלא זמין עכשיו להזמנה."
-    }
-  ];
-
-  // Format date helper
+  // Format date helper for display
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('he-IL');
+  };
+
+  // Format date helper for system updates
+  const formatUpdateDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
   };
 
   // Format order ID to be more readable
@@ -312,13 +352,20 @@ const UserDashboard = () => {
           <Separator className="mb-4" />
           
           <div className="space-y-3">
-            {systemUpdates.length > 0 ? (
+            {isLoadingUpdates ? (
+              <Card className="p-4">
+                <p className="text-center text-muted-foreground">טוען עדכונים...</p>
+              </Card>
+            ) : systemUpdates.length > 0 ? (
               systemUpdates.map((update) => (
                 <Card key={update.id} className="p-4 bg-gradient-to-r from-white to-gray-50 action-card">
                   <div className="text-right card-content">
                     <div className="flex justify-end items-center mb-2 rtl-flex action-card-item">
-                      <span className="text-sm text-muted-foreground bg-gray-100 px-2 py-1 rounded-md">{update.date}</span>
+                      <span className="text-sm text-muted-foreground bg-gray-100 px-2 py-1 rounded-md">
+                        {formatUpdateDate(update.created_at)}
+                      </span>
                     </div>
+                    <p className="text-right w-full font-medium mb-1">{update.title}</p>
                     <p className="text-right w-full">{update.content}</p>
                   </div>
                 </Card>

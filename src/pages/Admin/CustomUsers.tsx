@@ -48,6 +48,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface Customer {
   id: string;
@@ -84,6 +86,8 @@ export default function CustomUsers() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   // Fetch custom users
   const { data: users, isLoading: isUsersLoading } = useQuery({
@@ -323,6 +327,38 @@ export default function CustomUsers() {
     }
   };
 
+  const loginAsUser = async (user: User) => {
+    try {
+      setIsLoading(true);
+      const success = await login(user.sap_customer_id, user.phone);
+      
+      if (success) {
+        toast({
+          title: "התחברות בוצעה בהצלחה",
+          description: `התחברת בהצלחה בתור ${user.name}`,
+        });
+        
+        // Navigate to the appropriate dashboard based on user role
+        navigate(user.role === "admin" ? "/admin/dashboard" : "/dashboard");
+      } else {
+        toast({
+          title: "התחברות נכשלה",
+          description: "אירעה שגיאה בעת ההתחברות",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error logging in as user:", error);
+      toast({
+        title: "שגיאת התחברות",
+        description: `אירעה שגיאה בהתחברות: ${error instanceof Error ? error.message : String(error)}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const renderUserDialog = (isAdd: boolean) => {
     const dialogTitle = isAdd ? "הוספת לקוח חדש" : "עריכת פרטי לקוח";
     const dialogDescription = isAdd 
@@ -485,14 +521,14 @@ export default function CustomUsers() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="whitespace-nowrap">שם</TableHead>
-                      <TableHead className="whitespace-nowrap">טלפון</TableHead>
-                      <TableHead className="whitespace-nowrap">מזהה</TableHead>
-                      <TableHead className="whitespace-nowrap">תפקיד</TableHead>
-                      <TableHead className="whitespace-nowrap">מוצרים טריים</TableHead>
-                      <TableHead className="whitespace-nowrap">לקוח משויך</TableHead>
-                      <TableHead className="whitespace-nowrap">הזמנות</TableHead>
-                      <TableHead className="whitespace-nowrap">פעולות</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">שם</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">טלפון</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">מזהה</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">תפקיד</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">מוצרים טריים</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">לקוח משויך</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">הזמנות</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">פעולות</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -546,6 +582,15 @@ export default function CustomUsers() {
                             >
                               <TrashIcon className="h-4 w-4 ml-2" />
                               מחיקה
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => loginAsUser(user)}
+                            >
+                              <UserIcon className="h-4 w-4 ml-2" />
+                              התחבר
                             </Button>
                           </div>
                         </TableCell>
@@ -629,6 +674,14 @@ export default function CustomUsers() {
                     >
                       <TrashIcon className="h-4 w-4 ml-2" />
                       מחיקה
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 text-blue-600"
+                      onClick={() => loginAsUser(user)}
+                    >
+                      <UserIcon className="h-4 w-4 ml-2" />
+                      התחבר
                     </Button>
                   </div>
                 </CardContent>

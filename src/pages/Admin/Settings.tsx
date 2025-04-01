@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
-import { ImageIcon, XIcon, Loader2Icon } from "lucide-react";
+import { ImageIcon, XIcon, Loader2Icon, Construction } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -73,6 +74,13 @@ export default function Settings() {
         <h1 className="text-3xl font-bold tracking-tight">הגדרות מערכת</h1>
         <p className="text-muted-foreground">נהל את הגדרות המערכת</p>
       </div>
+
+      <Alert className="bg-yellow-50 border-yellow-200">
+        <Construction className="h-4 w-4 ml-2" />
+        <AlertDescription>
+          עמוד זה נמצא בפיתוח. השינויים אינם נשמרים במסד הנתונים בשלב זה.
+        </AlertDescription>
+      </Alert>
 
       <div className="grid gap-6">
         <Card>
@@ -159,11 +167,18 @@ export default function Settings() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="relative">
+            <div className="absolute right-0 top-0 w-full h-full bg-gray-100/50 flex items-center justify-center z-10 rounded-t-lg">
+              <div className="bg-yellow-100 px-4 py-2 rounded-md flex items-center">
+                <Construction className="h-4 w-4 ml-2" />
+                <span>בפיתוח</span>
+              </div>
+            </div>
             <CardTitle>הגדרות הזמנות</CardTitle>
             <CardDescription>הגדרות הקשורות להזמנות</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 relative">
+            <div className="absolute right-0 top-0 w-full h-full bg-gray-100/50 z-10 rounded-b-lg"></div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>אפשר הזמנות</Label>
@@ -190,11 +205,18 @@ export default function Settings() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="relative">
+            <div className="absolute right-0 top-0 w-full h-full bg-gray-100/50 flex items-center justify-center z-10 rounded-t-lg">
+              <div className="bg-yellow-100 px-4 py-2 rounded-md flex items-center">
+                <Construction className="h-4 w-4 ml-2" />
+                <span>בפיתוח</span>
+              </div>
+            </div>
             <CardTitle>הגדרות התראות</CardTitle>
             <CardDescription>הגדרות התראות ועדכונים</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 relative">
+            <div className="absolute right-0 top-0 w-full h-full bg-gray-100/50 z-10 rounded-b-lg"></div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>התראות SMS</Label>
