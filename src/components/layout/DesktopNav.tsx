@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import {
   NavigationMenu,
@@ -83,7 +82,7 @@ export default function DesktopNav({ userRole }: DesktopNavProps) {
               </NavigationMenuItem>
               
               <NavigationMenuItem>
-                <Link to="/settings">
+                <Link to="/user/settings">
                   <NavigationMenuLink
                     className={navigationMenuTriggerStyle()}
                   >
@@ -150,7 +149,7 @@ export default function DesktopNav({ userRole }: DesktopNavProps) {
               </NavigationMenuItem>
               
               <NavigationMenuItem>
-                <Link to="/settings">
+                <Link to="/user/settings">
                   <NavigationMenuLink
                     className={navigationMenuTriggerStyle()}
                   >

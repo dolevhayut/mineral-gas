@@ -41,7 +41,6 @@ const OrderHistory = () => {
       try {
         setLoading(true);
         console.log("Fetching orders for user ID:", user.id);
-        console.log("User object:", user);
         
         if (!user.id || typeof user.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.id)) {
           console.error("Invalid user ID format:", user.id);
@@ -54,10 +53,34 @@ const OrderHistory = () => {
           return;
         }
         
+        // First get customer ID for this user
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+          
+        if (customerError && customerError.code !== 'PGRST116') {
+          console.error("Error fetching customer:", customerError);
+          toast({
+            title: "שגיאה בטעינת הזמנות",
+            description: "לא ניתן לאתר לקוח",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        if (!customerData?.id) {
+          console.log("No customer record found for user:", user.id);
+          setLoading(false);
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('orders')
           .select('*')
-          .eq('customer_id', user.id)
+          .eq('customer_id', customerData.id)
           .order('created_at', { ascending: false });
 
         if (error) {

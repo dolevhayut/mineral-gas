@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { MenuIcon } from "lucide-react";
+import { MenuIcon, LogOutIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { User } from "@/types";
 
 interface MobileMenuProps {
   isAuthenticated: boolean;
-  user: any;
+  user: User | null;
   logout: () => void;
   dashboardLink: string;
 }
@@ -83,7 +84,7 @@ export default function MobileMenu({ isAuthenticated, user, logout, dashboardLin
           )}
 
           <Link
-            to="/settings"
+            to="/user/settings"
             className="px-4 py-2 rounded-md hover:bg-accent text-right"
           >
             הגדרות
@@ -91,10 +92,11 @@ export default function MobileMenu({ isAuthenticated, user, logout, dashboardLin
           
           {isAuthenticated ? (
             <Button
-              variant="ghost"
-              className="justify-end px-4 py-2 h-auto font-normal"
+              variant="outline"
+              className="justify-end px-4 py-2 h-auto font-normal mt-4 border-red-200 hover:bg-red-50 hover:text-red-600 flex items-center"
               onClick={() => logout()}
             >
+              <LogOutIcon className="h-4 w-4 ml-2" />
               התנתקות
             </Button>
           ) : (

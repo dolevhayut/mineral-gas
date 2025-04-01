@@ -26,7 +26,7 @@ export default function Header() {
         {/* Logo */}
         <Link to={isAuthenticated ? dashboardLink : "/"} className="flex items-center">
           <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-8 w-auto mr-2 hidden sm:block" />
-          <span className="text-xl font-serif font-bold tracking-tight">
+          <span className="text-xl font-['Noto Sans Hebrew'] font-bold tracking-tight">
             מאפיית אורבר
           </span>
         </Link>

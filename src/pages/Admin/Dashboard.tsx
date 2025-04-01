@@ -63,8 +63,8 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+        <Card>
           <CardHeader>
             <CardTitle>הזמנות אחרונות</CardTitle>
           </CardHeader>
@@ -100,7 +100,7 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-        <Card className="col-span-3">
+        <Card>
           <CardHeader>
             <CardTitle>מוצרים פופולריים</CardTitle>
           </CardHeader>

@@ -142,6 +142,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <SheetContent side="right" className="w-[240px] p-0">
               <div className="p-6 flex flex-col items-center">
                 <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-12 w-auto mb-2" />
+                <SheetTitle>לוח בקרה</SheetTitle>
               </div>
               <nav className="px-2">
                 {navItems.map((item) => (

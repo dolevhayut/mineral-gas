@@ -16,8 +16,10 @@ import NotFound from "@/pages/NotFound";
 import UserDashboard from "@/pages/UserDashboard";
 import NewOrder from "@/pages/NewOrder";
 import CurrentOrders from "@/pages/orders/CurrentOrders";
-import TomorrowOrder from "@/pages/orders/TomorrowOrder";
 import OrderHistory from "@/pages/orders/OrderHistory";
+import OrderSummaryPage from "@/pages/orders/OrderSummaryPage";
+import EditOrder from "@/pages/orders/EditOrder";
+import Reports from "@/pages/Reports";
 
 // Admin Components & Pages
 import AdminLayout from "@/components/AdminLayout";
@@ -27,6 +29,7 @@ import Orders from "@/pages/Admin/Orders";
 import CustomUsers from "@/pages/Admin/CustomUsers";
 import Settings from "@/pages/Admin/Settings";
 import Users from "@/pages/Admin/Users";
+import UserSettings from "./pages/UserSettings";
 
 // RequireAuth component
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -64,6 +67,13 @@ const App = () => (
               <Route path="/cart" element={<Cart />} />
               <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/orders/new" element={<NewOrder />} />
+              <Route path="/orders/current" element={<CurrentOrders />} />
+              <Route path="/orders/edit/:orderId" element={<EditOrder />} />
+              <Route path="/orders/summary" element={<OrderSummaryPage />} />
+              <Route path="/orders" element={<OrderHistory />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/user/settings" element={<UserSettings />} />
+              <Route path="/settings" element={<Navigate to="/user/settings" replace />} />
 
               {/* Admin Routes */}
               <Route

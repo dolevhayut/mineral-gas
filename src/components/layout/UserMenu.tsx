@@ -1,7 +1,6 @@
-
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User } from "@/types";
+import { UserIcon } from "lucide-react";
 
 interface UserMenuProps {
   user: User | null;
@@ -44,18 +44,14 @@ export default function UserMenu({ user, logout, isAuthenticated, dashboardLink 
           className="rounded-full h-8 w-8"
         >
           <Avatar className="h-8 w-8 border">
+            <AvatarImage src="/assets/profile-placeholder.png" alt="Profile" />
             <AvatarFallback className="bg-bakery-100 text-bakery-800">
-              {user?.name
-                ? user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                : ""}
+              <UserIcon className="h-4 w-4" />
             </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="start" className="text-right">
         <DropdownMenuLabel>
           {user?.name || "החשבון שלי"}
           {isAdmin && <span className="block text-xs text-muted-foreground">מנהל מערכת</span>}
@@ -64,12 +60,14 @@ export default function UserMenu({ user, logout, isAuthenticated, dashboardLink 
         
         <DropdownMenuItem
           onClick={() => navigate(dashboardLink)}
+          className="justify-end"
         >
-          לוח בקרה
+          עמוד הבית
         </DropdownMenuItem>
         
         <DropdownMenuItem
-          onClick={() => navigate("/settings")}
+          onClick={() => navigate("/user/settings")}
+          className="justify-end"
         >
           הגדרות
         </DropdownMenuItem>
@@ -77,6 +75,7 @@ export default function UserMenu({ user, logout, isAuthenticated, dashboardLink 
         {!isAdmin && (
           <DropdownMenuItem
             onClick={() => navigate("/orders")}
+            className="justify-end"
           >
             היסטוריה
           </DropdownMenuItem>
@@ -85,6 +84,7 @@ export default function UserMenu({ user, logout, isAuthenticated, dashboardLink 
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => logout()}
+          className="justify-end"
         >
           התנתקות
         </DropdownMenuItem>

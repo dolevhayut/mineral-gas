@@ -195,6 +195,36 @@ aside *,
   text-align: right;
 }
 
+/* Specific fixes for shadcn/ui Select component in RTL */
+[dir="rtl"] .select-trigger,
+[dir="rtl"] [data-radix-select-trigger] {
+  text-align: right;
+  justify-content: space-between;
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .select-value,
+[dir="rtl"] [data-value] {
+  text-align: right;
+}
+
+[dir="rtl"] .select-content,
+[dir="rtl"] [role="listbox"] {
+  text-align: right;
+}
+
+[dir="rtl"] .select-item,
+[dir="rtl"] [role="option"] {
+  text-align: right;
+  justify-content: flex-end;
+}
+
+/* Fix space between icon and text in select */
+[dir="rtl"] .select-trigger [data-icon] {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
 /* RTL utilities for admin panel */
 .admin-layout {
   direction: rtl;

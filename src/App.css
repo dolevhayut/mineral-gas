@@ -2,7 +2,21 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+/* Only add center alignment for specific components, not globally */
+.center-text {
   text-align: center;
+}
+
+/* Add RTL support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Override for select components in RTL */
+[dir="rtl"] .select-trigger {
+  text-align: right;
 }
 
 .logo {

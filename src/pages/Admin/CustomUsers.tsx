@@ -82,7 +82,10 @@ export default function CustomUsers() {
         .from("custom_users")
         .select(`
           *,
-          orders:orders(count)
+          customers!customers_user_id_fkey(
+            id,
+            orders:orders(count)
+          )
         `)
         .order("created_at", { ascending: false });
 
@@ -134,7 +137,9 @@ export default function CustomUsers() {
       // Process the data to add orders_count
       return data.map(user => ({
         ...user,
-        orders_count: user.orders.length,
+        orders_count: user.customers && user.customers.length > 0 
+          ? user.customers.reduce((total, customer) => total + (customer.orders?.length || 0), 0)
+          : 0,
         total_spent: 0 // We would need to calculate this from orders if available
       }));
     },
@@ -372,26 +377,26 @@ export default function CustomUsers() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">ניהול לקוחות</h1>
-          <p className="text-muted-foreground">צפה ונהל את הלקוחות בחנות שלך</p>
+          <h1 className="text-3xl font-bold tracking-tight">ניהול משתמשים</h1>
+          <p className="text-muted-foreground">צפה ונהל את המשתמשים במערכת</p>
         </div>
         <Button onClick={handleAddUser} className="w-full sm:w-auto">
           <PlusIcon className="h-4 w-4 ml-2" />
-          לקוח חדש
+          משתמש חדש
         </Button>
       </div>
 
       {users && users[0]?.id === "1" && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
           <p className="text-yellow-700 font-medium">מוצגים נתוני דמו</p>
-          <p className="text-yellow-600 text-sm">לא נמצאו לקוחות אמיתיים במסד הנתונים. הנתונים המוצגים הם לצורך הדגמה בלבד.</p>
+          <p className="text-yellow-600 text-sm">לא נמצאו משתמשים אמיתיים במסד הנתונים. הנתונים המוצגים הם לצורך הדגמה בלבד.</p>
         </div>
       )}
 
       <div className="relative">
         <SearchIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
-          placeholder="חפש לפי שם, טלפון או מזהה לקוח..."
+          placeholder="חפש לפי שם, טלפון או מזהה..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-3 pr-10"
@@ -403,73 +408,142 @@ export default function CustomUsers() {
           <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <Card>
-          <CardContent className="pt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>שם</TableHead>
-                  <TableHead>טלפון</TableHead>
-                  <TableHead>מזהה לקוח</TableHead>
-                  <TableHead>תפקיד</TableHead>
-                  <TableHead>מוצרים טריים</TableHead>
-                  <TableHead>הזמנות</TableHead>
-                  <TableHead>פעולות</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers?.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <PhoneIcon className="h-4 w-4 text-muted-foreground" />
-                        {user.phone}
-                      </div>
-                    </TableCell>
-                    <TableCell>{user.sap_customer_id}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                        {user.role === "admin" ? "מנהל" : "לקוח"}
+        <>
+          {/* Desktop view - table */}
+          <Card className="hidden md:block">
+            <CardContent className="pt-6">
+              <div className="overflow-auto max-w-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap">שם</TableHead>
+                      <TableHead className="whitespace-nowrap">טלפון</TableHead>
+                      <TableHead className="whitespace-nowrap">מזהה</TableHead>
+                      <TableHead className="whitespace-nowrap">תפקיד</TableHead>
+                      <TableHead className="whitespace-nowrap">מוצרים טריים</TableHead>
+                      <TableHead className="whitespace-nowrap">הזמנות</TableHead>
+                      <TableHead className="whitespace-nowrap">פעולות</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers?.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium whitespace-nowrap">{user.name}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <PhoneIcon className="h-4 w-4 text-muted-foreground" />
+                            {user.phone}
+                          </div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{user.sap_customer_id}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                            {user.role === "admin" ? "מנהל" : "משתמש"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Badge variant={user.can_order_fresh ? "default" : "destructive"}>
+                            {user.can_order_fresh ? "רשאי" : "אינו רשאי"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{user.orders_count}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
+                              <PencilIcon className="h-4 w-4 ml-2" />
+                              עריכה
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteUser(user)}
+                            >
+                              <TrashIcon className="h-4 w-4 ml-2" />
+                              מחיקה
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    
+                    {filteredUsers?.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center">
+                          לא נמצאו משתמשים
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Mobile view - cards */}
+          <div className="md:hidden space-y-4">
+            {filteredUsers?.map((user) => (
+              <Card key={user.id} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg">{user.name}</CardTitle>
+                    <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                      {user.role === "admin" ? "מנהל" : "משתמש"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <PhoneIcon className="h-3 w-3 ml-1" />
+                    {user.phone}
+                  </div>
+                </CardHeader>
+                <CardContent className="pb-4 pt-0">
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div>
+                      <div className="text-xs text-muted-foreground">מזהה</div>
+                      <div className="text-sm font-medium">{user.sap_customer_id || "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">הזמנות</div>
+                      <div className="text-sm font-medium">{user.orders_count || 0}</div>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="text-xs text-muted-foreground">מוצרים טריים</div>
+                      <Badge variant={user.can_order_fresh ? "outline" : "destructive"} className="mt-1">
+                        {user.can_order_fresh ? "רשאי להזמין" : "אינו רשאי להזמין"}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.can_order_fresh ? "default" : "destructive"}>
-                        {user.can_order_fresh ? "רשאי" : "אינו רשאי"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{user.orders_count}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
-                          <PencilIcon className="h-4 w-4 ml-2" />
-                          עריכה
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteUser(user)}
-                        >
-                          <TrashIcon className="h-4 w-4 ml-2" />
-                          מחיקה
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                
-                {filteredUsers?.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      לא נמצאו לקוחות
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleEditUser(user)}
+                    >
+                      <PencilIcon className="h-4 w-4 ml-2" />
+                      עריכה
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 text-red-600"
+                      onClick={() => handleDeleteUser(user)}
+                    >
+                      <TrashIcon className="h-4 w-4 ml-2" />
+                      מחיקה
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {filteredUsers?.length === 0 && (
+              <Card>
+                <CardContent className="flex justify-center py-10">
+                  <p className="text-muted-foreground">לא נמצאו משתמשים</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </>
       )}
       
       {/* User Edit Dialog */}

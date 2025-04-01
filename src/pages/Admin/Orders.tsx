@@ -38,6 +38,7 @@ interface OrderItem {
   product_id: string;
   quantity: number;
   price: number;
+  day_of_week: string;
   product: {
     name: string;
   };
@@ -57,9 +58,20 @@ interface Order {
 
 const statusMap = {
   pending: { label: "ממתין", color: "default" },
-  processing: { label: "בהכנה", color: "warning" },
-  completed: { label: "הושלם", color: "success" },
+  processing: { label: "בהכנה", color: "secondary" },
+  completed: { label: "הושלם", color: "outline" },
   cancelled: { label: "בוטל", color: "destructive" },
+};
+
+// Map of English day names to Hebrew day names for display
+const dayNameMap: Record<string, string> = {
+  sunday: "ראשון",
+  monday: "שני",
+  tuesday: "שלישי",
+  wednesday: "רביעי",
+  thursday: "חמישי",
+  friday: "שישי",
+  saturday: "שבת",
 };
 
 export default function Orders() {
@@ -79,12 +91,17 @@ export default function Orders() {
         .from("orders")
         .select(`
           *,
-          customer:custom_users(name),
+          customer:customers(
+            id,
+            name,
+            user_id
+          ),
           order_items(
             id,
             product_id,
             quantity,
             price,
+            day_of_week,
             product:products(name)
           )
         `)
@@ -101,35 +118,7 @@ export default function Orders() {
 
       // If no orders found, return mock data
       if (!data || data.length === 0) {
-        return [
-          {
-            id: "demo-123",
-            customer_id: "demo-user-1",
-            status: "pending",
-            total: 120,
-            created_at: new Date().toISOString(),
-            customer: { name: "ישראל ישראלי" },
-            order_items: [{ id: "item-1", product_id: "prod-1", quantity: 1, price: 120, product: { name: "עוגת שוקולד" } }]
-          },
-          {
-            id: "demo-122",
-            customer_id: "demo-user-2",
-            status: "processing",
-            total: 150,
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-            customer: { name: "יעקב יעקובי" },
-            order_items: [{ id: "item-2", product_id: "prod-2", quantity: 1, price: 150, product: { name: "עוגת גבינה" } }]
-          },
-          {
-            id: "demo-121",
-            customer_id: "demo-user-3",
-            status: "completed",
-            total: 180,
-            created_at: new Date(Date.now() - 172800000).toISOString(),
-            customer: { name: "רחל רחלי" },
-            order_items: [{ id: "item-3", product_id: "prod-3", quantity: 1, price: 180, product: { name: "מארז קאפקייקס" } }]
-          }
-        ];
+        return [];
       }
 
       return data as Order[];
@@ -197,6 +186,57 @@ export default function Orders() {
     return name[0];
   };
 
+  // Process order items to group by day
+  const groupOrderItemsByDay = (orderItems: OrderItem[]) => {
+    const groupedByDay: Record<string, {
+      day: string;
+      dayHebrew: string;
+      items: {
+        id: string;
+        productName: string;
+        quantity: number;
+        price: number;
+      }[];
+      totalQuantity: number;
+    }> = {};
+
+    orderItems.forEach(item => {
+      const day = item.day_of_week;
+      if (!groupedByDay[day]) {
+        groupedByDay[day] = {
+          day,
+          dayHebrew: dayNameMap[day] || day,
+          items: [],
+          totalQuantity: 0
+        };
+      }
+
+      groupedByDay[day].items.push({
+        id: item.id,
+        productName: item.product.name,
+        quantity: item.quantity,
+        price: item.price
+      });
+
+      groupedByDay[day].totalQuantity += item.quantity;
+    });
+
+    // Sort days according to week order
+    const dayOrder: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6
+    };
+
+    return Object.values(groupedByDay).sort((a, b) => {
+      return (dayOrder[a.day] || 99) - (dayOrder[b.day] || 99);
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -204,10 +244,11 @@ export default function Orders() {
         <p className="text-muted-foreground">צפה ונהל את ההזמנות בחנות שלך</p>
       </div>
 
-      {orders && orders[0]?.id.startsWith("demo-") && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-          <p className="text-yellow-700 font-medium">מוצגים נתוני דמו</p>
-          <p className="text-yellow-600 text-sm">לא נמצאו הזמנות אמיתיות במסד הנתונים. הנתונים המוצגים הם לצורך הדגמה בלבד.</p>
+      {(!orders || orders.length === 0) && !isLoading && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-6 text-center">
+          <p className="text-xl font-bold text-red-700 mb-2">אין נתונים זמינים</p>
+          <p className="text-red-600">התרחשה תקלה בטעינת הנתונים ממסד הנתונים</p>
+          <p className="text-red-600">נא לפנות לתמיכה הטכנית</p>
         </div>
       )}
 
@@ -227,14 +268,14 @@ export default function Orders() {
             value={filterStatus}
             onValueChange={setFilterStatus}
           >
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] text-right flex flex-row-reverse justify-between">
               <FilterIcon className="h-4 w-4 ml-2" />
               <SelectValue placeholder="סנן לפי סטטוס" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">כל הסטטוסים</SelectItem>
+            <SelectContent align="end" className="text-right">
+              <SelectItem value="all" className="flex justify-end">כל הסטטוסים</SelectItem>
               {Object.entries(statusMap).map(([key, { label }]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
+                <SelectItem key={key} value={key} className="flex justify-end">{label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -254,7 +295,7 @@ export default function Orders() {
                   <div>
                     <CardTitle className="text-lg">הזמנה #{order.id.slice(0, 8)}</CardTitle>
                     <CardDescription className="flex items-center mt-1">
-                      <Badge variant={statusMap[order.status as keyof typeof statusMap].color as any}>
+                      <Badge variant={statusMap[order.status as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
                         {statusMap[order.status as keyof typeof statusMap].label}
                       </Badge>
                     </CardDescription>
@@ -287,29 +328,31 @@ export default function Orders() {
               </CardContent>
               
               <CardFooter className="flex justify-between pt-2 gap-2">
-                <Select
-                  defaultValue={order.status}
-                  onValueChange={(value) =>
-                    updateOrderStatus.mutate({ id: order.id, status: value })
-                  }
-                >
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue>
-                      עדכן סטטוס
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(statusMap).map(([value, { label }]) => (
-                      <SelectItem key={value} value={value}>
-                        <Badge variant={statusMap[value as keyof typeof statusMap].color as any}>
-                          {label}
-                        </Badge>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="w-1/2">
+                  <Select
+                    defaultValue={order.status}
+                    onValueChange={(value) =>
+                      updateOrderStatus.mutate({ id: order.id, status: value })
+                    }
+                  >
+                    <SelectTrigger className="w-full text-right flex flex-row-reverse justify-between">
+                      <SelectValue>
+                        עדכן סטטוס
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent align="end" className="text-right">
+                      {Object.entries(statusMap).map(([value, { label }]) => (
+                        <SelectItem key={value} value={value} className="flex justify-end">
+                          <Badge variant={statusMap[value as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
+                            {label}
+                          </Badge>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                <Button variant="outline" size="sm" onClick={() => viewOrderDetails(order)}>
+                <Button variant="outline" size="sm" onClick={() => viewOrderDetails(order)} className="w-1/2">
                   <EyeIcon className="h-4 w-4 ml-2" />
                   פרטים
                 </Button>
@@ -334,7 +377,7 @@ export default function Orders() {
               <DialogHeader>
                 <DialogTitle>פרטי הזמנה #{selectedOrder.id.slice(0, 8)}</DialogTitle>
                 <DialogDescription className="flex items-center">
-                  <Badge variant={statusMap[selectedOrder.status as keyof typeof statusMap].color as any}>
+                  <Badge variant={statusMap[selectedOrder.status as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
                     {statusMap[selectedOrder.status as keyof typeof statusMap].label}
                   </Badge>
                   <span className="mr-2 text-muted-foreground">
@@ -356,31 +399,35 @@ export default function Orders() {
                 
                 <Separator />
                 
-                <div>
-                  <h3 className="font-medium mb-2">פריטים בהזמנה</h3>
-                  <ScrollArea className="h-[200px]">
-                    <div className="space-y-3">
-                      {selectedOrder.order_items.map((item) => (
-                        <div key={item.id} className="flex justify-between items-center bg-muted/50 p-3 rounded-md">
-                          <div>
-                            <p className="font-medium">{item.product.name}</p>
-                            <p className="text-sm text-muted-foreground">כמות: {item.quantity}</p>
-                          </div>
-                          <p className="font-semibold">₪{item.price}</p>
+                {/* Order Summary Layout similar to OrderSummaryPage */}
+                <Card className="p-4 shadow-sm">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-xl mb-4 text-right">פריטים לפי ימים:</h3>
+                    
+                    {groupOrderItemsByDay(selectedOrder.order_items).map((daySummary) => (
+                      <div key={daySummary.day} className="flex flex-col border-b pb-4 pt-2">
+                        <div className="flex justify-between mb-2">
+                          <span className="text-sm text-gray-500">סה"כ: {daySummary.totalQuantity} יח׳</span>
+                          <h4 className="font-medium text-lg">יום {daySummary.dayHebrew}</h4>
                         </div>
-                      ))}
+                        
+                        {daySummary.items.map((item) => (
+                          <div key={item.id} className="flex justify-between my-1 pr-4">
+                            <span className="text-sm">{item.quantity} יח׳ × ₪{item.price}</span>
+                            <span className="text-sm text-gray-700">{item.productName}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                    
+                    <div className="bg-muted p-3 rounded-md">
+                      <div className="flex justify-between">
+                        <p className="font-medium">סה״כ לתשלום:</p>
+                        <p className="font-bold text-lg">₪{selectedOrder.total}</p>
+                      </div>
                     </div>
-                  </ScrollArea>
-                </div>
-                
-                <div className="bg-muted p-3 rounded-md">
-                  <div className="flex justify-between">
-                    <p className="font-medium">סה״כ לתשלום:</p>
-                    <p className="font-bold text-lg">₪{selectedOrder.total}</p>
                   </div>
-                </div>
-                
-                <Separator />
+                </Card>
                 
                 <div className="flex justify-between items-center">
                   <p className="font-medium">עדכן סטטוס:</p>
@@ -391,13 +438,13 @@ export default function Orders() {
                       setSelectedOrder({...selectedOrder, status: value});
                     }}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[180px] text-right flex flex-row-reverse justify-between">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent align="end" className="text-right">
                       {Object.entries(statusMap).map(([value, { label }]) => (
-                        <SelectItem key={value} value={value}>
-                          <Badge variant={statusMap[value as keyof typeof statusMap].color as any}>
+                        <SelectItem key={value} value={value} className="flex justify-end">
+                          <Badge variant={statusMap[value as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
                             {label}
                           </Badge>
                         </SelectItem>
@@ -409,6 +456,7 @@ export default function Orders() {
               
               <DialogFooter>
                 <Button 
+                  className="flex-1 mt-4" 
                   onClick={() => setIsDetailsOpen(false)}
                 >
                   סגור

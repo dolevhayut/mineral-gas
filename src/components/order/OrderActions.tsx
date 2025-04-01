@@ -1,13 +1,16 @@
-
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { OrderProduct } from "@/components/order/orderConstants";
 
 interface OrderActionsProps {
   quantities: Record<string, Record<string, number>>;
-  onOpenSummary: () => void;
+  products: OrderProduct[];
 }
 
-export default function OrderActions({ quantities, onOpenSummary }: OrderActionsProps) {
+export default function OrderActions({ quantities, products }: OrderActionsProps) {
+  const navigate = useNavigate();
+
   const handleOpenSummary = () => {
     const hasSelectedProducts = Object.keys(quantities).length > 0;
     if (!hasSelectedProducts) {
@@ -18,7 +21,14 @@ export default function OrderActions({ quantities, onOpenSummary }: OrderActions
       });
       return;
     }
-    onOpenSummary();
+    
+    // Navigate to summary page with state
+    navigate("/orders/summary", {
+      state: {
+        quantities,
+        products
+      }
+    });
   };
 
   return (

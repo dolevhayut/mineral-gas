@@ -43,10 +43,34 @@ const CurrentOrders = () => {
           return;
         }
 
+        // First get customer ID for this user
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+          
+        if (customerError && customerError.code !== 'PGRST116') {
+          console.error("Error fetching customer:", customerError);
+          toast({
+            title: "שגיאה בטעינת הזמנות",
+            description: "לא ניתן לאתר לקוח",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        if (!customerData?.id) {
+          console.log("No customer record found for user:", user.id);
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('orders')
           .select('*')
-          .eq('customer_id', user.id)
+          .eq('customer_id', customerData.id)
           .eq('status', 'pending')
           .order('created_at', { ascending: false });
 
@@ -77,12 +101,7 @@ const CurrentOrders = () => {
   }
 
   const handleEditOrder = (orderId: string) => {
-    toast({
-      title: "פונקציונליות בפיתוח",
-      description: "עריכת הזמנה תהיה זמינה בקרוב",
-    });
-    // In a real implementation, navigate to edit page
-    // navigate(`/orders/edit/${orderId}`);
+    navigate(`/orders/edit/${orderId}`);
   };
 
   const handleCancelOrder = async (orderId: string) => {

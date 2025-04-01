@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 // Import our components
 import ProductsList from "@/components/order/ProductsList";
 import ProductDialog from "@/components/order/ProductDialog";
-import OrderSummary from "@/components/order/OrderSummary";
 import OrderHeader from "@/components/order/OrderHeader";
 import OrderActions from "@/components/order/OrderActions";
 import { quantityOptions, hebrewDays, OrderProduct } from "@/components/order/orderConstants";
@@ -24,10 +23,7 @@ const NewOrder = () => {
   const navigate = useNavigate();
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [canOrderFresh, setCanOrderFresh] = useState(true);
@@ -132,55 +128,6 @@ const NewOrder = () => {
     setIsDialogOpen(false);
   };
 
-  const handleOpenSummary = () => {
-    setIsSummaryOpen(true);
-  };
-
-  const handleSubmitOrder = async () => {
-    if (!user || !user.id) {
-      console.error("No user ID available for order");
-      toast({
-        title: "שגיאה",
-        description: "לא ניתן לשלוח הזמנה ללא משתמש מחובר",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!targetDate) {
-      toast({
-        title: "שגיאה",
-        description: "יש לבחור תאריך יעד להזמנה",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      console.log("Submitting order with target date:", targetDate);
-      const orderId = await submitOrder(user.id, quantities, products, targetDate);
-      if (orderId) {
-        setIsSummaryOpen(false);
-        toast({
-          title: "הזמנה נשלחה בהצלחה",
-          description: "ההזמנה שלך נקלטה במערכת",
-        });
-        navigate("/dashboard");
-      }
-    } catch (error) {
-      console.error("Error submitting order:", error);
-      toast({
-        title: "שגיאה בשליחת ההזמנה",
-        description: "אירעה שגיאה בעת שליחת ההזמנה. אנא נסה שנית",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const currentProduct = products.find(p => p.id === selectedProduct) || null;
 
   return (
@@ -219,20 +166,9 @@ const NewOrder = () => {
           quantityOptions={quantityOptions}
         />
 
-        <OrderSummary
-          isOpen={isSummaryOpen}
-          onClose={() => setIsSummaryOpen(false)}
-          quantities={quantities}
-          products={products}
-          onSubmit={handleSubmitOrder}
-          isSubmitting={isSubmitting}
-          targetDate={targetDate}
-          onTargetDateChange={setTargetDate}
-        />
-
         <OrderActions 
           quantities={quantities}
-          onOpenSummary={handleOpenSummary}
+          products={products}
         />
       </div>
     </MainLayout>
