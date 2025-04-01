@@ -103,30 +103,6 @@ export default function UserSettings() {
               </CardFooter>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>אבטחה</CardTitle>
-                <CardDescription>נהל את אבטחת החשבון שלך</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">סיסמה נוכחית</Label>
-                  <Input id="current-password" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">סיסמה חדשה</Label>
-                  <Input id="new-password" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">אימות סיסמה</Label>
-                  <Input id="confirm-password" type="password" />
-                </div>
-              </CardContent>
-              <CardFooter className="justify-end">
-                <Button variant="outline">שינוי סיסמה</Button>
-              </CardFooter>
-            </Card>
-
             <Card className="border-red-100">
               <CardHeader>
                 <CardTitle className="text-red-600">התנתקות</CardTitle>
