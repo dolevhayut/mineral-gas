@@ -195,6 +195,35 @@ aside *,
   text-align: right;
 }
 
+/* Additional fixes for RTL components */
+.rtl-select .select-trigger {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  text-align: right;
+}
+
+.rtl-select .select-content {
+  text-align: right;
+}
+
+.rtl-select .select-item {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+}
+
+.rtl-select .select-item .select-item-check {
+  right: 2px;
+  left: auto;
+}
+
+/* Fix for switch in RTL context */
+.ltr-switch {
+  direction: ltr;
+  display: inline-block;
+}
+
 /* Specific fixes for shadcn/ui Select component in RTL */
 [dir="rtl"] .select-trigger,
 [dir="rtl"] [data-radix-select-trigger] {

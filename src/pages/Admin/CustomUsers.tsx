@@ -24,7 +24,8 @@ import {
   Loader2Icon,
   PlusIcon,
   TrashIcon,
-  AlertTriangleIcon
+  AlertTriangleIcon,
+  RefreshCwIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
@@ -48,6 +49,14 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
+interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  user_id: string;
+  orders?: { count: number }[];
+}
+
 interface User {
   id: string;
   name: string;
@@ -57,6 +66,7 @@ interface User {
   orders_count?: number;
   total_spent?: number;
   can_order_fresh?: boolean;
+  customer?: Customer | null;
 }
 
 export default function CustomUsers() {
@@ -70,6 +80,7 @@ export default function CustomUsers() {
     can_order_fresh: true,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -78,28 +89,23 @@ export default function CustomUsers() {
   const { data: users, isLoading: isUsersLoading } = useQuery({
     queryKey: ["custom_users"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, get all custom users
+      const { data: userData, error: userError } = await supabase
         .from("custom_users")
-        .select(`
-          *,
-          customers!customers_user_id_fkey(
-            id,
-            orders:orders(count)
-          )
-        `)
+        .select(`*`)
         .order("created_at", { ascending: false });
 
-      if (error) {
+      if (userError) {
         toast({
           title: "שגיאה בטעינת משתמשים",
-          description: error.message,
+          description: userError.message,
           variant: "destructive",
         });
-        throw error;
+        throw userError;
       }
 
       // If no users found, return mock data
-      if (!data || data.length === 0) {
+      if (!userData || userData.length === 0) {
         return [
           {
             id: "1",
@@ -110,6 +116,7 @@ export default function CustomUsers() {
             orders_count: 5,
             total_spent: 600,
             can_order_fresh: true,
+            customer: null,
           },
           {
             id: "2",
@@ -120,6 +127,7 @@ export default function CustomUsers() {
             orders_count: 3,
             total_spent: 450,
             can_order_fresh: true,
+            customer: null,
           },
           {
             id: "3",
@@ -130,20 +138,52 @@ export default function CustomUsers() {
             orders_count: 2,
             total_spent: 360,
             can_order_fresh: false,
+            customer: null,
           },
         ];
       }
 
-      // Process the data to add orders_count
-      return data.map(user => ({
-        ...user,
-        orders_count: user.customers && user.customers.length > 0 
-          ? user.customers.reduce((total, customer) => total + (customer.orders?.length || 0), 0)
-          : 0,
-        total_spent: 0 // We would need to calculate this from orders if available
-      }));
+      // For each user, get their associated customer
+      const usersWithCustomers = [];
+      
+      for (const user of userData) {
+        // Get customer for this user
+        const { data: customerData } = await supabase
+          .from("customers")
+          .select(`*, orders(count)`)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        // Get orders count for this customer
+        let ordersCount = 0;
+        if (customerData) {
+          ordersCount = customerData.orders[0]?.count || 0;
+        }
+        
+        usersWithCustomers.push({
+          ...user,
+          orders_count: ordersCount,
+          total_spent: 0,
+          customer: customerData,
+        });
+      }
+      
+      return usersWithCustomers;
     },
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    queryClient.invalidateQueries({ queryKey: ["custom_users"] })
+      .then(() => {
+        toast({
+          title: "רשימת המשתמשים עודכנה",
+          duration: 2000,
+        });
+        setIsRefreshing(false);
+      });
+  };
 
   // Save user mutation
   const saveUser = useMutation({
@@ -192,6 +232,7 @@ export default function CustomUsers() {
       toast({
         title: "משתמש נשמר",
         description: "פרטי המשתמש נשמרו בהצלחה",
+        duration: 2000,
       });
       setIsEditDialogOpen(false);
       setIsAddDialogOpen(false);
@@ -202,6 +243,7 @@ export default function CustomUsers() {
         title: "שגיאה בשמירת משתמש",
         description: error.message,
         variant: "destructive",
+        duration: 3000,
       });
     },
   });
@@ -225,6 +267,7 @@ export default function CustomUsers() {
       toast({
         title: "משתמש נמחק",
         description: "המשתמש נמחק בהצלחה",
+        duration: 2000,
       });
       setIsDeleteDialogOpen(false);
       setUserToDelete(null);
@@ -235,6 +278,7 @@ export default function CustomUsers() {
         title: "שגיאה במחיקת משתמש",
         description: error.message,
         variant: "destructive",
+        duration: 3000,
       });
     },
   });
@@ -259,6 +303,16 @@ export default function CustomUsers() {
   };
 
   const handleDeleteUser = (user: User) => {
+    // מניעת מחיקת משתמש מסוג מנהל
+    if (user.role === "admin") {
+      toast({
+        title: "לא ניתן למחוק מנהל",
+        description: "לא ניתן למחוק משתמשים מסוג מנהל",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setUserToDelete(user);
     setIsDeleteDialogOpen(true);
   };
@@ -318,21 +372,23 @@ export default function CustomUsers() {
             
             <div className="grid gap-2">
               <Label htmlFor="role">תפקיד</Label>
-              <Select 
-                value={currentUser.role}
-                onValueChange={(value) => setCurrentUser({ 
-                  ...currentUser, 
-                  role: value 
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="בחר תפקיד" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="customer">לקוח</SelectItem>
-                  <SelectItem value="admin">מנהל</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="rtl-select">
+                <Select 
+                  value={currentUser.role}
+                  onValueChange={(value) => setCurrentUser({ 
+                    ...currentUser, 
+                    role: value 
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="בחר תפקיד" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="customer">לקוח</SelectItem>
+                    <SelectItem value="admin">מנהל</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             <div className="flex items-center justify-between">
@@ -340,13 +396,15 @@ export default function CustomUsers() {
                 <Label htmlFor="can_order_fresh">הרשאה למוצרים טריים</Label>
                 <p className="text-sm text-muted-foreground">האם הלקוח רשאי להזמין מוצרים טריים</p>
               </div>
-              <Switch
-                id="can_order_fresh"
-                checked={currentUser.can_order_fresh}
-                onCheckedChange={(checked) => 
-                  setCurrentUser({ ...currentUser, can_order_fresh: checked })
-                }
-              />
+              <div className="ltr-switch">
+                <Switch
+                  id="can_order_fresh"
+                  checked={currentUser.can_order_fresh}
+                  onCheckedChange={(checked) => 
+                    setCurrentUser({ ...currentUser, can_order_fresh: checked })
+                  }
+                />
+              </div>
             </div>
           </div>
           
@@ -380,10 +438,21 @@ export default function CustomUsers() {
           <h1 className="text-3xl font-bold tracking-tight">ניהול משתמשים</h1>
           <p className="text-muted-foreground">צפה ונהל את המשתמשים במערכת</p>
         </div>
-        <Button onClick={handleAddUser} className="w-full sm:w-auto">
-          <PlusIcon className="h-4 w-4 ml-2" />
-          משתמש חדש
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh} 
+            className="flex-1 sm:flex-auto"
+            disabled={isRefreshing}
+          >
+            <RefreshCwIcon className={`h-4 w-4 ml-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            רענן
+          </Button>
+          <Button onClick={handleAddUser} className="flex-1 sm:flex-auto">
+            <PlusIcon className="h-4 w-4 ml-2" />
+            משתמש חדש
+          </Button>
+        </div>
       </div>
 
       {users && users[0]?.id === "1" && (
@@ -421,6 +490,7 @@ export default function CustomUsers() {
                       <TableHead className="whitespace-nowrap">מזהה</TableHead>
                       <TableHead className="whitespace-nowrap">תפקיד</TableHead>
                       <TableHead className="whitespace-nowrap">מוצרים טריים</TableHead>
+                      <TableHead className="whitespace-nowrap">לקוח משויך</TableHead>
                       <TableHead className="whitespace-nowrap">הזמנות</TableHead>
                       <TableHead className="whitespace-nowrap">פעולות</TableHead>
                     </TableRow>
@@ -446,6 +516,20 @@ export default function CustomUsers() {
                             {user.can_order_fresh ? "רשאי" : "אינו רשאי"}
                           </Badge>
                         </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {user.customer ? (
+                            <div>
+                              <div className="font-medium">{user.customer.name}</div>
+                              {user.customer.phone && (
+                                <div className="text-xs text-muted-foreground">
+                                  {user.customer.phone}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap">{user.orders_count}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           <div className="flex gap-2">
@@ -458,6 +542,7 @@ export default function CustomUsers() {
                               size="sm" 
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               onClick={() => handleDeleteUser(user)}
+                              style={{display: user.role === "admin" ? "none" : "flex"}}
                             >
                               <TrashIcon className="h-4 w-4 ml-2" />
                               מחיקה
@@ -469,7 +554,7 @@ export default function CustomUsers() {
                     
                     {filteredUsers?.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
+                        <TableCell colSpan={8} className="h-24 text-center">
                           לא נמצאו משתמשים
                         </TableCell>
                       </TableRow>
@@ -506,6 +591,20 @@ export default function CustomUsers() {
                       <div className="text-xs text-muted-foreground">הזמנות</div>
                       <div className="text-sm font-medium">{user.orders_count || 0}</div>
                     </div>
+                    
+                    {user.customer && (
+                      <div className="col-span-2 mt-2 p-3 bg-muted rounded-md">
+                        <div className="text-xs font-medium mb-1">לקוח משויך:</div>
+                        <div className="text-sm font-bold">{user.customer.name}</div>
+                        {user.customer.phone && (
+                          <div className="text-xs text-muted-foreground flex items-center mt-1">
+                            <PhoneIcon className="h-3 w-3 ml-1" />
+                            {user.customer.phone}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="col-span-2">
                       <div className="text-xs text-muted-foreground">מוצרים טריים</div>
                       <Badge variant={user.can_order_fresh ? "outline" : "destructive"} className="mt-1">
@@ -526,6 +625,7 @@ export default function CustomUsers() {
                       variant="outline" 
                       className="flex-1 text-red-600"
                       onClick={() => handleDeleteUser(user)}
+                      style={{display: user.role === "admin" ? "none" : "flex"}}
                     >
                       <TrashIcon className="h-4 w-4 ml-2" />
                       מחיקה
@@ -558,10 +658,10 @@ export default function CustomUsers() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangleIcon className="h-5 w-5 text-red-500" />
-              אישור מחיקת לקוח
+              אישור מחיקת משתמש
             </DialogTitle>
             <DialogDescription>
-              האם אתה בטוח שברצונך למחוק את הלקוח? פעולה זו אינה ניתנת לשחזור.
+              האם אתה בטוח שברצונך למחוק את המשתמש? פעולה זו אינה ניתנת לשחזור.
             </DialogDescription>
           </DialogHeader>
           
@@ -570,11 +670,11 @@ export default function CustomUsers() {
               <div className="bg-muted p-4 rounded-md mb-4">
                 <p className="font-medium">{userToDelete.name}</p>
                 <p className="text-sm text-muted-foreground">{userToDelete.phone}</p>
-                <p className="text-sm text-muted-foreground">מזהה לקוח: {userToDelete.sap_customer_id}</p>
+                <p className="text-sm text-muted-foreground">מזהה: {userToDelete.sap_customer_id}</p>
               </div>
               
               <p className="text-amber-600 text-sm">
-                מחיקת הלקוח תסיר גם את כל ההיסטוריה והנתונים הקשורים אליו.
+                מחיקת המשתמש תסיר גם את כל ההיסטוריה והנתונים הקשורים אליו.
               </p>
             </div>
           )}
@@ -595,7 +695,7 @@ export default function CustomUsers() {
               className="w-full sm:w-auto order-1 sm:order-2"
             >
               {isLoading && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
-              מחק לקוח
+              מחק משתמש
             </Button>
           </DialogFooter>
         </DialogContent>

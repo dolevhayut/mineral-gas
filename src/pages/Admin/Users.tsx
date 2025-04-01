@@ -420,15 +420,17 @@ export default function Users() {
                   <PencilIcon className="h-4 w-4 ml-2" />
                   עריכה
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => handleDelete(user.id)}
-                >
-                  <TrashIcon className="h-4 w-4 ml-2" />
-                  מחיקה
-                </Button>
+                {user.role !== "admin" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleDelete(user.id)}
+                  >
+                    <TrashIcon className="h-4 w-4 ml-2" />
+                    מחיקה
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           ))}

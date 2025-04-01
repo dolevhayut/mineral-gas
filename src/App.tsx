@@ -27,9 +27,11 @@ import Dashboard from "@/pages/Admin/Dashboard";
 import Products from "@/pages/Admin/Products";
 import Orders from "@/pages/Admin/Orders";
 import CustomUsers from "@/pages/Admin/CustomUsers";
+import Customers from "@/pages/Admin/Customers";
 import Settings from "@/pages/Admin/Settings";
 import Users from "@/pages/Admin/Users";
 import UserSettings from "./pages/UserSettings";
+import AdminReports from "./pages/Admin/Reports";
 
 // RequireAuth component
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -86,9 +88,11 @@ const App = () => (
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/products" element={<Products />} />
                         <Route path="/orders" element={<Orders />} />
+                        <Route path="/customers" element={<Customers />} />
                         <Route path="/custom-users" element={<CustomUsers />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="users" element={<Users />} />
+                        <Route path="/reports" element={<AdminReports />} />
                       </Routes>
                     </AdminLayout>
                   </RequireAuth>

@@ -56,15 +56,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     },
     {
       title: "לקוחות",
-      href: "/admin/custom-users",
+      href: "/admin/customers",
       icon: <UsersIcon className="h-5 w-5 ml-2" />,
-      description: "ניהול משתמשים והרשאות"
+      description: "ניהול לקוחות והזמנות שלהם"
     },
     {
       title: "משתמשים",
-      href: "/admin/users",
+      href: "/admin/custom-users",
       icon: <UsersIcon className="h-5 w-5 ml-2" />,
-      description: "ניהול משתמשי המערכת"
+      description: "ניהול משתמשים והרשאות"
     },
     {
       title: "דוחות",

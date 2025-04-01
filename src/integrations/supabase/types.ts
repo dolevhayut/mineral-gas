@@ -48,6 +48,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_updates: {
+        Row: {
+          id: string
+          title: string
+          content: string
+          created_at: string
+          updated_at: string | null
+          is_active: boolean
+          expiry_date: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          content: string
+          created_at?: string
+          updated_at?: string | null
+          is_active?: boolean
+          expiry_date?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          content?: string
+          created_at?: string
+          updated_at?: string | null
+          is_active?: boolean
+          expiry_date?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
