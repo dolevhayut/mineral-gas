@@ -195,16 +195,6 @@ const UserDashboard = () => {
 
   const actionCards = [
     {
-      title: "הזמנה חדשה",
-      icon: <PlusIcon className="h-8 w-8 text-bakery-600" />,
-      action: () => navigate("/orders/new")
-    },
-    {
-      title: "ביצוע או עדכון הזמנה קיימת",
-      icon: <PencilIcon className="h-8 w-8 text-bakery-600" />,
-      action: () => navigate("/orders/current")
-    },
-    {
       title: "עדכון הזמנה למחר",
       icon: <CalendarIcon className="h-8 w-8 text-bakery-600" />,
       action: () => {
@@ -219,6 +209,11 @@ const UserDashboard = () => {
           });
         }
       }
+    },
+    {
+      title: "עריכת הזמנה קיימת",
+      icon: <PencilIcon className="h-8 w-8 text-bakery-600" />,
+      action: () => navigate("/orders/current")
     },
     {
       title: "צפייה בהיסטוריה",
@@ -329,14 +324,15 @@ const UserDashboard = () => {
             {actionCards.map((card, index) => (
               <Card 
                 key={index} 
-                className="hover:bg-accent transition-colors cursor-pointer"
+                className="group hover:bg-bakery-50 hover:border-bakery-400 transition-all duration-200 cursor-pointer border-2 border-bakery-200 shadow-md relative overflow-hidden bg-gradient-to-l from-white to-bakery-50/30"
                 onClick={card.action}
               >
                 <div className="flex flex-row-reverse justify-between items-center p-4">
-                  <div className="bg-bakery-50 p-2 rounded-full">
+                  <div className="bg-bakery-100 p-2 rounded-full shadow-sm">
                     {card.icon}
                   </div>
                   <h3 className="text-lg font-medium text-right">{card.title}</h3>
+                  <ArrowRightIcon className="h-5 w-5 text-bakery-400 absolute left-3 opacity-70 group-hover:opacity-100" />
                 </div>
               </Card>
             ))}
