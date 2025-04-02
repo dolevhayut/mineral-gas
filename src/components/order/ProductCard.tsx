@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { OrderProduct } from "./orderConstants";
 import { CheckCircle } from "lucide-react";
@@ -23,7 +22,6 @@ export default function ProductCard({ product, onSelect, isSelected }: ProductCa
       />
       <div className="flex-1 p-4 text-right">
         <h3 className="font-medium">{product.name}</h3>
-        <p className="text-sm text-gray-500">{product.sku}</p>
       </div>
       
       {isSelected && (

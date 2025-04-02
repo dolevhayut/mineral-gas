@@ -318,6 +318,7 @@ const UserDashboard = () => {
         {/* Action Cards */}
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-3 text-right">פעולות מהירות</h2>
+          <p className="text-sm text-muted-foreground mb-2 text-right">בחר פעולה שברצונך לבצע</p>
           <Separator className="mb-4" />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

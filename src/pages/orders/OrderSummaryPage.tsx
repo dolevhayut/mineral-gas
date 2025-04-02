@@ -101,9 +101,15 @@ const OrderSummaryPage = () => {
     saturday: 6
   };
   
+  // Sort with explicit day comparison
   dayOrderSummary.sort((a, b) => {
-    return (dayOrder[a.day] || 99) - (dayOrder[b.day] || 99);
+    const orderA = dayOrder[a.day] !== undefined ? dayOrder[a.day] : 99;
+    const orderB = dayOrder[b.day] !== undefined ? dayOrder[b.day] : 99;
+    return orderA - orderB;
   });
+  
+  // Debug log to check order of days
+  console.log("Day Order Summary:", dayOrderSummary.map(d => d.day));
   
   const hasItems = dayOrderSummary.length > 0;
 
@@ -175,21 +181,26 @@ const OrderSummaryPage = () => {
             <div className="space-y-6">
               <div className="space-y-4">
                 <h3 className="font-medium text-xl mb-4 text-right">פריטים לפי ימים:</h3>
-                {dayOrderSummary.map((daySummary) => (
-                  <div key={daySummary.day} className="flex flex-col border-b pb-4 pt-2">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm text-gray-500">סה"כ: {daySummary.totalQuantity} יח׳</span>
-                      <h4 className="font-medium text-lg">יום {daySummary.dayHebrew}</h4>
-                    </div>
-                    
-                    {daySummary.products.map((product, idx) => (
-                      <div key={`${daySummary.day}-${product.productId}-${idx}`} className="flex justify-between my-1 pr-4">
-                        <span className="text-sm">{product.quantity} יח׳</span>
-                        <span className="text-sm text-gray-700">{product.productName}</span>
+                {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map(dayKey => {
+                  const daySummary = dayOrderSummary.find(d => d.day === dayKey);
+                  if (!daySummary) return null;
+                  
+                  return (
+                    <div key={daySummary.day} className="flex flex-col border-b pb-4 pt-2 rtl">
+                      <div className="flex items-center mb-2 rtl text-right">
+                        <h4 className="font-medium text-lg ml-auto">יום {daySummary.dayHebrew}</h4>
+                        <span className="text-sm text-gray-500 mr-auto">סה"כ: {daySummary.totalQuantity} יח׳</span>
                       </div>
-                    ))}
-                  </div>
-                ))}
+                      
+                      {daySummary.products.map((product, idx) => (
+                        <div key={`${daySummary.day}-${product.productId}-${idx}`} className="flex items-center my-1 text-right rtl pr-4">
+                          <span className="text-sm text-gray-700 ml-auto">{product.productName}</span>
+                          <span className="text-sm mr-auto">{product.quantity} יח׳</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="mt-8">

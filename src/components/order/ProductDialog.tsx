@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { OrderProduct } from "./orderConstants";
+import { useEffect, useState } from "react";
 
 interface ProductDialogProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ProductDialogProps {
   onSave: () => void;
   hebrewDays: Array<{ id: string; name: string }>;
   quantityOptions: number[];
+  isTomorrowEdit?: boolean;
 }
 
 export default function ProductDialog({
@@ -22,16 +24,36 @@ export default function ProductDialog({
   onQuantityChange,
   onSave,
   hebrewDays,
-  quantityOptions
+  quantityOptions,
+  isTomorrowEdit = false
 }: ProductDialogProps) {
   if (!product) return null;
+  
+  // Get tomorrow's day of week
+  const getTomorrowDayOfWeek = (): string => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return days[tomorrow.getDay()];
+  };
+  
+  const [tomorrowDay, setTomorrowDay] = useState<string>("");
+  
+  useEffect(() => {
+    setTomorrowDay(getTomorrowDayOfWeek());
+  }, []);
+  
+  // Filter hebrewDays to only show tomorrow if it's a tomorrow edit
+  // Otherwise, show all days
+  const daysToShow = isTomorrowEdit 
+    ? hebrewDays.filter(day => day.id === tomorrowDay)
+    : hebrewDays;
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md w-full sm:max-w-md mx-auto p-8">
         <DialogHeader className="pb-4 border-b">
           <DialogTitle className="text-center">{product.name}</DialogTitle>
-          <DialogDescription className="text-center text-gray-600">מק"ט-{product.sku}</DialogDescription>
         </DialogHeader>
         <div className="py-6">
           <img 
@@ -41,7 +63,7 @@ export default function ProductDialog({
           />
           
           <div className="space-y-4 px-2">
-            {hebrewDays.map((day) => (
+            {daysToShow.map((day) => (
               <div key={day.id} className="flex items-center justify-between border-b pb-3 px-1">
                 <span className="font-medium">{day.name}</span>
                 <Select 

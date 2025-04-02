@@ -69,6 +69,8 @@ const EditOrder = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
+  const [tomorrowDayOfWeek, setTomorrowDayOfWeek] = useState<string>("");
+  const [isTomorrowEdit, setIsTomorrowEdit] = useState(false);
 
   // Get tomorrow's date function
   const getTomorrowDate = () => {
@@ -77,13 +79,34 @@ const EditOrder = () => {
     return tomorrow;
   };
 
-  // Check for URL parameter on component mount
+  // Get day of week name for tomorrow
+  const getTomorrowDayOfWeek = (): string => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const tomorrow = getTomorrowDate();
+    return days[tomorrow.getDay()];
+  };
+
+  // Set tomorrow day of week on component mount
+  useEffect(() => {
+    setTomorrowDayOfWeek(getTomorrowDayOfWeek());
+  }, []);
+
+  // Check for URL parameter and location state when component mounts
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const editParam = searchParams.get('edit');
     
     if (editParam === 'tomorrow') {
       setTargetDate(getTomorrowDate());
+      setIsTomorrowEdit(true);
+    }
+    
+    // Check if we're returning from the NewOrder page with updated quantities
+    if (location.state && location.state.updatedQuantities) {
+      setQuantities(location.state.updatedQuantities);
+      
+      // Clear the state to prevent issues with repeated navigation
+      window.history.replaceState({}, document.title);
     }
   }, [location]);
 
@@ -417,27 +440,49 @@ const EditOrder = () => {
               />
               {targetDate && (
                 <div className="flex justify-center mt-2">
-                  <span className="text-sm bg-gray-100 px-2 py-1 rounded">
+                  <span className="text-sm bg-gray-100 px-2 py-1 rounded flex items-center">
                     <CalendarIcon className="inline-block h-4 w-4 ml-1" />
-                    תאריך יעד נוכחי: {formatDate(targetDate.toISOString())}
+                    מחר: {formatDate(targetDate.toISOString())}
                   </span>
                 </div>
               )}
               <p className="text-sm text-gray-500 mt-2 text-center">
                 ההזמנה תחזור על עצמה עד לתאריך היעד
               </p>
+              
+              <div className="flex justify-center mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/orders/new', {
+                    state: {
+                      existingQuantities: quantities,
+                      existingProducts: products,
+                      fromOrderEdit: true,
+                      orderId: orderId
+                    }
+                  })}
+                  className="flex items-center gap-2"
+                >
+                  <PackageIcon className="h-4 w-4" />
+                  הוסף מוצרים להזמנה
+                </Button>
+              </div>
             </div>
             
             <div className="space-y-4 mb-12">
               {products
-                .filter(product => quantities[product.id] && Object.values(quantities[product.id]).some(q => q > 0))
+                .filter(product => quantities[product.id] && 
+                  // Only filter by tomorrow's day if editing tomorrow's order
+                  (isTomorrowEdit 
+                    ? quantities[product.id][tomorrowDayOfWeek] > 0 
+                    : Object.values(quantities[product.id]).some(q => q > 0))
+                )
                 .map(product => (
                   <div key={product.id} className="relative">
                     <Card className="overflow-hidden mb-2">
                       <div className="p-4 border-b bg-gray-50">
                         <div className="flex justify-between items-center">
                           <h3 className="font-medium text-lg">{product.name}</h3>
-                          <span className="text-sm text-gray-500 rtl:ml-2">{product.sku}</span>
                         </div>
                       </div>
                       <div className="p-4">
@@ -453,7 +498,10 @@ const EditOrder = () => {
                           <div className="text-right flex-1 mx-4">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 rtl:text-right">
                               {Object.entries(quantities[product.id] || {})
-                                .filter(([_, qty]) => qty > 0)
+                                .filter(([day, qty]) => qty > 0 && 
+                                  // Only filter by tomorrow's day if editing tomorrow's order
+                                  (isTomorrowEdit ? day === tomorrowDayOfWeek : true)
+                                )
                                 .map(([day, qty]) => {
                                   // Hebrew day name mapping
                                   const dayTranslation = {
@@ -495,15 +543,6 @@ const EditOrder = () => {
                 ))}
             </div>
             
-            <Button
-              variant="outline"
-              onClick={() => navigate('/orders/new')}
-              className="mb-20 flex items-center gap-2"
-            >
-              <PackageIcon className="h-4 w-4" />
-              הוסף מוצרים להזמנה
-            </Button>
-            
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center shadow-md">
               <Button
                 variant="default"
@@ -525,6 +564,7 @@ const EditOrder = () => {
               onSave={handleSave}
               hebrewDays={hebrewDays}
               quantityOptions={quantityOptions}
+              isTomorrowEdit={isTomorrowEdit}
             />
           </>
         ) : (

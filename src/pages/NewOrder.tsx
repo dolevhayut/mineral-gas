@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 
 // Import our components
@@ -12,6 +12,9 @@ import OrderActions from "@/components/order/OrderActions";
 import { quantityOptions, hebrewDays, OrderProduct } from "@/components/order/orderConstants";
 import { submitOrder } from "@/services/orderService";
 import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Define the Product interface based on our new schema
 interface Product extends OrderProduct {
@@ -21,12 +24,28 @@ interface Product extends OrderProduct {
 const NewOrder = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [canOrderFresh, setCanOrderFresh] = useState(true);
+  const [isFromOrderEdit, setIsFromOrderEdit] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Check if we're coming from the EditOrder page
+    if (location.state) {
+      const { existingQuantities, existingProducts, fromOrderEdit, orderId } = location.state;
+      
+      if (fromOrderEdit && existingQuantities) {
+        setQuantities(existingQuantities);
+        setIsFromOrderEdit(true);
+        if (orderId) setOrderId(orderId);
+      }
+    }
+  }, [location.state]);
   
   useEffect(() => {
     const fetchUserPermissionsAndProducts = async () => {
@@ -120,12 +139,21 @@ const NewOrder = () => {
   };
 
   const handleSave = () => {
-    console.log("Saved quantities for product:", selectedProduct, quantities[selectedProduct || ""]);
     setIsDialogOpen(false);
   };
 
   const handleClose = () => {
     setIsDialogOpen(false);
+  };
+  
+  const handleReturnToEdit = () => {
+    if (orderId) {
+      navigate(`/orders/edit/${orderId}`, {
+        state: { 
+          updatedQuantities: quantities 
+        }
+      });
+    }
   };
 
   const currentProduct = products.find(p => p.id === selectedProduct) || null;
@@ -133,7 +161,35 @@ const NewOrder = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 pb-20">
-        <OrderHeader />
+        {isFromOrderEdit ? (
+          <div className="flex justify-between items-center mb-6">
+            <div className="ms-auto">
+              <h1 className="text-2xl font-bold">הוספת מוצרים להזמנה</h1>
+            </div>
+            <div className="me-auto">
+              <Button 
+                variant="outline" 
+                onClick={handleReturnToEdit}
+                className="flex items-center gap-2 whitespace-nowrap"
+              >
+                <ArrowRight className="h-4 w-4" />
+                חזרה לעריכת ההזמנה
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <OrderHeader />
+        )}
+        
+        {isFromOrderEdit && (
+          <Alert className="my-4 bg-blue-50 border-blue-200">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>הוספת מוצרים להזמנה קיימת</AlertTitle>
+            <AlertDescription>
+              ניתן לראות את המוצרים הקיימים בהזמנה מסומנים בירוק. לחץ עליהם כדי לשנות את הכמויות.
+            </AlertDescription>
+          </Alert>
+        )}
         
         {isLoading ? (
           <div className="flex justify-center items-center h-48">
@@ -169,6 +225,8 @@ const NewOrder = () => {
         <OrderActions 
           quantities={quantities}
           products={products}
+          isFromOrderEdit={isFromOrderEdit}
+          onReturnToEdit={handleReturnToEdit}
         />
       </div>
     </MainLayout>

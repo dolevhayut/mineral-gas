@@ -6,9 +6,16 @@ import { OrderProduct } from "@/components/order/orderConstants";
 interface OrderActionsProps {
   quantities: Record<string, Record<string, number>>;
   products: OrderProduct[];
+  isFromOrderEdit?: boolean;
+  onReturnToEdit?: () => void;
 }
 
-export default function OrderActions({ quantities, products }: OrderActionsProps) {
+export default function OrderActions({ 
+  quantities, 
+  products, 
+  isFromOrderEdit = false,
+  onReturnToEdit
+}: OrderActionsProps) {
   const navigate = useNavigate();
 
   const handleOpenSummary = () => {
@@ -33,12 +40,21 @@ export default function OrderActions({ quantities, products }: OrderActionsProps
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-green-500 p-4">
-      <Button 
-        className="w-full bg-white text-green-700 hover:bg-gray-100 font-medium py-2"
-        onClick={handleOpenSummary}
-      >
-        המשך לסיכום הזמנה
-      </Button>
+      {isFromOrderEdit ? (
+        <Button 
+          className="w-full bg-white text-green-700 hover:bg-gray-100 font-medium py-2"
+          onClick={onReturnToEdit}
+        >
+          חזור לעריכת ההזמנה עם המוצרים החדשים
+        </Button>
+      ) : (
+        <Button 
+          className="w-full bg-white text-green-700 hover:bg-gray-100 font-medium py-2"
+          onClick={handleOpenSummary}
+        >
+          המשך לסיכום הזמנה
+        </Button>
+      )}
     </div>
   );
 }
