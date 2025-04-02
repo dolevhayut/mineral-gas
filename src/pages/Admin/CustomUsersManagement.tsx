@@ -112,11 +112,11 @@ const CustomUsersManagement = () => {
         }));
         setUsers(typedUsers);
       }
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error fetching users:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch users",
+        description: error instanceof Error ? error.message : "Failed to fetch users",
         variant: "destructive",
       });
     } finally {
@@ -349,19 +349,17 @@ const CustomUsersManagement = () => {
                 </div>
                 <div className="space-y-2">
                   <FormLabel htmlFor="role">Role</FormLabel>
-                  <Select 
-                    value={formRole} 
-                    onValueChange={setFormRole}
-                    defaultValue="customer"
-                  >
-                    <SelectTrigger id="role">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent side="bottom" position="popper">
-                      <SelectItem key="customer" value="customer">Customer</SelectItem>
-                      <SelectItem key="admin" value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="relative">
+                    <select
+                      id="role"
+                      value={formRole}
+                      onChange={(e) => setFormRole(e.target.value)}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                      <option value="customer">Customer</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <FormLabel htmlFor="sapId">SAP Customer ID</FormLabel>
@@ -587,19 +585,17 @@ const CustomUsersManagement = () => {
             </div>
             <div className="space-y-2">
               <FormLabel htmlFor="edit-role">Role</FormLabel>
-              <Select 
-                value={formRole} 
-                onValueChange={setFormRole}
-                defaultValue="customer"
-              >
-                <SelectTrigger id="edit-role">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent side="bottom" position="popper">
-                  <SelectItem key="customer" value="customer">Customer</SelectItem>
-                  <SelectItem key="admin" value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <select
+                  id="edit-role"
+                  value={formRole}
+                  onChange={(e) => setFormRole(e.target.value)}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="customer">Customer</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
             </div>
             <div className="space-y-2">
               <FormLabel htmlFor="edit-sap">SAP Customer ID</FormLabel>
