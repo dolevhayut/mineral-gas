@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +52,7 @@ import { FormLabel } from "@/components/ui/form";
 import { useToast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { PostgrestError } from "@supabase/supabase-js";
 
 interface CustomUser {
   id: string;
@@ -92,7 +93,7 @@ const CustomUsersManagement = () => {
     try {
       const { data, error } = await supabase
         .from('custom_users')
-        .select('*') as { data: CustomUser[] | null, error: any };
+        .select('*') as { data: CustomUser[] | null, error: PostgrestError | null };
 
       if (error) {
         throw error;
@@ -111,7 +112,7 @@ const CustomUsersManagement = () => {
         }));
         setUsers(typedUsers);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching users:", error);
       toast({
         title: "Error",
@@ -188,11 +189,11 @@ const CustomUsersManagement = () => {
       resetForm();
       setIsAddDialogOpen(false);
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error adding user:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to add user",
+        description: error instanceof Error ? error.message : "Failed to add user",
         variant: "destructive",
       });
     }
@@ -226,7 +227,14 @@ const CustomUsersManagement = () => {
           throw error;
         }
       } else {
-        const updateData: any = {
+        const updateData: {
+          name: string;
+          phone: string;
+          role: string;
+          sap_customer_id: string | null;
+          is_verified: boolean;
+          can_order_fresh: boolean;
+        } = {
           name: formName,
           phone: formPhone,
           role: formRole,
@@ -253,11 +261,11 @@ const CustomUsersManagement = () => {
       resetForm();
       setIsEditDialogOpen(false);
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating user:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update user",
+        description: error instanceof Error ? error.message : "Failed to update user",
         variant: "destructive",
       });
     }
@@ -284,11 +292,11 @@ const CustomUsersManagement = () => {
       setIsDeleteDialogOpen(false);
       setCurrentUser(null);
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting user:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete user",
+        description: error instanceof Error ? error.message : "Failed to delete user",
         variant: "destructive",
       });
     }
@@ -344,13 +352,14 @@ const CustomUsersManagement = () => {
                   <Select 
                     value={formRole} 
                     onValueChange={setFormRole}
+                    defaultValue="customer"
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="role">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="customer">Customer</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                    <SelectContent side="bottom" position="popper">
+                      <SelectItem key="customer" value="customer">Customer</SelectItem>
+                      <SelectItem key="admin" value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -581,13 +590,14 @@ const CustomUsersManagement = () => {
               <Select 
                 value={formRole} 
                 onValueChange={setFormRole}
+                defaultValue="customer"
               >
-                <SelectTrigger>
+                <SelectTrigger id="edit-role">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="customer">Customer</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                <SelectContent side="bottom" position="popper">
+                  <SelectItem key="customer" value="customer">Customer</SelectItem>
+                  <SelectItem key="admin" value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
