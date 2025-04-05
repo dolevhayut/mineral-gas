@@ -182,6 +182,42 @@ const EditOrder = () => {
           return;
         }
         
+        // Get the user's permissions for fresh products
+        const { data: userData, error: userError } = await supabase
+          .from('custom_users')
+          .select('can_order_fresh')
+          .eq('id', user.id)
+          .single();
+        
+        if (userError) {
+          console.error("Error fetching user permissions:", userError);
+          toast({
+            title: "שגיאה",
+            description: "לא ניתן לטעון הרשאות משתמש",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        const canOrderFresh = userData?.can_order_fresh ?? true;
+        
+        // Fetch user's allowed fresh products if they can order fresh
+        let allowedProductIds: string[] = [];
+        
+        if (canOrderFresh) {
+          // Direct query using from() with type assertion
+          const { data, error: allowedProductsError } = await supabase
+            .from('custom_user_products' as any)
+            .select('product_id')
+            .eq('user_id', user.id);
+            
+          if (allowedProductsError) {
+            console.error("Error fetching allowed products:", allowedProductsError);
+          } else if (data) {
+            allowedProductIds = data.map((item: any) => item.product_id);
+          }
+        }
+        
         // Fetch all products
         const { data: productsData, error: productsError } = await supabase
           .from('products')
@@ -197,8 +233,24 @@ const EditOrder = () => {
           return;
         }
         
+        // Filter products based on permissions
+        const filteredProductsData = productsData?.filter((product: any) => {
+          // Always include products that are in the order
+          const productInOrder = orderItemsData?.some(item => item.product_id === product.id);
+          if (productInOrder) return true;
+          
+          // If product is frozen, always include it
+          if (product.is_frozen) return true;
+          
+          // If user can't order fresh, exclude fresh products
+          if (!canOrderFresh) return false;
+          
+          // If product is fresh, check if it's in the allowed list or if there are no specific permissions
+          return allowedProductIds.length === 0 || allowedProductIds.includes(product.id);
+        }) || [];
+        
         // Process products data
-        const formattedProducts: Product[] = (productsData || []).map((product: DBProduct) => ({
+        const formattedProducts: Product[] = (filteredProductsData || []).map((product: DBProduct) => ({
           id: product.id,
           name: product.name,
           description: product.description || '',

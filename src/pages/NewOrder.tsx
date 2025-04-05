@@ -70,42 +70,92 @@ const NewOrder = () => {
           } else {
             setCanOrderFresh(userData?.can_order_fresh ?? true);
           }
-        }
-        
-        // Fetch products based on user permissions
-        const query = supabase.from('products').select('*');
-        
-        // If user can't order fresh products, filter to only show frozen products
-        if (!canOrderFresh) {
-          query.eq('is_frozen', true);
-        }
-        
-        const { data, error } = await query;
-        
-        if (error) {
-          console.error("Error fetching products:", error);
-          toast({
-            title: "שגיאה",
-            description: "לא ניתן לטעון את רשימת המוצרים",
-            variant: "destructive"
-          });
-        } else {
-          // Convert database products to our Product interface
-          const formattedProducts: Product[] = (data || []).map(product => ({
-            id: product.id,
-            name: product.name,
-            description: product.description || '',
-            price: product.price,
-            image: product.image || '/placeholder.png',
-            category: product.category || '',
-            is_frozen: product.is_frozen || false,
-            sku: product.sku || `מק"ט-${product.id}`,
-            available: product.available !== false,
-            featured: product.featured || false,
-            createdAt: product.created_at || new Date().toISOString()
-          }));
           
-          setProducts(formattedProducts);
+          // Fetch user's allowed fresh products if they can order fresh
+          if (userData?.can_order_fresh) {
+            const { data: allowedProductsData, error: allowedProductsError } = await supabase
+              .from('custom_user_products' as any)
+              .select('product_id')
+              .eq('user_id', user.id);
+              
+            if (allowedProductsError) {
+              console.error("Error fetching allowed products:", allowedProductsError);
+            }
+            
+            // Fetch all products
+            const { data, error } = await supabase.from('products').select('*');
+            
+            if (error) {
+              console.error("Error fetching products:", error);
+              toast({
+                title: "שגיאה",
+                description: "לא ניתן לטעון את רשימת המוצרים",
+                variant: "destructive"
+              });
+            } else {
+              // Get the list of allowed product IDs
+              const allowedProductIds = allowedProductsData ? allowedProductsData.map((item: any) => item.product_id) : [];
+              
+              // Filter products based on permissions
+              const filteredProducts = data?.filter((product: any) => {
+                // If product is frozen, always include it
+                if (product.is_frozen) return true;
+                
+                // If product is fresh, check if it's in the allowed list or if there are no specific permissions
+                // (if allowedProductIds is empty, show all fresh products as before)
+                return allowedProductIds.length === 0 || allowedProductIds.includes(product.id);
+              }) || [];
+              
+              // Convert database products to our Product interface
+              const formattedProducts: Product[] = filteredProducts.map(product => ({
+                id: product.id,
+                name: product.name,
+                description: product.description || '',
+                price: product.price,
+                image: product.image || '/placeholder.png',
+                category: product.category || '',
+                is_frozen: product.is_frozen || false,
+                sku: product.sku || `מק"ט-${product.id}`,
+                available: product.available !== false,
+                featured: product.featured || false,
+                createdAt: product.created_at || new Date().toISOString()
+              }));
+              
+              setProducts(formattedProducts);
+            }
+          } else {
+            // User can't order fresh products, show only frozen ones
+            const { data, error } = await supabase
+              .from('products')
+              .select('*')
+              .eq('is_frozen', true);
+            
+            if (error) {
+              console.error("Error fetching frozen products:", error);
+              toast({
+                title: "שגיאה",
+                description: "לא ניתן לטעון את רשימת המוצרים",
+                variant: "destructive"
+              });
+            } else {
+              // Convert database products to our Product interface
+              const formattedProducts: Product[] = (data || []).map(product => ({
+                id: product.id,
+                name: product.name,
+                description: product.description || '',
+                price: product.price,
+                image: product.image || '/placeholder.png',
+                category: product.category || '',
+                is_frozen: product.is_frozen || false,
+                sku: product.sku || `מק"ט-${product.id}`,
+                available: product.available !== false,
+                featured: product.featured || false,
+                createdAt: product.created_at || new Date().toISOString()
+              }));
+              
+              setProducts(formattedProducts);
+            }
+          }
         }
       } catch (error) {
         console.error("Unexpected error:", error);
@@ -115,7 +165,7 @@ const NewOrder = () => {
     };
     
     fetchUserPermissionsAndProducts();
-  }, [user, canOrderFresh]);
+  }, [user]);
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;

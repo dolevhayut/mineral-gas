@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -50,6 +50,9 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface Customer {
   id: string;
@@ -57,6 +60,13 @@ interface Customer {
   phone?: string;
   user_id: string;
   orders?: { count: number }[];
+}
+
+interface Product {
+  id: string;
+  name: string;
+  category?: string;
+  is_frozen: boolean;
 }
 
 interface User {
@@ -69,6 +79,7 @@ interface User {
   total_spent?: number;
   can_order_fresh?: boolean;
   customer?: Customer | null;
+  allowed_fresh_products?: string[];
 }
 
 export default function CustomUsers() {
@@ -83,11 +94,32 @@ export default function CustomUsers() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [freshProducts, setFreshProducts] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch fresh products
+  useEffect(() => {
+    const fetchFreshProducts = async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, category, is_frozen")
+        .eq("is_frozen", false);
+        
+      if (error) {
+        console.error("Error fetching fresh products:", error);
+        return;
+      }
+      
+      setFreshProducts(data || []);
+    };
+    
+    fetchFreshProducts();
+  }, []);
 
   // Fetch custom users
   const { data: users, isLoading: isUsersLoading } = useQuery({
@@ -120,6 +152,7 @@ export default function CustomUsers() {
             orders_count: 5,
             total_spent: 600,
             can_order_fresh: true,
+            allowed_fresh_products: [],
             customer: null,
           },
           {
@@ -131,6 +164,7 @@ export default function CustomUsers() {
             orders_count: 3,
             total_spent: 450,
             can_order_fresh: true,
+            allowed_fresh_products: [],
             customer: null,
           },
           {
@@ -142,12 +176,13 @@ export default function CustomUsers() {
             orders_count: 2,
             total_spent: 360,
             can_order_fresh: false,
+            allowed_fresh_products: [],
             customer: null,
           },
         ];
       }
 
-      // For each user, get their associated customer
+      // For each user, get their associated customer and allowed products
       const usersWithCustomers = [];
       
       for (const user of userData) {
@@ -158,6 +193,12 @@ export default function CustomUsers() {
           .eq("user_id", user.id)
           .maybeSingle();
         
+        // Get allowed fresh products for this user
+        const { data: allowedProductsData } = await supabase
+          .from("custom_user_products")
+          .select("product_id")
+          .eq("user_id", user.id);
+          
         // Get orders count for this customer
         let ordersCount = 0;
         if (customerData) {
@@ -169,6 +210,7 @@ export default function CustomUsers() {
           orders_count: ordersCount,
           total_spent: 0,
           customer: customerData,
+          allowed_fresh_products: allowedProductsData?.map(item => item.product_id) || [],
         });
       }
       
@@ -196,40 +238,84 @@ export default function CustomUsers() {
       
       setIsLoading(true);
       
-      if (isNewUser) {
-        // Create new user
-        const { error } = await supabase
-          .from("custom_users")
-          .insert([
-            { 
+      try {
+        if (isNewUser) {
+          // Create new user
+          const { data: newUser, error } = await supabase
+            .from("custom_users")
+            .insert([
+              { 
+                name: user.name,
+                phone: user.phone,
+                sap_customer_id: user.sap_customer_id,
+                role: user.role,
+                can_order_fresh: user.can_order_fresh,
+                // For a new user we'd need to set a temporary password
+                password: "tempPassword123" 
+              }
+            ])
+            .select();
+            
+          if (error) throw error;
+          
+          // If fresh products selected and can_order_fresh is true, save the product permissions
+          if (user.can_order_fresh && selectedProducts.length > 0 && newUser?.[0]?.id) {
+            const productPermissions = selectedProducts.map(productId => ({
+              user_id: newUser[0].id,
+              product_id: productId
+            }));
+            
+            const { error: permissionsError } = await supabase
+              .from("custom_user_products")
+              .insert(productPermissions);
+              
+            if (permissionsError) throw permissionsError;
+          }
+        } else {
+          // Update existing user
+          const { error } = await supabase
+            .from("custom_users")
+            .update({ 
               name: user.name,
               phone: user.phone,
               sap_customer_id: user.sap_customer_id,
               role: user.role,
               can_order_fresh: user.can_order_fresh,
-              // For a new user we'd need to set a temporary password
-              password: "tempPassword123" 
+            })
+            .eq("id", user.id);
+            
+          if (error) throw error;
+          
+          // Handle product permissions
+          if (user.id) {
+            // First delete existing permissions
+            const { error: deleteError } = await supabase
+              .from("custom_user_products")
+              .delete()
+              .eq("user_id", user.id);
+              
+            if (deleteError) throw deleteError;
+            
+            // If can order fresh and products selected, add new permissions
+            if (user.can_order_fresh && selectedProducts.length > 0) {
+              const productPermissions = selectedProducts.map(productId => ({
+                user_id: user.id,
+                product_id: productId
+              }));
+              
+              const { error: permissionsError } = await supabase
+                .from("custom_user_products")
+                .insert(productPermissions);
+                
+              if (permissionsError) throw permissionsError;
             }
-          ]);
-          
-        if (error) throw error;
-      } else {
-        // Update existing user
-        const { error } = await supabase
-          .from("custom_users")
-          .update({ 
-            name: user.name,
-            phone: user.phone,
-            sap_customer_id: user.sap_customer_id,
-            role: user.role,
-            can_order_fresh: user.can_order_fresh,
-          })
-          .eq("id", user.id);
-          
-        if (error) throw error;
+          }
+        }
+      } catch (error) {
+        throw error;
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["custom_users"] });
@@ -295,6 +381,7 @@ export default function CustomUsers() {
 
   const handleEditUser = (user: User) => {
     setCurrentUser(user);
+    setSelectedProducts(user.allowed_fresh_products || []);
     setIsEditDialogOpen(true);
   };
 
@@ -359,6 +446,16 @@ export default function CustomUsers() {
     }
   };
 
+  const handleProductSelection = (productId: string) => {
+    setSelectedProducts(prev => {
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      } else {
+        return [...prev, productId];
+      }
+    });
+  };
+
   const renderUserDialog = (isAdd: boolean) => {
     const dialogTitle = isAdd ? "הוספת לקוח חדש" : "עריכת פרטי לקוח";
     const dialogDescription = isAdd 
@@ -366,6 +463,16 @@ export default function CustomUsers() {
       : "ערוך את פרטי הלקוח ולחץ שמור כדי לעדכן";
     const isOpen = isAdd ? isAddDialogOpen : isEditDialogOpen;
     const setIsOpen = isAdd ? setIsAddDialogOpen : setIsEditDialogOpen;
+    
+    // Group fresh products by category
+    const productsByCategory: Record<string, Product[]> = {};
+    freshProducts.forEach(product => {
+      const category = product.category || "אחר";
+      if (!productsByCategory[category]) {
+        productsByCategory[category] = [];
+      }
+      productsByCategory[category].push(product);
+    });
     
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -442,6 +549,77 @@ export default function CustomUsers() {
                 />
               </div>
             </div>
+            
+            {/* Fresh products section */}
+            {currentUser.can_order_fresh && freshProducts.length > 0 && (
+              <div className="mt-4">
+                <Label className="text-base text-right block">בחירת מוצרים טריים מותרים</Label>
+                <p className="text-sm text-muted-foreground mb-2 text-right">
+                  סמן את המוצרים הטריים שהלקוח יוכל להזמין
+                </p>
+                
+                <ScrollArea className="h-72 rounded-md border p-4">
+                  <div dir="rtl">
+                    {Object.entries(productsByCategory).map(([category, products]) => (
+                      <div key={category} className="mb-4">
+                        <h4 className="font-medium text-sm text-right">{category}</h4>
+                        <Separator className="my-2" />
+                        <div>
+                          {products.map(product => (
+                            <div 
+                              key={product.id} 
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                padding: '4px 0',
+                                direction: 'rtl'
+                              }}
+                            >
+                              <Switch
+                                id={`product-${product.id}`}
+                                checked={selectedProducts.includes(product.id)}
+                                onCheckedChange={() => handleProductSelection(product.id)}
+                                style={{ marginLeft: '12px' }}
+                              />
+                              <Label 
+                                htmlFor={`product-${product.id}`}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  textAlign: 'right',
+                                  flex: 1
+                                }}
+                              >
+                                {product.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                
+                <div className="flex justify-between mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedProducts(freshProducts.map(p => p.id))}
+                  >
+                    בחר הכל
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedProducts([])}
+                  >
+                    נקה הכל
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
