@@ -12,7 +12,7 @@ import {
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
-import { CakeIcon, KeyIcon, IdCardIcon, EyeIcon, EyeOffIcon } from "lucide-react";
+import { KeyIcon, IdCardIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -50,54 +50,6 @@ const Login = () => {
     
     console.log("Setting phone value:", value);
     setPassword(value);
-  };
-
-  const handleDebug = async () => {
-    setErrorMessage(null);
-    try {
-      console.log("Debug - Checking user with SAP ID:", sapCustomerId, "and phone:", password);
-      
-      // Query custom_users table directly
-      const { data, error } = await supabase
-        .from('custom_users')
-        .select('*')
-        .eq('sap_customer_id', sapCustomerId)
-        .eq('phone', password);
-      
-      console.log("Debug response:", data);
-      console.log("Debug error:", error);
-      
-      if (error) {
-        setErrorMessage(`שגיאת שרת: ${error.message}`);
-        toast({
-          title: "פעולת בדיקה",
-          description: `שגיאה: ${error.message}`,
-          variant: "destructive"
-        });
-      } else if (!data || data.length === 0) {
-        setErrorMessage("לא נמצא משתמש עם הפרטים שהוזנו");
-        toast({
-          title: "פעולת בדיקה",
-          description: "לא נמצא משתמש עם הפרטים שהוזנו",
-          variant: "destructive"
-        });
-      } else {
-        const user = data[0];
-        setErrorMessage(null);
-        toast({
-          title: "פעולת בדיקה",
-          description: `נמצא משתמש: ${user.name}, תפקיד: ${user.role}`,
-        });
-      }
-    } catch (err) {
-      console.error("Debug error:", err);
-      setErrorMessage(`שגיאה בבדיקה: ${err instanceof Error ? err.message : String(err)}`);
-      toast({
-        title: "פעולת בדיקה",
-        description: `שגיאה בבדיקה: ${err instanceof Error ? err.message : String(err)}`,
-        variant: "destructive"
-      });
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -159,7 +111,7 @@ const Login = () => {
       <Card className="w-full max-w-sm mx-auto">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
-            <CakeIcon className="h-12 w-12 text-bakery-500" />
+            <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-16 w-auto" />
           </div>
           <CardTitle className="text-2xl">מאפיית אורבר</CardTitle>
           <CardDescription>
@@ -237,19 +189,8 @@ const Login = () => {
             >
               {isLoading ? "מתחבר..." : "התחברות"}
             </Button>
-            <div className="flex justify-between w-full">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleDebug}
-                className="text-xs"
-              >
-                בדוק פרטי התחברות
-              </Button>
-              <div className="text-center text-sm text-gray-500">
-                לשאלות בנוגע לחשבון, פנה למנהל המערכת
-              </div>
+            <div className="text-center text-sm text-gray-500">
+              לשאלות בנוגע לחשבון, פנה למנהל המערכת
             </div>
           </CardFooter>
         </form>

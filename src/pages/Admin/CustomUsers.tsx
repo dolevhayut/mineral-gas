@@ -39,6 +39,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -475,14 +483,14 @@ export default function CustomUsers() {
     });
     
     return (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-            <DialogDescription>
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetContent className="sm:max-w-md overflow-y-auto" side="left">
+          <SheetHeader>
+            <SheetTitle>{dialogTitle}</SheetTitle>
+            <SheetDescription>
               {dialogDescription}
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">שם מלא</Label>
@@ -622,7 +630,7 @@ export default function CustomUsers() {
             )}
           </div>
           
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <SheetFooter className="flex flex-col sm:flex-row gap-2 mt-4">
             <Button 
               type="button" 
               variant="outline" 
@@ -639,9 +647,9 @@ export default function CustomUsers() {
               {isLoading && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
               שמור
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     );
   };
 
