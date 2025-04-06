@@ -53,6 +53,7 @@ const UserDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [systemUpdates, setSystemUpdates] = useState<SystemUpdate[]>([]);
   const [isLoadingUpdates, setIsLoadingUpdates] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   // Fetch system updates
   useEffect(() => {
@@ -241,6 +242,20 @@ const UserDashboard = () => {
     return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
   };
 
+  // Get current day in Hebrew
+  const getHebrewDay = (date: Date) => {
+    const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+    return days[date.getDay()];
+  };
+
+  // Format date in Hebrew (for header)
+  const formatHebrewDate = (date: Date) => {
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const months = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+    return `יום ${getHebrewDay(date)}, ${day} ב${months[date.getMonth()]}`;
+  };
+
   // Format order ID to be more readable
   const formatOrderId = (id: string) => {
     if (!id) return '';
@@ -253,18 +268,20 @@ const UserDashboard = () => {
       <div className="container mx-auto px-4 py-6">
         {/* Welcome Section - Simplified */}
         <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg p-4 mb-6 shadow-sm">
-          <h1 className="text-xl font-serif font-bold text-right">
-            {`שלום, ${user?.name || 'לקוח'}`}
-          </h1>
+          <div className="flex flex-col md:flex-row justify-between items-center md:items-start">
+            <h1 className="text-xl font-serif font-bold text-right mb-2 md:mb-0">
+              {`שלום, ${user?.name || 'לקוח'}`}
+            </h1>
+            <div className="text-gray-600 text-sm font-medium">
+              {formatHebrewDate(currentDate)}
+            </div>
+          </div>
         </div>
         
         {/* Active Order Section - Hidden */}
         
         {/* Action Cards */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold mb-3 text-right">פעולות מהירות</h2>
-          <Separator className="mb-4" />
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {actionCards.map((card, index) => (
               <Card 
