@@ -211,9 +211,15 @@ const UserDashboard = () => {
       }
     },
     {
-      title: "עריכת הזמנה קיימת",
+      title: "הזמנה קבועה",
       icon: <PencilIcon className="h-8 w-8 text-bakery-600" />,
-      action: () => navigate("/orders/current")
+      action: () => {
+        if (activeOrder) {
+          navigate(`/orders/edit/${activeOrder.id}`);
+        } else {
+          navigate("/orders/new");
+        }
+      }
     },
     {
       title: "צפייה בהיסטוריה",
@@ -245,94 +251,35 @@ const UserDashboard = () => {
   return (
     <MainLayoutWithFooter>
       <div className="container mx-auto px-4 py-6">
-        {/* Welcome Section */}
+        {/* Welcome Section - Simplified */}
         <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg p-4 mb-6 shadow-sm">
           <h1 className="text-xl font-serif font-bold text-right">
             {`שלום, ${user?.name || 'לקוח'}`}
           </h1>
-          <p className="text-gray-600 text-right text-sm">ברוכים הבאים למערכת הזמנות מאפיית אורבר</p>
         </div>
         
-        {/* Active Order Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-3 text-right flex items-center">
-            <PackageIcon className="ml-2 h-5 w-5 text-bakery-600" />
-            הזמנה פעילה
-          </h2>
-          <Separator className="mb-4" />
-          
-          {isLoading ? (
-            <Card className="p-4 text-center">
-              <p className="text-muted-foreground">טוען...</p>
-            </Card>
-          ) : activeOrder ? (
-            <Card className="p-4 border-2 border-bakery-100">
-              <div className="flex flex-col">
-                <div className="text-right">
-                  <h3 className="font-medium mb-1">הזמנה מספר {formatOrderId(activeOrder.id)}</h3>
-                  <div dir="rtl" className="text-sm text-muted-foreground mt-2">
-                    <div className="flex flex-row mb-1">
-                      <ClockIcon className="h-4 w-4 ml-2" />
-                      <span>נוצר בתאריך: {formatDate(activeOrder.created_at)}</span>
-                    </div>
-                    {activeOrder.target_date && (
-                      <div className="flex flex-row mb-1">
-                        <CalendarIcon className="h-4 w-4 ml-2" />
-                        <span>תאריך יעד: {formatDate(activeOrder.target_date)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <Separator className="my-3" />
-                <div className="flex justify-between items-center">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate(`/orders/edit/${activeOrder.id}`)}
-                    className="flex items-center gap-1"
-                  >
-                    <PencilIcon className="h-4 w-4" />
-                    עריכה
-                  </Button>
-                  <p className="text-sm text-bakery-600 font-medium">סטטוס: ממתין לאישור</p>
-                </div>
-              </div>
-            </Card>
-          ) : (
-            <Card className="p-4 bg-muted/50">
-              <div className="flex justify-center flex-col items-center py-2">
-                <AlertCircleIcon className="h-10 w-10 text-muted-foreground mb-2" />
-                <p className="text-center text-muted-foreground">אין הזמנה פעילה כרגע</p>
-                <Button 
-                  variant="default" 
-                  className="mt-3" 
-                  onClick={() => navigate('/orders/new')}
-                >
-                  יצירת הזמנה חדשה
-                </Button>
-              </div>
-            </Card>
-          )}
-        </div>
+        {/* Active Order Section - Hidden */}
         
         {/* Action Cards */}
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-3 text-right">פעולות מהירות</h2>
-          <p className="text-sm text-muted-foreground mb-2 text-right">בחר פעולה שברצונך לבצע</p>
           <Separator className="mb-4" />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {actionCards.map((card, index) => (
               <Card 
                 key={index} 
-                className="group hover:bg-bakery-50 hover:border-bakery-400 transition-all duration-200 cursor-pointer border-2 border-bakery-200 shadow-md relative overflow-hidden bg-gradient-to-l from-white to-bakery-50/30"
+                className={`group hover:bg-bakery-50 ${card.title === "עדכון הזמנה למחר" ? 
+                  "border-2 border-bakery-500 bg-bakery-100/70 shadow-lg" : 
+                  "border-2 border-bakery-200 bg-gradient-to-l from-white to-bakery-50/30 shadow-md"} 
+                  hover:border-bakery-400 transition-all duration-200 cursor-pointer relative overflow-hidden`}
                 onClick={card.action}
               >
                 <div className="flex flex-row-reverse justify-between items-center p-4">
-                  <div className="bg-bakery-100 p-2 rounded-full shadow-sm">
+                  <div className={`${card.title === "עדכון הזמנה למחר" ? "bg-bakery-200" : "bg-bakery-100"} p-2 rounded-full shadow-sm`}>
                     {card.icon}
                   </div>
-                  <h3 className="text-lg font-medium text-right">{card.title}</h3>
+                  <h3 className={`text-lg font-medium text-right ${card.title === "עדכון הזמנה למחר" ? "text-bakery-800" : ""}`}>{card.title}</h3>
                   <ArrowRightIcon className="h-5 w-5 text-bakery-400 absolute left-3 opacity-70 group-hover:opacity-100" />
                 </div>
               </Card>
@@ -340,11 +287,11 @@ const UserDashboard = () => {
           </div>
         </div>
 
-        {/* System Updates */}
+        {/* System Updates - Simplified */}
         <div className="mb-20">
           <h2 className="text-xl font-bold mb-3 text-right flex items-center">
             <BellIcon className="ml-2 h-5 w-5 text-bakery-600" />
-            עדכוני מערכת
+            עדכונים
           </h2>
           <Separator className="mb-4" />
           
