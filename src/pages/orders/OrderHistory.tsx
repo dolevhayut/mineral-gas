@@ -6,7 +6,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { AlertCircle, ChevronDown, Clock, Package2 as PackageIcon, CircleDot, Edit, PlusCircle, Filter } from "lucide-react";
+import { AlertCircle, ChevronDown, Clock, Package2 as PackageIcon, CircleDot, PlusCircle, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -174,20 +174,6 @@ const OrderHistory = () => {
     return orderDate.getTime() >= today.getTime();
   };
   
-  const handleEditOrder = (orderId: string) => {
-    navigate(`/orders/edit/${orderId}`);
-  };
-
-
-
-  const isOrderEditable = (deliveryDate: string | null) => {
-    if (!deliveryDate) return true; // Orders without delivery date can be edited
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const orderDate = new Date(deliveryDate);
-    orderDate.setHours(0, 0, 0, 0);
-    return orderDate > today;
-  };
 
   const getOrdersByDate = () => {
     const groupedByDate: Record<string, Order[]> = {};
@@ -379,22 +365,6 @@ const OrderHistory = () => {
                         disabled={!!isCancellingById[order.id]}
                       >
                         {isCancellingById[order.id] ? 'מבטל...' : 'ביטול'}
-                        </Button>
-                      </motion.div>
-                    )}
-                    {isOrderEditable(order.delivery_date) && order.status === 'pending' && (
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.5 + index * 0.1 }}
-                      >
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditOrder(order.id)}
-                      >
-                        <Edit className="h-4 w-4 ml-1" />
-                        עריכה
                         </Button>
                       </motion.div>
                     )}
