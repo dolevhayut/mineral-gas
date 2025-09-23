@@ -5,13 +5,13 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ReactNode, useEffect } from "react";
 import { CartProvider } from "@/context/CartContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
+
 
 // App version
-export const APP_VERSION = "1.0.3"; // מאפיית אורבר
+export const APP_VERSION = "1.0.0"; // מינרל גז - אביגל טורג'מן
 
 // Pages
-import Login from "@/pages/Login";
+import PhoneLogin from "@/pages/PhoneLogin";
 import Catalog from "@/pages/Catalog";
 import ProductDetail from "@/pages/ProductDetail";
 import Cart from "@/pages/Cart";
@@ -43,13 +43,15 @@ import AdminOrders from "@/pages/Admin/Orders";
 import OrdersManagement from "@/pages/Admin/OrdersManagement";
 import UserSettings from "@/pages/UserSettings";
 import Settings from "@/pages/Settings";
+import EditProfile from "@/pages/EditProfile";
+import ServiceRequest from "@/pages/ServiceRequest";
 
 // RequireAuth component
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useAuth();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (!user?.role || user.role !== "admin") {
@@ -59,10 +61,10 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// HomePage component to redirect based on auth state
+// HomePage component - now shows login page directly
 function HomePage() {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
+  return isAuthenticated ? <Navigate to="/catalog" replace /> : <PhoneLogin />;
 }
 
 const queryClient = new QueryClient();
@@ -70,18 +72,18 @@ const queryClient = new QueryClient();
 // AppContent component to use hooks inside providers
 function AppContent() {
   // Initialize system settings (includes token validation)
-  useSystemSettings();
+  // useSystemSettings();
 
   return (
     <>
       <Toaster />
       <Router>
         <Routes>
-          {/* Redirect root based on authentication state */}
+          {/* Home page - shows login directly */}
           <Route path="/" element={<HomePage />} />
 
           {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<PhoneLogin />} />
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
@@ -95,6 +97,8 @@ function AppContent() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/user/settings" element={<UserSettings />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/service-request" element={<ServiceRequest />} />
 
           {/* Admin Routes */}
           <Route
@@ -133,7 +137,7 @@ function AppContent() {
 const App = () => {
   // Log app version on startup
   useEffect(() => {
-    console.log(`מאפיית אורבר - גרסה ${APP_VERSION}`);
+    console.log(`מינרל גז - אביגל טורג'מן - גרסה ${APP_VERSION}`);
   }, []);
 
   return (

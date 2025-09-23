@@ -10,8 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { getOpenOrders, updateOrderItemQuantity } from "@/services/vawoOrderService";
-import { OrderLineItem } from "@/integrations/vawo/types";
+import { supabase } from "@/integrations/supabase/client";
 
 // Interface for order display
 interface OrderGroup {
@@ -117,7 +116,7 @@ const Orders = () => {
 
   const formatDate = (dateString: string) => {
     try {
-      // Fix date format if needed (VAWO API sometimes returns dates in format "02025-03-16")
+      // Fix date format if needed
       const fixedDateString = dateString.startsWith('0') 
         ? dateString.substring(1) 
         : dateString;

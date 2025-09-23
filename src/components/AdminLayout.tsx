@@ -141,7 +141,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </SheetTrigger>
             <SheetContent side="right" className="w-[240px] p-0">
               <div className="p-6 flex flex-col items-center">
-                <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-12 w-auto mb-2" />
+                <img src="/assets/logo.png" alt="מינרל גז" className="h-12 w-auto mb-2" />
                 <SheetTitle>לוח בקרה</SheetTitle>
               </div>
               <nav className="px-2">
@@ -173,7 +173,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-10 w-auto" />
+            <img src="/assets/logo.png" alt="מינרל גז" className="h-10 w-auto" />
           </div>
         </div>
       </div>

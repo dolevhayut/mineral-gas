@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { sampleProducts } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
-import { CakeIcon, CookieIcon, ShoppingBasketIcon, ThumbsUpIcon, BellIcon } from "lucide-react";
+import { FlameIcon, WrenchIcon, ShoppingBasketIcon, ThumbsUpIcon, BellIcon, PhoneIcon, MapPinIcon, ClockIcon, Wrench, RotateCcwIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
+import SEOHead from "@/components/SEOHead";
 
 interface SystemUpdate {
   id: string;
@@ -24,6 +25,58 @@ const Home = () => {
   const featuredProducts = sampleProducts
     .filter(product => product.featured)
     .slice(0, 3);
+  // Business structured data for SEO
+  const businessStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "מינרל גז - אביגל טורג'מן",
+    "description": "שירות מקצועי למכירת בלוני גז, מחממי מים על גז, ציוד היקפי להתקנות ושירות לקוחות מעולה",
+    "url": "https://mineral-gas.com",
+    "telephone": "+972-XX-XXXXXXX",
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "IL",
+      "addressLocality": "ישראל"
+    },
+    "openingHours": "Mo-Fr 08:00-17:00, Sa 08:00-14:00",
+    "priceRange": "$$",
+    "serviceArea": {
+      "@type": "GeoCircle",
+      "geoMidpoint": {
+        "@type": "GeoCoordinates",
+        "latitude": 31.7683,
+        "longitude": 35.2137
+      },
+      "geoRadius": "50000"
+    },
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "מוצרי גז וחימום",
+      "itemListElement": [
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Product",
+            "name": "בלוני גז"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Product",
+            "name": "מחממי מים על גז"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Product",
+            "name": "ציוד היקפי להתקנות"
+          }
+        }
+      ]
+    }
+  };
 
   // Fetch active system updates
   const { data: systemUpdates } = useQuery({
@@ -52,41 +105,72 @@ const Home = () => {
   };
 
   return (
-    <MainLayout>
+    <>
+      <SEOHead
+        title="מינרל גז - אביגל טורג'מן | בלוני גז ומוצרי חימום"
+        description="מינרל גז - שירות מקצועי למכירת בלוני גז, מחממי מים על גז, ציוד היקפי להתקנות ושירות לקוחות מעולה. אביגל טורג'מן - הפתרון שלך לחימום ביתי."
+        keywords="בלוני גז, מחממי מים, חימום, גז, אביגל טורג'מן, מינרל גז, ציוד היקפי, התקנות גז, שירות לקוחות"
+        canonical="https://mineral-gas.com"
+        structuredData={businessStructuredData}
+      />
+      <MainLayout>
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-cream-100 to-white py-16">
+      <section className="bg-gradient-to-b from-bottle-50 to-white py-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center gap-8">
-            <div className="flex-1 text-center lg:text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-noto font-bold mb-4">
-                <span className="text-bakery-600">מאפיית אורבר</span>
+            <div className="flex-1 text-center lg:text-right">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+                <span className="text-bottle-600">מינרל גז</span>
+                <br />
+                <span className="text-2xl md:text-3xl lg:text-4xl text-stone-700">אביגל טורג'מן</span>
               </h1>
-              <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-xl mx-auto lg:mx-0 font-noto">
-                טעמים מקוריים ואיכות ללא פשרות. מהמאפים הטריים ועד העוגות המיוחדות שלנו.
+              <p className="text-lg md:text-xl mb-8 text-stone-600 max-w-xl mx-auto lg:mx-0">
+                שירות מקצועי למכירת בלוני גז, מחממי מים על גז, ציוד היקפי להתקנות ושירות לקוחות מעולה. הפתרון שלך לחימום ביתי.
               </p>
-              <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
+              <div className="flex flex-wrap gap-4 justify-center lg:justify-end">
                 <Button
                   size="lg"
-                  className="bg-bakery-600 hover:bg-bakery-700"
+                  className="bg-bottle-600 hover:bg-bottle-700 text-white"
                   onClick={() => navigate("/catalog")}
                 >
-                  Browse Catalog
+                  צפה במוצרים
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-bakery-600 text-bakery-600 hover:bg-bakery-50"
-                  onClick={() => navigate("/about")}
+                  className="border-bottle-600 text-bottle-600 hover:bg-bottle-50"
+                  onClick={() => navigate("/orders/new")}
                 >
-                  Our Story
+                  הזמן עכשיו
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-orange-600 text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                  onClick={() => navigate("/service-request")}
+                >
+                  <Wrench className="h-5 w-5" />
+                  קריאת שירות
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50 flex items-center gap-2"
+                  onClick={() => navigate("/orders/history")}
+                >
+                  <RotateCcwIcon className="h-5 w-5" />
+                  הזמנה חוזרת
                 </Button>
               </div>
             </div>
             <div className="flex-1">
               <img
-                src="https://images.unsplash.com/photo-1608198093002-ad4e005484ec?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-                alt="Assorted Pastries"
+                src="/assets/gas-cylinder-hero.jpg"
+                alt="בלוני גז ומוצרי חימום - מינרל גז"
                 className="rounded-lg shadow-xl mx-auto max-w-full h-auto"
+                onError={(e) => {
+                  e.currentTarget.src = "https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80";
+                }}
               />
             </div>
           </div>
@@ -98,13 +182,13 @@ const Home = () => {
         <section className="py-8 bg-white">
           <div className="container mx-auto px-4">
             <h2 className="text-2xl font-serif font-bold mb-4 text-center flex items-center justify-center">
-              <BellIcon className="h-5 w-5 mr-2 text-bakery-600" />
+              <BellIcon className="h-5 w-5 mr-2 text-bottle-600" />
               הודעות ועדכונים
             </h2>
             <div className="max-w-3xl mx-auto">
               <div className="space-y-3 mt-4">
                 {systemUpdates.map((update) => (
-                  <Card key={update.id} className="p-4 border-bakery-100 border-2">
+                  <Card key={update.id} className="p-4 border-bottle-100 border-2">
                     <div className="space-y-2">
                       <div className="flex justify-between items-start">
                         <h3 className="font-medium text-lg">{update.title}</h3>
@@ -125,12 +209,12 @@ const Home = () => {
       {/* Featured Products */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-serif font-bold mb-2 text-center">
-            Featured Treats
-          </h2>
-          <p className="text-center text-muted-foreground mb-8">
-            Our most loved baked goods
-          </p>
+            <h2 className="text-3xl font-bold mb-2 text-center">
+              מוצרים מומלצים
+            </h2>
+            <p className="text-center text-stone-600 mb-8">
+              המוצרים הפופולריים ביותר שלנו לבלוני גז וחימום
+            </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             {featuredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
@@ -141,55 +225,88 @@ const Home = () => {
               onClick={() => navigate("/catalog")}
               variant="outline"
               size="lg"
-              className="border-bakery-600 text-bakery-600 hover:bg-bakery-50"
+              className="border-bottle-600 text-bottle-600 hover:bg-bottle-50"
             >
-              View All Products
+              צפה בכל המוצרים
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-16 bg-cream-50">
+      {/* Quick Service Request */}
+      <section className="py-12 bg-gradient-to-r from-orange-50 to-red-50">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-noto font-bold mb-8 text-center">
-            למה לבחור במאפיית אורבר?
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl font-bold mb-4 text-gray-900">
+              זקוק לעזרה? אנחנו כאן בשבילך!
+            </h2>
+            <p className="text-lg text-gray-600 mb-8">
+              בעיה עם מחמם המים? בלון גז לא עובד? צור קשר איתנו עכשיו
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Button
+                size="lg"
+                className="bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-2"
+                onClick={() => navigate("/service-request")}
+              >
+                <Wrench className="h-5 w-5" />
+                פתח קריאת שירות
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-orange-600 text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                onClick={() => window.open('tel:050-1234567')}
+              >
+                <PhoneIcon className="h-5 w-5" />
+                התקשר עכשיו: 050-1234567
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-16 bg-bottle-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-8 text-center">
+            למה לבחור במינרל גז?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="bg-white p-6 rounded-lg shadow-sm text-center">
-              <div className="mx-auto w-12 h-12 flex items-center justify-center bg-bakery-100 rounded-full text-bakery-600 mb-4">
-                <CookieIcon className="h-6 w-6" />
+              <div className="mx-auto w-12 h-12 flex items-center justify-center bg-bottle-100 rounded-full text-bottle-600 mb-4">
+                <FlameIcon className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-medium mb-2">Fresh Daily</h3>
-              <p className="text-muted-foreground">
-                All our products are baked fresh every day
+              <h3 className="text-xl font-medium mb-2">בלוני גז איכותיים</h3>
+              <p className="text-stone-600">
+                בלוני גז מאושרים ובטיחותיים לכל שימוש ביתי
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm text-center">
-              <div className="mx-auto w-12 h-12 flex items-center justify-center bg-bakery-100 rounded-full text-bakery-600 mb-4">
-                <ThumbsUpIcon className="h-6 w-6" />
+              <div className="mx-auto w-12 h-12 flex items-center justify-center bg-amber-100 rounded-full text-amber-600 mb-4">
+                <WrenchIcon className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-medium mb-2">Quality Ingredients</h3>
-              <p className="text-muted-foreground">
-                We use only the finest organic ingredients
+              <h3 className="text-xl font-medium mb-2">התקנה מקצועית</h3>
+              <p className="text-stone-600">
+                שירות התקנה מקצועי ומחממי מים על גז
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm text-center">
-              <div className="mx-auto w-12 h-12 flex items-center justify-center bg-bakery-100 rounded-full text-bakery-600 mb-4">
+              <div className="mx-auto w-12 h-12 flex items-center justify-center bg-bottle-100 rounded-full text-bottle-600 mb-4">
                 <ShoppingBasketIcon className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-medium mb-2">Fast Delivery</h3>
-              <p className="text-muted-foreground">
-                Get your order delivered to your doorstep
+              <h3 className="text-xl font-medium mb-2">משלוח מהיר</h3>
+              <p className="text-stone-600">
+                משלוח מהיר ואמין עד הבית
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm text-center">
-              <div className="mx-auto w-12 h-12 flex items-center justify-center bg-bakery-100 rounded-full text-bakery-600 mb-4">
-                <CakeIcon className="h-6 w-6" />
+              <div className="mx-auto w-12 h-12 flex items-center justify-center bg-amber-100 rounded-full text-amber-600 mb-4">
+                <ThumbsUpIcon className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-medium mb-2">Custom Orders</h3>
-              <p className="text-muted-foreground">
-                Special occasions deserve special treats
+              <h3 className="text-xl font-medium mb-2">שירות לקוחות מעולה</h3>
+              <p className="text-stone-600">
+                שירות לקוחות מקצועי ואמין 24/7
               </p>
             </div>
           </div>
@@ -197,25 +314,60 @@ const Home = () => {
       </section>
 
       {/* Call to Action */}
-      <section className="py-16 bg-bakery-600 text-white">
+      <section className="py-16 bg-bottle-600 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-serif font-bold mb-4">
-            Ready to Order?
+          <h2 className="text-3xl font-bold mb-4">
+            מוכנים להזמין?
           </h2>
           <p className="text-lg mb-8 max-w-2xl mx-auto opacity-90">
-            Browse our catalog and order your favorite baked goods today
+            צפו בקטלוג המוצרים שלנו והזמינו את בלוני הגז והחימום שלכם היום
           </p>
-          <Button
-            size="lg"
-            variant="secondary"
-            className="bg-white text-bakery-600 hover:bg-cream-100"
-            onClick={() => navigate("/catalog")}
-          >
-            Browse Our Catalog
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              size="lg"
+              variant="secondary"
+              className="bg-white text-bottle-600 hover:bg-stone-100"
+              onClick={() => navigate("/catalog")}
+            >
+              צפה בקטלוג
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white text-white hover:bg-white hover:text-bottle-600"
+              onClick={() => navigate("/orders/new")}
+            >
+              הזמן עכשיו
+            </Button>
+          </div>
         </div>
       </section>
-    </MainLayout>
+
+      {/* Contact Information */}
+      <section className="py-12 bg-stone-50">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div className="flex flex-col items-center">
+              <PhoneIcon className="h-8 w-8 text-bottle-600 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">טלפון</h3>
+              <p className="text-stone-600">+972-XX-XXXXXXX</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <MapPinIcon className="h-8 w-8 text-amber-600 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">כתובת</h3>
+              <p className="text-stone-600">ישראל</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <ClockIcon className="h-8 w-8 text-bottle-600 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">שעות פעילות</h3>
+              <p className="text-stone-600">א׳-ה׳ 08:00-17:00</p>
+              <p className="text-stone-600">ו׳ 08:00-14:00</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      </MainLayout>
+    </>
   );
 };
 

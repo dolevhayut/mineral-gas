@@ -16,7 +16,7 @@ export default function OrderSummaryItem({ product, day, quantity, index }: Orde
   return (
     <div key={`${product.id}-${day}-${index}`} className="flex justify-between border-b pb-3 pt-2">
       <div className="text-left flex items-center">
-        <span className="font-medium text-lg text-bakery-600">{quantity}×</span>
+        <span className="font-medium text-lg text-bottle-600">{quantity}×</span>
         <Badge variant="outline" className="text-xs ml-1">
           {product.is_frozen ? (
             <PackageIcon className="h-3 w-3 mr-1" />

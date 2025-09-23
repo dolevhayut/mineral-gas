@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Product } from "@/types";
+import SEOHead from "@/components/SEOHead";
 
 const Catalog = () => {
   const location = useLocation();
@@ -25,6 +26,34 @@ const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
   const [sortBy, setSortBy] = useState("default");
+
+  // Product catalog structured data for SEO
+  const catalogStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "קטלוג מוצרים - מינרל גז",
+    "description": "קטלוג מוצרים מקיף לבלוני גז, מחממי מים על גז וציוד היקפי",
+    "url": "https://mineral-gas.com/catalog",
+    "mainEntity": {
+      "@type": "ItemList",
+      "name": "מוצרי גז וחימום",
+      "itemListElement": sampleProducts.map((product, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "item": {
+          "@type": "Product",
+          "name": product.name,
+          "description": product.description,
+          "image": product.image,
+          "offers": {
+            "@type": "Offer",
+            "price": product.price,
+            "priceCurrency": "ILS"
+          }
+        }
+      }))
+    }
+  };
 
   // Filter products based on search and category
   useEffect(() => {
@@ -79,13 +108,21 @@ const Catalog = () => {
   };
 
   return (
-    <MainLayout>
+    <>
+      <SEOHead
+        title="קטלוג מוצרים - מינרל גז | בלוני גז ומוצרי חימום"
+        description="קטלוג מוצרים מקיף לבלוני גז, מחממי מים על גז וציוד היקפי. מינרל גז - אביגל טורג'מן מציעה מגוון רחב של מוצרי חימום איכותיים."
+        keywords="קטלוג מוצרים, בלוני גז, מחממי מים, חימום, גז, אביגל טורג'מן, מינרל גז, ציוד היקפי, התקנות גז"
+        canonical="https://mineral-gas.com/catalog"
+        structuredData={catalogStructuredData}
+      />
+      <MainLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-serif font-bold mb-4">Our Products</h1>
-          <p className="text-muted-foreground max-w-2xl">
-            Browse our selection of freshly baked goods, from artisanal breads to
-            delicious pastries and custom cakes.
+          <h1 className="text-3xl font-bold mb-4">מוצרי מינרל גז</h1>
+          <p className="text-stone-600 max-w-2xl">
+            צפו במגוון הרחב של מוצרי הגז והחימום שלנו - בלוני גז איכותיים, מחממי מים על גז, 
+            ציוד היקפי להתקנות ושירות מקצועי. הפתרון המושלם לכל צרכי החימום שלכם.
           </p>
         </div>
 
@@ -96,7 +133,7 @@ const Catalog = () => {
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 type="text"
-                placeholder="Search products..."
+                placeholder="חיפוש מוצרים..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -109,10 +146,10 @@ const Catalog = () => {
                 onValueChange={(value) => setSelectedCategory(value || null)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
+                  <SelectValue placeholder="כל הקטגוריות" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="">כל הקטגוריות</SelectItem>
                   {sampleCategories.map((category) => (
                     <SelectItem key={category.id} value={category.name}>
                       {category.name}
@@ -125,14 +162,14 @@ const Catalog = () => {
             <div className="md:col-span-3">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Sort by" />
+                  <SelectValue placeholder="מיון לפי" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">Featured</SelectItem>
-                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                  <SelectItem value="name-asc">Name: A to Z</SelectItem>
-                  <SelectItem value="name-desc">Name: Z to A</SelectItem>
+                  <SelectItem value="default">מומלצים</SelectItem>
+                  <SelectItem value="price-asc">מחיר: נמוך לגבוה</SelectItem>
+                  <SelectItem value="price-desc">מחיר: גבוה לנמוך</SelectItem>
+                  <SelectItem value="name-asc">שם: א-ת</SelectItem>
+                  <SelectItem value="name-desc">שם: ת-א</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -143,7 +180,7 @@ const Catalog = () => {
                 className="w-full h-full" 
                 onClick={resetFilters}
               >
-                Reset
+                איפוס
               </Button>
             </div>
           </div>
@@ -151,10 +188,10 @@ const Catalog = () => {
 
         {/* Results Summary */}
         <div className="mb-6 flex justify-between items-center">
-          <p className="text-muted-foreground">
-            Showing {products.length} products
-            {selectedCategory && ` in ${selectedCategory}`}
-            {searchTerm && ` matching "${searchTerm}"`}
+          <p className="text-stone-600">
+            מציג {products.length} מוצרים
+            {selectedCategory && ` בקטגוריית ${selectedCategory}`}
+            {searchTerm && ` התואמים ל"${searchTerm}"`}
           </p>
         </div>
 
@@ -166,16 +203,17 @@ const Catalog = () => {
             ))
           ) : (
             <div className="col-span-full text-center py-12">
-              <p className="text-2xl font-medium mb-4">No products found</p>
-              <p className="text-muted-foreground mb-6">
-                Try adjusting your search or filter criteria
+              <p className="text-2xl font-medium mb-4">לא נמצאו מוצרים</p>
+              <p className="text-stone-600 mb-6">
+                נסו להתאים את החיפוש או קריטריוני הסינון
               </p>
-              <Button onClick={resetFilters}>Clear Filters</Button>
+              <Button onClick={resetFilters}>נקה מסננים</Button>
             </div>
           )}
         </div>
       </div>
-    </MainLayout>
+      </MainLayout>
+    </>
   );
 };
 

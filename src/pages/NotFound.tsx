@@ -18,8 +18,8 @@ const NotFound = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-cream-50 px-4">
       <div className="text-center max-w-md">
-        <CakeIcon className="mx-auto h-16 w-16 text-bakery-600 mb-4" />
-        <h1 className="text-6xl font-serif font-bold mb-4 text-bakery-700">404</h1>
+        <CakeIcon className="mx-auto h-16 w-16 text-bottle-600 mb-4" />
+        <h1 className="text-6xl font-serif font-bold mb-4 text-bottle-700">404</h1>
         <p className="text-xl text-gray-600 mb-6">
           Oops! We couldn't find the page you were looking for.
         </p>
@@ -27,7 +27,7 @@ const NotFound = () => {
           The page may have been moved, deleted, or might never have existed.
         </p>
         <Link to="/">
-          <Button className="bg-bakery-600 hover:bg-bakery-700">
+          <Button className="bg-bottle-600 hover:bg-bottle-700">
             Return to Home
           </Button>
         </Link>

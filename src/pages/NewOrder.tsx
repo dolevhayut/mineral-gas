@@ -2,16 +2,15 @@ import { useState, useEffect } from "react";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 // Import our components
 import ProductsList from "@/components/order/ProductsList";
-import ProductDialog from "@/components/order/ProductDialog";
 import OrderHeader from "@/components/order/OrderHeader";
 import OrderActions from "@/components/order/OrderActions";
-import { quantityOptions, hebrewDays, OrderProduct } from "@/components/order/orderConstants";
+import { hebrewDays, OrderProduct } from "@/components/order/orderConstants";
 import { submitOrder } from "@/services/orderService";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,14 +24,17 @@ const NewOrder = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [canOrderFresh, setCanOrderFresh] = useState(true);
   const [isFromOrderEdit, setIsFromOrderEdit] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [deliveryPreferences, setDeliveryPreferences] = useState<Record<string, {
+    type: 'asap' | 'specific';
+    date?: Date;
+    time?: string;
+  }>>({});
   
   useEffect(() => {
     // Check if we're coming from the EditOrder page
@@ -52,108 +54,56 @@ const NewOrder = () => {
       setIsLoading(true);
       
       try {
-        // Fetch user's fresh products permission
+        // For mineral gas app, all authenticated users can order all products
         if (user && user.id) {
-          const { data: userData, error: userError } = await supabase
-            .from('custom_users')
-            .select('can_order_fresh')
-            .eq('id', user.id)
-            .single();
-            
-          if (userError) {
-            console.error("Error fetching user permissions:", userError);
-            toast({
-              title: "שגיאה",
-              description: "לא ניתן לטעון הרשאות משתמש",
-              variant: "destructive"
-            });
-          } else {
-            setCanOrderFresh(userData?.can_order_fresh ?? true);
-          }
+          setCanOrderFresh(true); // All customers can order all products
           
-          // Fetch user's allowed fresh products if they can order fresh
-          if (userData?.can_order_fresh) {
-            const { data: allowedProductsData, error: allowedProductsError } = await supabase
-              .from('custom_user_products' as any)
-              .select('product_id')
-              .eq('user_id', user.id);
-              
-            if (allowedProductsError) {
-              console.error("Error fetching allowed products:", allowedProductsError);
-            }
-            
-            // Fetch all products
-            const { data, error } = await supabase.from('products').select('*');
-            
-            if (error) {
-              console.error("Error fetching products:", error);
-              toast({
-                title: "שגיאה",
-                description: "לא ניתן לטעון את רשימת המוצרים",
-                variant: "destructive"
-              });
-            } else {
-              // Get the list of allowed product IDs
-              const allowedProductIds = allowedProductsData ? allowedProductsData.map((item: any) => item.product_id) : [];
-              
-              // Filter products based on permissions
-              const filteredProducts = data?.filter((product: any) => {
-                // If product is frozen, always include it
-                if (product.is_frozen) return true;
-                
-                // If product is fresh, check if it's in the allowed list or if there are no specific permissions
-                // (if allowedProductIds is empty, show all fresh products as before)
-                return allowedProductIds.length === 0 || allowedProductIds.includes(product.id);
-              }) || [];
-              
-              // Convert database products to our Product interface
-              const formattedProducts: Product[] = filteredProducts.map(product => ({
-                id: product.id,
-                name: product.name,
-                description: product.description || '',
-                price: product.price,
-                image: product.image || '/placeholder.png',
-                category: product.category || '',
-                is_frozen: product.is_frozen || false,
-                sku: product.sku || `מק"ט-${product.id}`,
-                available: product.available !== false,
-                featured: product.featured || false,
-                createdAt: product.created_at || new Date().toISOString()
-              }));
-              
-              setProducts(formattedProducts);
-            }
+          // Fetch all products
+          const { data, error } = await supabase.from('products').select('*');
+          
+          if (error) {
+            console.error("Error fetching products:", error);
+            toast.error("לא ניתן לטעון את רשימת המוצרים");
           } else {
-            // User can't order fresh products, show only frozen ones
-            const { data, error } = await supabase
-              .from('products')
-              .select('*')
-              .eq('is_frozen', true);
+            // Convert database products to our Product interface
+            const formattedProducts: Product[] = (data || []).map((product: any) => ({
+              id: product.id,
+              name: product.name,
+              description: product.description || '',
+              price: product.price,
+              image: product.image || '/placeholder.png',
+              category: product.category || '',
+              cylinder_type: product.cylinder_type,
+              is_frozen: product.is_frozen || false,
+              sku: product.sku || `מק"ט-${product.id}`,
+              available: product.available !== false,
+              featured: product.featured || false,
+              createdAt: product.created_at || new Date().toISOString(),
+              uom: product.uom,
+              package_amount: product.package_amount,
+              quantity_increment: product.quantity_increment
+            }));
             
-            if (error) {
-              console.error("Error fetching frozen products:", error);
-              toast({
-                title: "שגיאה",
-                description: "לא ניתן לטעון את רשימת המוצרים",
-                variant: "destructive"
-              });
-            } else {
-              // Convert database products to our Product interface
-              const formattedProducts: Product[] = (data || []).map(product => ({
-                id: product.id,
-                name: product.name,
-                description: product.description || '',
-                price: product.price,
-                image: product.image || '/placeholder.png',
-                category: product.category || '',
-                is_frozen: product.is_frozen || false,
-                sku: product.sku || `מק"ט-${product.id}`,
-                available: product.available !== false,
-                featured: product.featured || false,
-                createdAt: product.created_at || new Date().toISOString()
-              }));
-              
-              setProducts(formattedProducts);
+            setProducts(formattedProducts);
+            
+            // Load existing quantities from localStorage if it's a new order
+            if (!isFromOrderEdit) {
+              const savedQuantities = localStorage.getItem('orderQuantities');
+              if (savedQuantities) {
+                try {
+                  const parsedQuantities = JSON.parse(savedQuantities);
+                  // Only apply saved quantities for products that still exist
+                  const validQuantities: any = {};
+                  Object.keys(parsedQuantities).forEach(productId => {
+                    if (formattedProducts.find(p => p.id === productId)) {
+                      validQuantities[productId] = parsedQuantities[productId];
+                    }
+                  });
+                  setQuantities(validQuantities);
+                } catch (e) {
+                  console.error("Error parsing saved quantities:", e);
+                }
+              }
             }
           }
         }
@@ -171,30 +121,42 @@ const NewOrder = () => {
     return <Navigate to="/login" />;
   }
 
-  const handleProductClick = (productId: string) => {
-    setSelectedProduct(productId);
-    setIsDialogOpen(true);
-  };
-
-  const handleQuantityChange = (day: string, value: string) => {
-    if (!selectedProduct) return;
+  const handleProductClick = (productId: string, deliveryPreference?: {
+    type: 'asap' | 'specific';
+    date?: Date;
+    time?: string;
+  }) => {
+    // Add product directly to cart
+    setQuantities(prev => {
+      const currentQty = prev[productId] || 0;
+      return {
+        ...prev,
+        [productId]: currentQty + 1
+      };
+    });
     
-    setQuantities(prev => ({
-      ...prev,
-      [selectedProduct]: {
-        ...(prev[selectedProduct] || {}),
-        [day]: parseInt(value)
-      }
-    }));
+    // Save delivery preference if provided
+    if (deliveryPreference) {
+      setDeliveryPreferences(prev => ({
+        ...prev,
+        [productId]: deliveryPreference
+      }));
+    }
+    
+    // Show toast message
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      toast.success(`${product.name} נוסף להזמנה`);
+    }
+  };
+  
+  const getTomorrowDayOfWeek = (): string => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return days[tomorrow.getDay()];
   };
 
-  const handleSave = () => {
-    setIsDialogOpen(false);
-  };
-
-  const handleClose = () => {
-    setIsDialogOpen(false);
-  };
   
   const handleReturnToEdit = () => {
     if (orderId) {
@@ -206,7 +168,6 @@ const NewOrder = () => {
     }
   };
 
-  const currentProduct = products.find(p => p.id === selectedProduct) || null;
 
   return (
     <MainLayout>
@@ -261,22 +222,13 @@ const NewOrder = () => {
           </>
         )}
 
-        <ProductDialog 
-          isOpen={isDialogOpen}
-          onClose={handleClose}
-          product={currentProduct}
-          quantities={quantities}
-          onQuantityChange={handleQuantityChange}
-          onSave={handleSave}
-          hebrewDays={hebrewDays}
-          quantityOptions={quantityOptions}
-        />
 
         <OrderActions 
           quantities={quantities}
           products={products}
           isFromOrderEdit={isFromOrderEdit}
           onReturnToEdit={handleReturnToEdit}
+          deliveryPreferences={deliveryPreferences}
         />
       </div>
     </MainLayout>

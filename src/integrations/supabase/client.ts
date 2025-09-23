@@ -3,19 +3,35 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://ilabjurydougiuvljbjz.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsYWJqdXJ5ZG91Z2l1dmxqYmp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0NDUxMDEsImV4cCI6MjA1OTAyMTEwMX0.h0aJjj44IjvafiHzIxGox8G4NazgKTnzc86nnzMq-Vo";
+const SUPABASE_URL = "https://dttonqyqzmxcsitijwuf.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0dG9ucXlxem14Y3NpdGlqd3VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MTc1NzUsImV4cCI6MjA3NDE5MzU3NX0.qtr-vMIfiwu-sf7BieXZgX2MWYmmZxVB8wwebzEkWVE";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Create a custom type that extends the Database type with our custom RPC functions
-type CustomSupabaseClient = ReturnType<typeof createClient<Database>> & {
-  rpc: <T extends "verify_user_password" | "add_custom_user" | "update_user_with_password">(
-    fn: T,
-    params: Record<string, any>
-  ) => any;
-};
+// Define RPC function parameter and return types
+interface RpcFunctions {
+  verify_user_password: {
+    params: { user_id: string; password: string };
+    returns: boolean;
+  };
+  add_custom_user: {
+    params: { p_name: string; p_phone: string; p_password: string; p_role?: string };
+    returns: { id: string };
+  };
+  update_user_with_password: {
+    params: { p_user_id: string; p_name?: string; p_phone?: string; p_password?: string };
+    returns: void;
+  };
+  send_verification_code: {
+    params: { p_phone: string };
+    returns: string;
+  };
+  verify_phone_number: {
+    params: { p_phone: string; p_code: string };
+    returns: { success: boolean; customer?: unknown; message?: string };
+  };
+}
 
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
@@ -26,4 +42,4 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true
     }
   }
-) as CustomSupabaseClient;
+);

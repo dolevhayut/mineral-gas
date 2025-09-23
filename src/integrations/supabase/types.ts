@@ -7,137 +7,148 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
   public: {
     Tables: {
-      custom_users: {
-        Row: {
-          created_at: string | null
-          id: string
-          is_verified: boolean | null
-          name: string
-          password: string
-          phone: string
-          role: string
-          sap_customer_id: string | null
-          updated_at: string | null
-          can_order_fresh: boolean | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          is_verified?: boolean | null
-          name: string
-          password: string
-          phone: string
-          role?: string
-          sap_customer_id?: string | null
-          updated_at?: string | null
-          can_order_fresh?: boolean | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          is_verified?: boolean | null
-          name?: string
-          password?: string
-          phone?: string
-          role?: string
-          sap_customer_id?: string | null
-          updated_at?: string | null
-          can_order_fresh?: boolean | null
-        }
-        Relationships: []
-      }
-      system_updates: {
-        Row: {
-          id: string
-          title: string
-          content: string
-          created_at: string
-          updated_at: string | null
-          is_active: boolean
-          expiry_date: string | null
-        }
-        Insert: {
-          id?: string
-          title: string
-          content: string
-          created_at?: string
-          updated_at?: string | null
-          is_active?: boolean
-          expiry_date?: string | null
-        }
-        Update: {
-          id?: string
-          title?: string
-          content?: string
-          created_at?: string
-          updated_at?: string | null
-          is_active?: boolean
-          expiry_date?: string | null
-        }
-        Relationships: []
-      }
       customers: {
         Row: {
           address: string | null
+          business_type: string | null
+          city: string | null
           created_at: string | null
+          customer_type: string | null
+          delivery_area: string | null
+          delivery_instructions: string | null
+          discount_percentage: number | null
+          emergency_contact: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          gas_supplier_license: string | null
           id: string
-          name: string
-          notes: string | null
+          is_verified: boolean | null
+          last_login_at: string | null
+          locked_until: string | null
+          login_attempts: number | null
+          name: string | null
           phone: string
+          phone_verified: boolean | null
+          preferred_cylinder_types: string[] | null
+          preferred_delivery_time: string | null
+          role: string | null
+          safety_certifications: string[] | null
+          special_requirements: string | null
           updated_at: string | null
-          user_id: string | null
+          verification_code: string | null
+          verification_code_expires_at: string | null
         }
         Insert: {
           address?: string | null
+          business_type?: string | null
+          city?: string | null
           created_at?: string | null
+          customer_type?: string | null
+          delivery_area?: string | null
+          delivery_instructions?: string | null
+          discount_percentage?: number | null
+          emergency_contact?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          gas_supplier_license?: string | null
           id?: string
-          name: string
-          notes?: string | null
+          is_verified?: boolean | null
+          last_login_at?: string | null
+          locked_until?: string | null
+          login_attempts?: number | null
+          name?: string | null
           phone: string
+          phone_verified?: boolean | null
+          preferred_cylinder_types?: string[] | null
+          preferred_delivery_time?: string | null
+          role?: string | null
+          safety_certifications?: string[] | null
+          special_requirements?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          verification_code?: string | null
+          verification_code_expires_at?: string | null
         }
         Update: {
           address?: string | null
+          business_type?: string | null
+          city?: string | null
           created_at?: string | null
+          customer_type?: string | null
+          delivery_area?: string | null
+          delivery_instructions?: string | null
+          discount_percentage?: number | null
+          emergency_contact?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          gas_supplier_license?: string | null
           id?: string
-          name?: string
-          notes?: string | null
+          is_verified?: boolean | null
+          last_login_at?: string | null
+          locked_until?: string | null
+          login_attempts?: number | null
+          name?: string | null
           phone?: string
+          phone_verified?: boolean | null
+          preferred_cylinder_types?: string[] | null
+          preferred_delivery_time?: string | null
+          role?: string | null
+          safety_certifications?: string | null
+          special_requirements?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          verification_code?: string | null
+          verification_code_expires_at?: string | null
         }
         Relationships: []
       }
       order_items: {
         Row: {
           created_at: string | null
+          cylinder_condition: string | null
+          cylinder_serial_number: string | null
           day_of_week: string
+          delivery_instructions: string | null
           id: string
-          order_id: string
+          installation_notes: string | null
+          order_id: string | null
           price: number
           product_id: string | null
           quantity: number
+          safety_check_completed: boolean | null
         }
         Insert: {
           created_at?: string | null
+          cylinder_condition?: string | null
+          cylinder_serial_number?: string | null
           day_of_week: string
+          delivery_instructions?: string | null
           id?: string
-          order_id: string
+          installation_notes?: string | null
+          order_id?: string | null
           price: number
           product_id?: string | null
           quantity: number
+          safety_check_completed?: boolean | null
         }
         Update: {
           created_at?: string | null
+          cylinder_condition?: string | null
+          cylinder_serial_number?: string | null
           day_of_week?: string
+          delivery_instructions?: string | null
           id?: string
-          order_id?: string
+          installation_notes?: string | null
+          order_id?: string | null
           price?: number
           product_id?: string | null
           quantity?: number
+          safety_check_completed?: boolean | null
         }
         Relationships: [
           {
@@ -160,25 +171,67 @@ export type Database = {
         Row: {
           created_at: string | null
           customer_id: string | null
+          cylinder_exchange: boolean | null
+          delivery_address: string | null
+          delivery_date: string | null
+          delivery_time_preference: string | null
+          delivery_time_slot: string | null
+          delivery_type: string | null
+          emergency_contact: string | null
           id: string
-          status: string
-          total: number
+          installation_required: boolean | null
+          safety_inspection_required: boolean | null
+          service_type: string | null
+          special_instructions: string | null
+          specific_delivery_date: string | null
+          specific_delivery_time: string | null
+          status: string | null
+          target_date: string | null
+          total: number | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           customer_id?: string | null
+          cylinder_exchange?: boolean | null
+          delivery_address?: string | null
+          delivery_date?: string | null
+          delivery_time_preference?: string | null
+          delivery_time_slot?: string | null
+          delivery_type?: string | null
+          emergency_contact?: string | null
           id?: string
-          status?: string
-          total?: number
+          installation_required?: boolean | null
+          safety_inspection_required?: boolean | null
+          service_type?: string | null
+          special_instructions?: string | null
+          specific_delivery_date?: string | null
+          specific_delivery_time?: string | null
+          status?: string | null
+          target_date?: string | null
+          total?: number | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           customer_id?: string | null
+          cylinder_exchange?: boolean | null
+          delivery_address?: string | null
+          delivery_date?: string | null
+          delivery_time_preference?: string | null
+          delivery_time_slot?: string | null
+          delivery_type?: string | null
+          emergency_contact?: string | null
           id?: string
-          status?: string
-          total?: number
+          installation_required?: boolean | null
+          safety_inspection_required?: boolean | null
+          service_type?: string | null
+          special_instructions?: string | null
+          specific_delivery_date?: string | null
+          specific_delivery_time?: string | null
+          status?: string | null
+          target_date?: string | null
+          total?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -194,68 +247,205 @@ export type Database = {
       products: {
         Row: {
           available: boolean | null
+          capacity_liters: number | null
           category: string | null
+          certification: string | null
           created_at: string | null
+          cylinder_type: string | null
           description: string | null
           featured: boolean | null
           id: string
           image: string | null
+          is_frozen: boolean | null
           name: string
+          package_amount: number | null
+          pressure_bar: number | null
           price: number
+          quantity_increment: number | null
+          refillable: boolean | null
+          service_type: string | null
           sku: string | null
+          uom: string | null
           updated_at: string | null
+          weight_kg: number | null
         }
         Insert: {
           available?: boolean | null
+          capacity_liters?: number | null
           category?: string | null
+          certification?: string | null
           created_at?: string | null
+          cylinder_type?: string | null
           description?: string | null
           featured?: boolean | null
           id?: string
           image?: string | null
+          is_frozen?: boolean | null
           name: string
+          package_amount?: number | null
+          pressure_bar?: number | null
           price: number
+          quantity_increment?: number | null
+          refillable?: boolean | null
+          service_type?: string | null
           sku?: string | null
+          uom?: string | null
           updated_at?: string | null
+          weight_kg?: number | null
         }
         Update: {
           available?: boolean | null
+          capacity_liters?: number | null
           category?: string | null
+          certification?: string | null
           created_at?: string | null
+          cylinder_type?: string | null
           description?: string | null
           featured?: boolean | null
           id?: string
           image?: string | null
+          is_frozen?: boolean | null
           name?: string
+          package_amount?: number | null
+          pressure_bar?: number | null
           price?: number
+          quantity_increment?: number | null
+          refillable?: boolean | null
+          service_type?: string | null
           sku?: string | null
+          uom?: string | null
+          updated_at?: string | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      service_requests: {
+        Row: {
+          address: string | null
+          city: string | null
+          completed_at: string | null
+          created_at: string | null
+          customer_id: string | null
+          customer_phone: string | null
+          description: string
+          id: string
+          image_url: string | null
+          location: string | null
+          preferred_date: string | null
+          preferred_time_slot: string | null
+          priority: string | null
+          service_type: string | null
+          status: string | null
+          technician_notes: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_phone?: string | null
+          description: string
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          preferred_date?: string | null
+          preferred_time_slot?: string | null
+          priority?: string | null
+          service_type?: string | null
+          status?: string | null
+          technician_notes?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_phone?: string | null
+          description?: string
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          preferred_date?: string | null
+          preferred_time_slot?: string | null
+          priority?: string | null
+          service_type?: string | null
+          status?: string | null
+          technician_notes?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_type: string | null
+          setting_value: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_type?: string | null
+          setting_value: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_type?: string | null
+          setting_value?: string
           updated_at?: string | null
         }
         Relationships: []
       }
-      profiles: {
+      system_updates: {
         Row: {
+          content: string
           created_at: string | null
+          expiry_date: string | null
           id: string
-          name: string | null
-          phone: string | null
-          role: string
+          is_active: boolean | null
+          title: string
           updated_at: string | null
         }
         Insert: {
+          content: string
           created_at?: string | null
-          id: string
-          name?: string | null
-          phone?: string | null
-          role?: string
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
           updated_at?: string | null
         }
         Update: {
+          content?: string
           created_at?: string | null
+          expiry_date?: string | null
           id?: string
-          name?: string | null
-          phone?: string | null
-          role?: string
+          is_active?: boolean | null
+          title?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -265,42 +455,123 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_custom_user: {
+      add_order_item: {
         Args: {
-          user_name: string
-          user_phone: string
-          user_password: string
-          user_role?: string
-          user_sap_id?: string
-          user_is_verified?: boolean
+          p_cylinder_condition?: string
+          p_cylinder_serial_number?: string
+          p_day_of_week: string
+          p_delivery_instructions?: string
+          p_installation_notes?: string
+          p_order_id: string
+          p_price: number
+          p_product_id: string
+          p_quantity: number
+          p_safety_check_completed?: boolean
         }
+        Returns: Json
+      }
+      create_order: {
+        Args: {
+          p_customer_id: string
+          p_cylinder_exchange?: boolean
+          p_delivery_address?: string
+          p_delivery_date?: string
+          p_delivery_time_slot?: string
+          p_delivery_type?: string
+          p_emergency_contact?: string
+          p_installation_required?: boolean
+          p_safety_inspection_required?: boolean
+          p_service_type?: string
+          p_special_instructions?: string
+        }
+        Returns: Json
+      }
+      create_service_request: {
+        Args: {
+          p_customer_id: string
+          p_customer_phone?: string
+          p_description: string
+          p_image_url?: string
+          p_location?: string
+          p_preferred_date?: string
+          p_preferred_time_slot?: string
+          p_priority?: string
+          p_service_type?: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      generate_verification_code: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
-      update_user_with_password: {
-        Args: {
-          user_id: string
-          user_name: string
-          user_phone: string
-          user_password: string
-          user_role?: string
-          user_sap_id?: string
-          user_is_verified?: boolean
-        }
-        Returns: undefined
+      get_customer_orders: {
+        Args: { p_customer_id: string }
+        Returns: Json
       }
-      verify_user_password: {
+      get_customer_profile: {
+        Args: { p_customer_id: string }
+        Returns: Json
+      }
+      get_customer_service_requests: {
+        Args: { p_customer_id: string }
+        Returns: Json
+      }
+      get_order_with_items: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      get_reorderable_orders: {
+        Args: { p_customer_id: string; p_limit?: number }
+        Returns: Json
+      }
+      register_customer: {
         Args: {
-          user_phone: string
-          user_password: string
+          p_address?: string
+          p_delivery_instructions?: string
+          p_emergency_contact?: string
+          p_gas_supplier_license?: string
+          p_name: string
+          p_phone: string
+          p_preferred_delivery_time?: string
         }
-        Returns: {
-          id: string
-          phone: string
-          name: string
-          role: string
-          sap_customer_id: string
-          is_verified: boolean
-        }[]
+        Returns: Json
+      }
+      reorder_from_previous: {
+        Args: {
+          p_customer_id: string
+          p_delivery_address?: string
+          p_delivery_date?: string
+          p_delivery_time_slot?: string
+          p_previous_order_id: string
+          p_special_instructions?: string
+        }
+        Returns: Json
+      }
+      send_verification_code: {
+        Args: { p_phone: string }
+        Returns: string
+      }
+      update_customer_profile: {
+        Args: {
+          p_address?: string
+          p_business_type?: string
+          p_customer_id: string
+          p_delivery_area?: string
+          p_delivery_instructions?: string
+          p_emergency_contact?: string
+          p_emergency_contact_name?: string
+          p_emergency_contact_phone?: string
+          p_gas_supplier_license?: string
+          p_name?: string
+          p_preferred_delivery_time?: string
+          p_special_requirements?: string
+        }
+        Returns: Json
+      }
+      verify_phone_number: {
+        Args: { p_code: string; p_phone: string }
+        Returns: Json
       }
     }
     Enums: {
@@ -312,27 +583,33 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -340,20 +617,24 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -361,20 +642,24 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -382,29 +667,41 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
-    | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

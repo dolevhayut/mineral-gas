@@ -40,7 +40,7 @@ const Cart = () => {
             </p>
             <Button 
               onClick={() => navigate("/catalog")} 
-              className="bg-bakery-600 hover:bg-bakery-700"
+              className="bg-bottle-600 hover:bg-bottle-700"
             >
               Browse Products
             </Button>
@@ -86,7 +86,7 @@ const Cart = () => {
                       <div>
                         <Link
                           to={`/product/${item.product.id}`}
-                          className="font-medium hover:text-bakery-600 hover:underline"
+                          className="font-medium hover:text-bottle-600 hover:underline"
                         >
                           {item.product.name}
                         </Link>
@@ -189,7 +189,7 @@ const Cart = () => {
                 </div>
                 
                 <Button
-                  className="w-full mt-6 bg-bakery-600 hover:bg-bakery-700"
+                  className="w-full mt-6 bg-bottle-600 hover:bg-bottle-700"
                   size="lg"
                   onClick={handleCheckout}
                 >

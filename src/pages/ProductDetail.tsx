@@ -80,7 +80,7 @@ const ProductDetail = () => {
               className="w-full h-full object-cover"
             />
             {product.featured && (
-              <Badge className="absolute top-4 right-4 bg-bakery-500 hover:bg-bakery-600">
+              <Badge className="absolute top-4 right-4 bg-amber-500 hover:bg-amber-600 text-white">
                 Featured
               </Badge>
             )}
@@ -141,7 +141,7 @@ const ProductDetail = () => {
 
               {/* Add to Cart Button */}
               <Button
-                className="w-full bg-bakery-600 hover:bg-bakery-700"
+                className="w-full bg-bottle-600 hover:bg-bottle-700"
                 size="lg"
                 onClick={handleAddToCart}
                 disabled={!product.available}

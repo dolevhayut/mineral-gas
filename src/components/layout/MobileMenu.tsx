@@ -27,8 +27,8 @@ export default function MobileMenu({ isAuthenticated, user, logout, dashboardLin
       <SheetContent side="right" className="w-[250px]">
         <SheetHeader className="mb-4">
           <div className="flex items-center justify-center flex-col">
-            <img src="/assets/logo.png" alt="מאפיית אורבר" className="h-10 w-auto mb-2" />
-            <SheetTitle>מאפיית אורבר</SheetTitle>
+            <img src="/assets/logo.png" alt="מינרל גז" className="h-10 w-auto mb-2" />
+            <SheetTitle>מינרל גז</SheetTitle>
           </div>
         </SheetHeader>
         <div className="flex flex-col space-y-2">

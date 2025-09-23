@@ -11,9 +11,9 @@ interface OrderData {
 }
 
 export const submitOrder = async (
-  userId: string,
-  quantities: Record<string, Record<string, number>>,
+  quantities: Record<string, number>,
   products: OrderProduct[],
+  userId?: string,
   targetDate?: Date
 ) => {
   try {
@@ -29,9 +29,7 @@ export const submitOrder = async (
     console.log("Submitting order for user:", userId);
     
     // Check if there are items in the order
-    const hasItems = Object.values(quantities).some(
-      dayQuantities => Object.values(dayQuantities).some(qty => qty > 0)
-    );
+    const hasItems = Object.values(quantities).some(qty => qty > 0);
     
     if (!hasItems) {
       toast({
@@ -142,17 +140,14 @@ export const submitOrder = async (
       
       // Add order items
       const orderItems = [];
-      for (const [productId, dayQuantities] of Object.entries(quantities)) {
-        for (const [day, quantity] of Object.entries(dayQuantities)) {
-          if (quantity > 0) {
-            orderItems.push({
-              order_id: orderId,
-              product_id: productId,
-              day_of_week: day,
-              quantity: quantity,
-              price: products.find(p => p.id === productId)?.price || 0
-            });
-          }
+      for (const [productId, quantity] of Object.entries(quantities)) {
+        if (quantity > 0) {
+          orderItems.push({
+            order_id: orderId,
+            product_id: productId,
+            quantity: quantity,
+            price: products.find(p => p.id === productId)?.price || 0
+          });
         }
       }
       

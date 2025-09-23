@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package2 as PackageIcon, CircleDot } from "lucide-react";
-import { getOpenOrders } from "@/services/vawoOrderService";
-import { OrderLineItem } from "@/integrations/vawo/types";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -88,7 +87,7 @@ const Calendar = () => {
           // Group orders by date
           const groupedOrders: OrdersByDate = {};
           orderItems.forEach(order => {
-            // Fix date format if needed (VAWO API sometimes returns dates in format "02025-03-16")
+            // Fix date format if needed
             let fixedDate = order.dueDate;
             if (fixedDate.startsWith('0')) {
               fixedDate = fixedDate.substring(1);

@@ -5,16 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Package2 as PackageIcon, CircleDot } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { 
-  getOpenOrders, 
-  updateOrderItemQuantity, 
-  deleteOrderItem,
-  submitOrder,
-  OrderQuantities,
-  cancelOrder
-} from "@/services/vawoOrderService";
+import { supabase } from "@/integrations/supabase/client";
 import { OrderProduct } from "@/components/order/orderConstants";
-import { OrderLineItem } from "@/integrations/vawo/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +21,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/lib/supabase";
 import ProductDialog from "@/components/order/ProductDialog";
 
 interface OrderItemGroup {
@@ -132,18 +123,18 @@ const EditOrder = () => {
       try {
         const { data, error } = await supabase
           .from('products')
-          .select('vawo_code, image, name');
+          .select('id, image, name');
         
         if (error) {
           console.error("Error fetching products:", error);
           return;
         }
         
-        // Create a mapping from vawo_code to product info
+        // Create a mapping from product id to product info
         const productMap: Record<string, { image: string; name: string }> = {};
         data?.forEach(product => {
-          if (product.vawo_code) {
-            productMap[product.vawo_code] = {
+          if (product.id) {
+            productMap[product.id] = {
               image: product.image || '',
               name: product.name
             };
@@ -204,7 +195,7 @@ const EditOrder = () => {
           return;
         }
         
-        // Fix date format if needed (VAWO API sometimes returns dates in format "02025-03-16")
+        // Fix date format if needed
         const fixDateFormat = (dateString: string): string => {
           const fixed = dateString.startsWith('0') ? dateString.substring(1) : dateString;
           return fixed;
@@ -224,7 +215,7 @@ const EditOrder = () => {
           dueDate: fixDateFormat(item.dueDate)
         }));
         
-        // Sort items by itemCode (VAWO code) numerically
+        // Sort items by product name
         const sortedItems = [...itemsWithFixedDates].sort((a, b) => {
           const aCode = parseInt(a.itemCode) || 0;
           const bCode = parseInt(b.itemCode) || 0;
@@ -327,7 +318,6 @@ const EditOrder = () => {
       image: productInfo?.image || '',
       sku: item.itemCode,
       is_frozen: item.uom === "קר",
-      vawo_code: item.itemCode,
       quantity_increment: 1,
       package_amount: null
     };

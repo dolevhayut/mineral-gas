@@ -5,13 +5,13 @@ export interface OrderProduct {
   price: number;
   image: string;
   sku: string;
-  vawo_code?: string;    // מק"ט VAWO/SAP
   uom?: string;          // יחידת מידה: קר/יח
   is_frozen?: boolean;   // האם המוצר קפוא
   package_amount?: number | string; // כמות יחידות בקרטון
   quantity_increment?: number; // קפיצות כמות
   description?: string;
   category?: string;
+  cylinder_type?: string; // סוג בלון גז
   available?: boolean;
   featured?: boolean;
   createdAt?: string;

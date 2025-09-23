@@ -1,1 +1,25 @@
-project_id = "ilabjurydougiuvljbjz"
+project_id = "dttonqyqzmxcsitijwuf"
+
+[functions.send-verification-code]
+verify_jwt = false
+
+[functions.verify-phone-code]
+verify_jwt = false
+
+[functions.register-customer]
+verify_jwt = false
+
+[functions.create-or-get-customer]
+verify_jwt = false
+
+[functions.create-service-request]
+verify_jwt = false
+
+[functions.reorder-from-previous]
+verify_jwt = false
+
+[functions.update-customer-profile]
+verify_jwt = false
+
+[functions.get-customer-profile]
+verify_jwt = false

@@ -6,25 +6,25 @@ const inter = Inter({ subsets: ['latin', 'hebrew'] })
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | מאפיית אורבר',
-    default: 'מערכת הזמנות מאפיית אורבר', // Default title
+    template: '%s | מינרל גז',
+    default: 'מערכת הזמנות מינרל גז', // Default title
   },
-  description: 'הזמינו מוצרי מאפייה טריים ואיכותיים ממאפיית אורבר. מבחר עשיר של לחמים, מאפים, עוגות ומוצרי מאפייה מיוחדים.',
-  keywords: ['מאפייה', 'הזמנות אוכל', 'לחם', 'מאפים', 'עוגות', 'אורבר', 'מאפיית אורבר'],
-  authors: [{ name: 'Orber Bakery' }],
-  creator: 'Orber Bakery',
-  publisher: 'Orber Bakery',
+  description: 'הזמינו בלוני גז איכותיים ממינרל גז. מבחר עשיר של בלוני גז, שירותי התקנה ותחזוקה.',
+  keywords: ['בלוני גז', 'הזמנות גז', 'מינרל גז', 'גז', 'בלונים', 'התקנה'],
+  authors: [{ name: 'Mineral Gas' }],
+  creator: 'Mineral Gas',
+  publisher: 'Mineral Gas',
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://orberbakery.com'), // Replace with your actual domain
+  metadataBase: new URL('https://mineralgas.com'), // Replace with your actual domain
   openGraph: {
-    title: 'מערכת הזמנות מאפיית אורבר',
-    description: 'הזמינו מוצרי מאפייה טריים ואיכותיים ממאפיית אורבר. מבחר עשיר של לחמים, מאפים, עוגות ומוצרי מאפייה מיוחדים.',
-    url: 'https://orberbakery.com',
-    siteName: 'מאפיית אורבר',
+    title: 'מערכת הזמנות מינרל גז',
+    description: 'הזמינו בלוני גז איכותיים ממינרל גז. מבחר עשיר של בלוני גז, שירותי התקנה ותחזוקה.',
+    url: 'https://mineralgas.com',
+    siteName: 'מינרל גז',
     locale: 'he_IL',
     type: 'website',
     images: [
@@ -32,14 +32,14 @@ export const metadata: Metadata = {
         url: '/images/og-image.jpg', // Replace with your actual OG image path
         width: 1200,
         height: 630,
-        alt: 'מאפיית אורבר - מוצרי מאפייה טריים ואיכותיים',
+        alt: 'מינרל גז - בלוני גז איכותיים ושירותי התקנה',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'מערכת הזמנות מאפיית אורבר',
-    description: 'הזמינו מוצרי מאפייה טריים ואיכותיים ממאפיית אורבר',
+    title: 'מערכת הזמנות מינרל גז',
+    description: 'הזמינו בלוני גז איכותיים ממינרל גז',
     images: ['/images/og-image.jpg'], // Same as OG image
   },
   viewport: {

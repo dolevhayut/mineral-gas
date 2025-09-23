@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CakeIcon, ShoppingCartIcon, UsersIcon, TrendingUpIcon, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { SystemUpdatesManager } from "@/components/SystemUpdatesManager";
 
@@ -194,7 +194,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">לוח בקרה</h1>
-        <p className="text-muted-foreground font-noto">ברוכים הבאים לפאנל הניהול של מאפיית אורבר</p>
+        <p className="text-muted-foreground font-noto">ברוכים הבאים לפאנל הניהול של מינרל גז</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -91,7 +91,7 @@ export default function Settings() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="store-name">שם החנות</Label>
-              <Input id="store-name" defaultValue="מאפיית אורבר" />
+              <Input id="store-name" defaultValue="מינרל גז" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="store-description">תיאור החנות</Label>

@@ -1,0 +1,21 @@
+# Project Context Rules
+
+## Current Project
+- **Type**: Simple gas balloon ordering system (מערכת הזמנות פשוטה לבלוני גז)
+- **Purpose**: Ordering system for gas balloons
+
+## Original Source
+- **Type**: Complex bakery ordering system (מערכת הזמנות מאפייה יחסית מורכבת)
+- **Status**: This repository was cloned/copied from the original bakery system
+- **Adaptation**: The system has been adapted from bakery orders to gas balloon orders
+
+## Important Notes
+- The codebase may still contain references to the original bakery system
+- Some terminology, images, and functionality may need to be updated to reflect the gas balloon context
+- When making changes, consider whether bakery-specific elements should be adapted for gas balloon orders
+
+## Development Guidelines
+- Always consider the gas balloon context when making changes
+- Update any remaining bakery references to gas balloon terminology
+- Ensure product images and descriptions match the gas balloon business
+- Maintain the simplified nature of the current system compared to the original complex bakery system

@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { getOpenOrders, getReports } from "@/services/vawoOrderService";
+import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // Import report components
@@ -93,7 +93,7 @@ const Reports = () => {
       try {
         setLoading(true);
         
-        // Fetch report data from VAWO API
+        // Fetch report data
         const reportData = await getReports(date.from, date.to, 'all');
         
         if (!reportData) {

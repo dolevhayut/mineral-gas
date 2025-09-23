@@ -27,7 +27,7 @@ export default function UserMenu({ user, logout, isAuthenticated, dashboardLink 
     return (
       <Button
         variant="default"
-        className="bg-bakery-600 hover:bg-bakery-700"
+        className="bg-bottle-600 hover:bg-bottle-700"
         onClick={() => navigate("/login")}
       >
         התחברות
@@ -45,7 +45,7 @@ export default function UserMenu({ user, logout, isAuthenticated, dashboardLink 
         >
           <Avatar className="h-8 w-8 border">
             <AvatarImage src="/assets/profile-placeholder.png" alt="Profile" />
-            <AvatarFallback className="bg-bakery-100 text-bakery-800">
+            <AvatarFallback className="bg-bottle-100 text-bottle-800">
               <UserIcon className="h-4 w-4" />
             </AvatarFallback>
           </Avatar>
@@ -70,6 +70,13 @@ export default function UserMenu({ user, logout, isAuthenticated, dashboardLink 
           className="justify-end"
         >
           הגדרות
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem
+          onClick={() => navigate("/edit-profile")}
+          className="justify-end"
+        >
+          עריכת פרופיל
         </DropdownMenuItem>
         
         {!isAdmin && (

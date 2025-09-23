@@ -5,111 +5,108 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight } from "lucide-react";
 import { OrderProduct } from "@/components/order/orderConstants";
 import EmptyOrderMessage from "@/components/order/EmptyOrderMessage";
-import { submitOrder } from "@/services/vawoOrderService";
+import { submitOrder } from "@/services/orderService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { he } from "date-fns/locale";
 
-// Type for aggregated day items
-interface DayOrderSummary {
-  day: string;
-  dayHebrew: string;
-  products: {
-    productId: string;
-    productName: string;
-    quantity: number;
-  }[];
-  totalQuantity: number;
+// Type for simple product summary
+interface ProductSummary {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  totalPrice: number;
 }
 
 const OrderSummaryPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<OrderProduct[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState<{
+    name: string;
+    phone: string;
+    address?: string;
+  } | null>(null);
+  const [deliveryPreferences, setDeliveryPreferences] = useState<Record<string, {
+    type: 'asap' | 'specific';
+    date?: Date;
+    time?: string;
+  }>>({});
 
   useEffect(() => {
     // Get quantities and products from location state
     if (location.state) {
-      const { quantities: stateQuantities, products: stateProducts } = location.state;
+      const { 
+        quantities: stateQuantities, 
+        products: stateProducts,
+        deliveryPreferences: stateDeliveryPreferences 
+      } = location.state;
       if (stateQuantities) setQuantities(stateQuantities);
       if (stateProducts) setProducts(stateProducts);
+      if (stateDeliveryPreferences) setDeliveryPreferences(stateDeliveryPreferences);
     } else {
       // If no state, redirect back to the new order page
       navigate("/orders/new");
     }
   }, [location.state, navigate]);
 
-  // Map of English day names to Hebrew day names
-  const dayNameMap: Record<string, string> = {
-    sunday: "ראשון",
-    monday: "שני",
-    tuesday: "שלישי",
-    wednesday: "רביעי",
-    thursday: "חמישי",
-    friday: "שישי",
-    saturday: "שבת",
-  };
+  // Fetch customer info
+  useEffect(() => {
+    const fetchCustomerInfo = async () => {
+      if (user?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('customers')
+            .select('name, phone, address')
+            .eq('id', user.id)
+            .single();
+          
+          if (!error && data) {
+            setCustomerInfo({
+              name: data.name || '',
+              phone: data.phone || '',
+              address: data.address || ''
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching customer info:', error);
+        }
+      }
+    };
+    
+    fetchCustomerInfo();
+  }, [user]);
+
+  // Process quantities to create simple product summary
+  const productSummary: ProductSummary[] = [];
+  let totalOrderValue = 0;
   
-  // Process quantities to aggregate by day
-  const dayOrderSummary: DayOrderSummary[] = [];
-  
-  Object.entries(quantities).forEach(([productId, dayQuantities]) => {
+  Object.entries(quantities).forEach(([productId, quantity]) => {
+    if (quantity <= 0) return;
+    
     const product = products.find(p => p.id === productId);
     if (!product) return;
     
-    Object.entries(dayQuantities).forEach(([day, quantity]) => {
-      if (quantity <= 0) return;
-      
-      // Find existing day entry or create new one
-      let dayEntry = dayOrderSummary.find(d => d.day === day);
-      
-      if (!dayEntry) {
-        dayEntry = {
-          day,
-          dayHebrew: dayNameMap[day] || day,
-          products: [],
-          totalQuantity: 0
-        };
-        dayOrderSummary.push(dayEntry);
-      }
-      
-      // Add product to day entry
-      dayEntry.products.push({
-        productId,
-        productName: product.name,
-        quantity
-      });
-      
-      // Update total quantity for the day
-      dayEntry.totalQuantity += quantity;
+    const totalPrice = quantity * product.price;
+    totalOrderValue += totalPrice;
+    
+    productSummary.push({
+      productId,
+      productName: product.name,
+      quantity,
+      price: product.price,
+      totalPrice
     });
   });
   
-  // Sort days according to week order
-  const dayOrder: Record<string, number> = {
-    sunday: 0,
-    monday: 1,
-    tuesday: 2,
-    wednesday: 3,
-    thursday: 4,
-    friday: 5,
-    saturday: 6
-  };
-  
-  // Sort with explicit day comparison
-  dayOrderSummary.sort((a, b) => {
-    const orderA = dayOrder[a.day] !== undefined ? dayOrder[a.day] : 99;
-    const orderB = dayOrder[b.day] !== undefined ? dayOrder[b.day] : 99;
-    return orderA - orderB;
-  });
-  
-  // Debug log to check order of days
-  console.log("Day Order Summary:", dayOrderSummary.map(d => d.day));
-  
-  const hasItems = dayOrderSummary.length > 0;
+  const hasItems = productSummary.length > 0;
 
   const handleBackToOrder = () => {
     navigate("/orders/new");
@@ -137,14 +134,14 @@ const OrderSummaryPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Submit the order using our VAWO service
-      const orderIds = await submitOrder(quantities, products);
+      // Submit the order
+      const orderId = await submitOrder(quantities, products, user?.id);
       
-      if (orderIds && orderIds.length > 0) {
+      if (orderId) {
         // הצגת הודעה על הצלחה והישארות בדף הנוכחי
         toast({
-          title: "ההזמנות נשלחו בהצלחה",
-          description: `נוצרו ${orderIds.length} הזמנות: ${orderIds.join(", ")}. תועבר לדף הבית בעוד רגע.`,
+          title: "ההזמנה נשלחה בהצלחה",
+          description: `הזמנה #${orderId} נוצרה בהצלחה. תועבר לדף הבית בעוד רגע.`,
         });
         
         // המתנה קצרה לפני ניווט לדף הבית
@@ -152,6 +149,11 @@ const OrderSummaryPage = () => {
           navigate("/", { replace: true });
         }, 2000);
       } else {
+        toast({
+          title: "שגיאה בשליחת ההזמנה",
+          description: "לא ניתן ליצור הזמנה",
+          variant: "destructive",
+        });
         setIsSubmitting(false);
       }
     } catch (error) {
@@ -183,30 +185,74 @@ const OrderSummaryPage = () => {
             <ArrowRight className="h-4 w-4" />
             <span>חזרה להזמנה</span>
           </Button>
-          <h1 className="text-2xl font-bold">סיכום הזמנה</h1>
+          <h1 className="text-2xl font-bold text-center flex-1">סיכום הזמנה</h1>
+          <div className="w-24"></div> {/* Spacer for balance */}
         </div>
 
         <Card className="p-6 shadow-md mb-8">
           {hasItems ? (
             <div className="space-y-6">
+              {/* Customer Information */}
+              {customerInfo && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-medium text-lg mb-3 text-right">פרטי הלקוח:</h3>
+                  <div className="space-y-2 text-right">
+                    <p><span className="font-medium">שם:</span> {customerInfo.name}</p>
+                    <p><span className="font-medium">טלפון:</span> {customerInfo.phone}</p>
+                    {customerInfo.address && (
+                      <p><span className="font-medium">כתובת:</span> {customerInfo.address}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Delivery Preferences for Gas Cylinders */}
+              {Object.keys(deliveryPreferences).length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-medium text-lg mb-3 text-right">זמן אספקה:</h3>
+                  <div className="space-y-2 text-right">
+                    {Object.entries(deliveryPreferences).map(([productId, preference]) => {
+                      const product = products.find(p => p.id === productId);
+                      if (!product) return null;
+                      
+                      return (
+                        <div key={productId} className="border-b pb-2 last:border-b-0">
+                          <p className="font-medium">{product.name}:</p>
+                          {preference.type === 'asap' ? (
+                            <p className="text-sm text-gray-600">כמה שיותר מוקדם</p>
+                          ) : (
+                            <p className="text-sm text-gray-600">
+                              {preference.date && format(preference.date, "dd/MM/yyyy", { locale: he })}
+                              {preference.time && ` בשעה ${preference.time}`}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Order Summary */}
               <div className="space-y-4">
-                <h3 className="font-medium text-xl mb-4 text-right">פריטים לפי ימים:</h3>
+                <h3 className="font-medium text-xl mb-4 text-right">סיכום הזמנה:</h3>
                 
-                {dayOrderSummary.map((daySummary) => (
-                  <div key={daySummary.day} className="flex flex-col border-b pb-4 pt-2">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm text-gray-500">סה"כ: {daySummary.totalQuantity} יח׳</span>
-                      <h4 className="font-medium text-lg">יום {daySummary.dayHebrew}</h4>
+                {productSummary.map((product) => (
+                  <div key={product.productId} className="flex justify-between items-center py-2 border-b">
+                    <div className="text-right">
+                      <p className="font-medium">{product.productName}</p>
+                      <p className="text-sm text-gray-500">₪{product.price} × {product.quantity}</p>
                     </div>
-                    
-                    {daySummary.products.map((product) => (
-                      <div key={product.productId} className="flex justify-between my-1 pr-4">
-                        <span className="text-sm">{product.quantity} יח׳</span>
-                        <span className="text-sm text-gray-700">{product.productName}</span>
-                      </div>
-                    ))}
+                    <div className="text-left">
+                      <p className="font-semibold text-green-600">₪{product.totalPrice}</p>
+                    </div>
                   </div>
                 ))}
+                
+                <div className="flex justify-between items-center py-3 border-t-2 border-gray-200 font-bold text-lg">
+                  <span className="text-right">סה"כ הזמנה:</span>
+                  <span className="text-green-600">₪{totalOrderValue}</span>
+                </div>
               </div>
             </div>
           ) : (

@@ -8,16 +8,27 @@ import { toast } from "@/hooks/use-toast";
 import { AlertCircle, Package2 as PackageIcon, CircleDot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOpenOrders, deleteOrderItem } from "@/services/vawoOrderService";
-import { OrderLineItem } from "@/integrations/vawo/types";
+import { supabase } from "@/integrations/supabase/client";
 import { Separator } from "@/components/ui/separator";
 
-// Interface for order display
+// Interface for order display - Updated for Supabase
+interface OrderItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  price: number;
+  total: number;
+  day_of_week: string;
+}
+
 interface OrderGroup {
-  docEntry: number;
-  docNum: number;
-  dueDate: string;
-  items: OrderLineItem[];
+  id: string;
+  order_number: string;
+  target_date: string;
+  status: string;
+  total: number;
+  items: OrderItem[];
   totalItems: number;
 }
 
@@ -36,8 +47,28 @@ const CurrentOrders = () => {
         setLoading(true);
         console.log("[CurrentOrders] Fetching current orders for user:", user.name);
         
-        // Get open orders from VAWO API
-        const orderItems = await getOpenOrders();
+        // Get open orders from Supabase
+        const { data: orderItems, error } = await supabase
+          .from('order_items')
+          .select(`
+            *,
+            orders!inner(id, customer_id, status, total, target_date, created_at),
+            customers!inner(user_id),
+            products(name)
+          `)
+          .eq('customers.user_id', user.id)
+          .eq('orders.status', 'pending')
+          .order('orders.created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching orders:', error);
+          toast({
+            title: "שגיאה בטעינת הזמנות",
+            description: "לא ניתן לטעון את ההזמנות",
+            variant: "destructive",
+          });
+          return;
+        }
         console.log("[CurrentOrders] Received order items:", orderItems);
         
         if (!orderItems || orderItems.length === 0) {
@@ -49,52 +80,60 @@ const CurrentOrders = () => {
         
         console.log("[CurrentOrders] Processing", orderItems.length, "order items");
         
-        // Group order items by docEntry (order ID)
-        const groupedOrders: Record<number, OrderGroup> = {};
+        // Group order items by order ID
+        const groupedOrders: Record<string, OrderGroup> = {};
         
         orderItems.forEach(item => {
-          console.log("[CurrentOrders] Processing item:", { docEntry: item.docEntry, docNum: item.docNum, description: item.description });
+          const orderId = item.orders.id;
+          const order = item.orders;
           
-          if (!groupedOrders[item.docEntry]) {
-            groupedOrders[item.docEntry] = {
-              docEntry: item.docEntry,
-              docNum: item.docNum,
-              dueDate: item.dueDate,
+          console.log("[CurrentOrders] Processing item:", { orderId, productName: item.products.name });
+          
+          if (!groupedOrders[orderId]) {
+            groupedOrders[orderId] = {
+              id: orderId,
+              order_number: orderId.slice(-6), // Use last 6 characters as order number
+              target_date: order.target_date || new Date().toISOString().split('T')[0],
+              status: order.status,
+              total: order.total || 0,
               items: [],
               totalItems: 0
             };
-            console.log("[CurrentOrders] Created new order group for docEntry:", item.docEntry);
+            console.log("[CurrentOrders] Created new order group for orderId:", orderId);
           }
           
-          groupedOrders[item.docEntry].items.push(item);
-          groupedOrders[item.docEntry].totalItems += item.quantity;
+          const orderItem: OrderItem = {
+            id: item.id,
+            product_id: item.product_id,
+            product_name: item.products.name || 'Unknown Product',
+            quantity: item.quantity,
+            price: item.price,
+            total: item.quantity * item.price,
+            day_of_week: item.day_of_week
+          };
+          
+          groupedOrders[orderId].items.push(orderItem);
+          groupedOrders[orderId].totalItems += item.quantity;
         });
         
         console.log("[CurrentOrders] Grouped orders:", Object.keys(groupedOrders).map(key => ({
-          docEntry: key,
-          docNum: groupedOrders[Number(key)].docNum,
-          itemCount: groupedOrders[Number(key)].items.length,
-          totalItems: groupedOrders[Number(key)].totalItems
+          orderId: key,
+          orderNumber: groupedOrders[key].order_number,
+          itemCount: groupedOrders[key].items.length,
+          totalItems: groupedOrders[key].totalItems
         })));
         
-        // Sort orders by due date (most recent first)
+        // Sort orders by target date (most recent first)
         const sortedOrders = Object.values(groupedOrders).sort((a, b) => {
-          // תיקון הטיפול בתאריכים במיון
-          const getDateFromString = (dateString: string) => {
-            const fixedDateString = dateString.startsWith('0') ? dateString.substring(1) : dateString;
-            const parts = fixedDateString.split('-').map(Number);
-            return new Date(parts[0], parts[1] - 1, parts[2]);
-          };
-          
-          const dateA = getDateFromString(a.dueDate);
-          const dateB = getDateFromString(b.dueDate);
+          const dateA = new Date(a.target_date);
+          const dateB = new Date(b.target_date);
           return dateB.getTime() - dateA.getTime();
         });
         
         console.log("[CurrentOrders] Final sorted orders:", sortedOrders.map(order => ({
-          docEntry: order.docEntry,
-          docNum: order.docNum,
-          dueDate: order.dueDate,
+          id: order.id,
+          order_number: order.order_number,
+          target_date: order.target_date,
           itemCount: order.items.length
         })));
         
@@ -116,20 +155,20 @@ const CurrentOrders = () => {
     }
   }, [isAuthenticated, user]);
 
-  const handleEditOrder = (docEntry: number) => {
-    console.log("[CurrentOrders] Navigating to edit order with docEntry:", docEntry);
-    const order = orders.find(o => o.docEntry === docEntry);
+  const handleEditOrder = (orderId: string) => {
+    console.log("[CurrentOrders] Navigating to edit order with orderId:", orderId);
+    const order = orders.find(o => o.id === orderId);
     if (order) {
-      console.log("[CurrentOrders] Order details:", { docEntry: order.docEntry, docNum: order.docNum, itemCount: order.items.length });
+      console.log("[CurrentOrders] Order details:", { id: order.id, order_number: order.order_number, itemCount: order.items.length });
     } else {
       console.log("[CurrentOrders] Order not found in local state");
     }
-    navigate(`/orders/edit/${docEntry}`);
+    navigate(`/orders/edit/${orderId}`);
   };
 
-  const handleCancelOrder = async (docEntry: number) => {
+  const handleCancelOrder = async (orderId: string) => {
     // Get the order to cancel
-    const order = orders.find(o => o.docEntry === docEntry);
+    const order = orders.find(o => o.id === orderId);
     
     if (!order || !order.items.length) {
       toast({
@@ -143,31 +182,23 @@ const CurrentOrders = () => {
     try {
       setLoading(true);
       
-      // Delete each line item
-      let success = true;
-      for (const item of order.items) {
-        const result = await deleteOrderItem(item.docEntry, item.lineNum, item.uom);
-        if (!result) {
-          success = false;
-          break;
-        }
+      // Update order status to cancelled in Supabase
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', orderId);
+      
+      if (updateError) {
+        throw updateError;
       }
       
-      if (success) {
-        toast({
-          title: "ההזמנה בוטלה בהצלחה",
-          description: "ההזמנה בוטלה והוסרה מהמערכת",
-        });
-        
-        // Remove the order from the state
-        setOrders(prev => prev.filter(o => o.docEntry !== docEntry));
-      } else {
-        toast({
-          title: "שגיאה בביטול ההזמנה",
-          description: "לא הצלחנו לבטל את כל פריטי ההזמנה",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "ההזמנה בוטלה בהצלחה",
+        description: "ההזמנה בוטלה והוסרה מהמערכת",
+      });
+      
+      // Remove the order from the state
+      setOrders(prev => prev.filter(o => o.id !== orderId));
     } catch (error) {
       console.error("Error cancelling order:", error);
       toast({
@@ -182,10 +213,7 @@ const CurrentOrders = () => {
 
   const formatDate = (dateString: string) => {
     try {
-      // תיקון לתאריכים עם שנה 02025 במקום 2025
-      const fixedDateString = dateString.startsWith('0') ? dateString.substring(1) : dateString;
-      const parts = fixedDateString.split('-').map(Number);
-      const date = new Date(parts[0], parts[1] - 1, parts[2]);
+      const date = new Date(dateString);
       return date.toLocaleDateString('he-IL', {
         year: 'numeric',
         month: 'long',
@@ -213,10 +241,10 @@ const CurrentOrders = () => {
     );
   };
   
-  const toggleOrderDetails = (docEntry: number) => {
+  const toggleOrderDetails = (orderId: string) => {
     setExpandedOrders(prev => ({
       ...prev,
-      [docEntry]: !prev[docEntry]
+      [orderId]: !prev[orderId]
     }));
   };
 
@@ -266,21 +294,21 @@ const CurrentOrders = () => {
             ) : (
               <div className="space-y-4 mt-4">
                 {orders.map((order) => (
-                  <Card key={order.docEntry} className="overflow-hidden">
+                  <Card key={order.id} className="overflow-hidden">
                     <div 
                       className="p-6 cursor-pointer" 
-                      onClick={() => toggleOrderDetails(order.docEntry)}
+                      onClick={() => toggleOrderDetails(order.id)}
                     >
                       <div className="flex flex-col md:flex-row justify-between gap-4">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-medium">הזמנה מספר: {order.docNum}</h3>
+                            <h3 className="font-medium">הזמנה מספר: {order.order_number}</h3>
                             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                               פעילה
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            תאריך אספקה: {formatDate(order.dueDate)}
+                            תאריך אספקה: {formatDate(order.target_date)}
                           </p>
                           <p className="text-sm">
                             סה"כ פריטים: {order.totalItems}
@@ -292,7 +320,7 @@ const CurrentOrders = () => {
                             variant="outline" 
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleEditOrder(order.docEntry);
+                              handleEditOrder(order.id);
                             }}
                           >
                             עריכה
@@ -301,7 +329,7 @@ const CurrentOrders = () => {
                             variant="destructive" 
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleCancelOrder(order.docEntry);
+                              handleCancelOrder(order.id);
                             }}
                           >
                             ביטול
@@ -310,7 +338,7 @@ const CurrentOrders = () => {
                       </div>
                     </div>
                     
-                    {expandedOrders[order.docEntry] && (
+                    {expandedOrders[order.id] && (
                       <div className="bg-gray-50 p-4 border-t">
                         <h3 className="font-medium mb-2 text-right">פרטי הזמנה:</h3>
                         
@@ -319,11 +347,11 @@ const CurrentOrders = () => {
                             <div key={index} className="flex justify-between py-1">
                               <div className="text-left flex items-center">
                                 <Badge variant="outline">{item.quantity}×</Badge>
-                                {getUnitTypeInfo(item.uom)}
+                                <span className="text-xs text-gray-500">יום: {item.day_of_week}</span>
                               </div>
                               <div className="text-right">
-                                <p>{item.description}</p>
-                                <p className="text-xs text-gray-500">קוד מוצר: {item.itemCode}</p>
+                                <p>{item.product_name}</p>
+                                <p className="text-xs text-gray-500">קוד מוצר: {item.product_id}</p>
                               </div>
                             </div>
                           ))}

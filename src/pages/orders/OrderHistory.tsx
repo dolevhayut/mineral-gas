@@ -9,28 +9,42 @@ import { AlertCircle, ChevronDown, Clock, Package2 as PackageIcon, CircleDot, Ed
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { getOpenOrders, cancelOrder } from "@/services/vawoOrderService";
-import { OrderLineItem } from "@/integrations/vawo/types";
-import { getHebrewDayName } from "@/components/order/utils/orderUtils";
+import { supabase } from "@/integrations/supabase/client";
 
-// Interface for grouped orders
-interface OrderGroup {
-  docEntry: number;
-  docNum: number;
-  dueDate: string;
-  items: OrderLineItem[];
-  totalAmount: number;
+// Interface for orders
+interface Order {
+  id: string;
+  customer_id: string;
+  status: string;
+  total: number;
+  created_at: string;
+  delivery_date: string;
+  delivery_address: string;
+  special_instructions: string | null;
+  order_items: OrderItem[];
+}
+
+interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  price: number;
+  day_of_week: string;
+  products: {
+    id: string;
+    name: string;
+    price: number;
+  };
 }
 
 const OrderHistory = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<OrderGroup[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedOrders, setExpandedOrders] = useState<Record<number, boolean>>({});
-  
-
-  const [isCancellingByDocEntry, setIsCancellingByDocEntry] = useState<Record<number, boolean>>({});
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+  const [isCancellingById, setIsCancellingById] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -40,59 +54,35 @@ const OrderHistory = () => {
         setLoading(true);
         console.log("Fetching order history for user:", user.name);
         
-        // שינוי: לקיחת הזמנות משנה אחורה ועד שנה קדימה
-        // Get orders from one year ago until one year in the future
-        const startDate = new Date();
-        startDate.setFullYear(startDate.getFullYear() - 1); // שנה אחורה
+        // Fetch orders from Supabase
+        const { data: ordersData, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (
+              *,
+              products (
+                id,
+                name,
+                price
+              )
+            )
+          `)
+          .eq('customer_id', user.id)
+          .order('created_at', { ascending: false });
         
-        const endDate = new Date();
-        endDate.setFullYear(endDate.getFullYear() + 1); // שנה קדימה
+        if (error) {
+          console.error("Error fetching orders:", error);
+          throw error;
+        }
         
-        console.log(`Fetching orders from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
-        
-        const orderItems = await getOpenOrders(startDate, endDate, undefined);
-        
-        if (!orderItems || orderItems.length === 0) {
+        if (!ordersData || ordersData.length === 0) {
           setOrders([]);
           setLoading(false);
           return;
         }
         
-        // Group order items by docEntry (order ID)
-        const groupedOrders: Record<number, OrderGroup> = {};
-        
-        orderItems.forEach(item => {
-          if (!groupedOrders[item.docEntry]) {
-            groupedOrders[item.docEntry] = {
-              docEntry: item.docEntry,
-              docNum: item.docNum,
-              dueDate: item.dueDate,
-              items: [],
-              totalAmount: 0
-            };
-          }
-          
-          groupedOrders[item.docEntry].items.push(item);
-          // Calculating a simple total based on quantity
-          // This would need to be adjusted if pricing information is available
-          groupedOrders[item.docEntry].totalAmount += item.quantity;
-        });
-        
-        // Sort orders by due date (most recent first)
-        const sortedOrders = Object.values(groupedOrders).sort((a, b) => {
-          // תיקון הטיפול בתאריכים במיון
-          const getDateFromString = (dateString: string) => {
-            const fixedDateString = dateString.startsWith('0') ? dateString.substring(1) : dateString;
-            const parts = fixedDateString.split('-').map(Number);
-            return new Date(parts[0], parts[1] - 1, parts[2]);
-          };
-          
-          const dateA = getDateFromString(a.dueDate);
-          const dateB = getDateFromString(b.dueDate);
-          return dateB.getTime() - dateA.getTime();
-        });
-        
-        setOrders(sortedOrders);
+        setOrders(ordersData);
       } catch (error) {
         console.error("Error fetching order history:", error);
         toast({
@@ -114,20 +104,16 @@ const OrderHistory = () => {
     return <Navigate to="/login" />;
   }
 
-  const toggleOrderDetails = (docEntry: number) => {
+  const toggleOrderDetails = (orderId: string) => {
     setExpandedOrders(prev => ({
       ...prev,
-      [docEntry]: !prev[docEntry]
+      [orderId]: !prev[orderId]
     }));
   };
 
   const formatDate = (dateString: string) => {
     try {
-      // תיקון לתאריכים עם שנה 02025 במקום 2025
-      const fixedDateString = dateString.startsWith('0') ? dateString.substring(1) : dateString;
-      const parts = fixedDateString.split('-').map(Number);
-      const date = new Date(parts[0], parts[1] - 1, parts[2]);
-      
+      const date = new Date(dateString);
       return date.toLocaleDateString('he-IL', {
         year: 'numeric',
         month: 'numeric',
@@ -139,12 +125,9 @@ const OrderHistory = () => {
   };
 
   const getHebrewDayFromDate = (dateString: string) => {
-    const fixed = dateString.startsWith('0') ? dateString.substring(1) : dateString;
-    const parts = fixed.split('-').map(Number);
-    const date = new Date(parts[0], parts[1] - 1, parts[2]);
-    const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-    const key = days[date.getDay()];
-    return getHebrewDayName(key);
+    const date = new Date(dateString);
+    const days = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+    return days[date.getDay()];
   };
 
   const formatCurrency = (amount: number) => {
@@ -154,104 +137,66 @@ const OrderHistory = () => {
     }).format(amount);
   };
 
-  const getStatusBadge = (order: OrderGroup) => {
-    // Check if all items in the order have the same status
-    const statuses = [...new Set(order.items.map(item => item.orderStatus))];
-    const orderStatus = statuses.length === 1 ? statuses[0] : 'Mixed';
-    
-    switch (orderStatus) {
-      case 'Open':
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">פתוחה</Badge>;
-      case 'Closed':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">סגורה</Badge>;
-      case 'Canceled':
+  const getStatusBadge = (order: Order) => {
+    switch (order.status) {
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">ממתינה</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">בתהליך</Badge>;
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800 border-green-200">הושלמה</Badge>;
+      case 'cancelled':
         return <Badge className="bg-red-100 text-red-800 border-red-200">מבוטלת</Badge>;
-      case 'Mixed':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">מעורב</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800 border-gray-200">לא ידוע</Badge>;
     }
   };
   
-  const isOrderToday = (dueDate: string) => {
+  const isOrderToday = (deliveryDate: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const fixedDateString = dueDate.startsWith('0') ? dueDate.substring(1) : dueDate;
-    const parts = fixedDateString.split('-').map(Number);
-    const orderDueDate = new Date(parts[0], parts[1] - 1, parts[2]);
-    orderDueDate.setHours(0, 0, 0, 0);
-    return orderDueDate.getTime() === today.getTime();
+    const orderDate = new Date(deliveryDate);
+    orderDate.setHours(0, 0, 0, 0);
+    return orderDate.getTime() === today.getTime();
   };
 
-  const isOrderCancellable = (dueDate: string) => {
+  const isOrderCancellable = (deliveryDate: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const fixedDateString = dueDate.startsWith('0') ? dueDate.substring(1) : dueDate;
-    const parts = fixedDateString.split('-').map(Number);
-    const orderDueDate = new Date(parts[0], parts[1] - 1, parts[2]);
-    orderDueDate.setHours(0, 0, 0, 0);
-    return orderDueDate.getTime() >= today.getTime();
+    const orderDate = new Date(deliveryDate);
+    orderDate.setHours(0, 0, 0, 0);
+    return orderDate.getTime() >= today.getTime();
   };
   
-  // פונקציה להצגת סוג היחידה (קרטון או יחידה)
-  const getUnitTypeInfo = (uom: string) => {
-    const isFrozen = uom === "קר";
-    const unitText = isFrozen ? "קרטון" : "יחידה";
-    
-    return (
-      <Badge variant={isFrozen ? "secondary" : "outline"} className="text-xs ml-2">
-        {isFrozen ? (
-          <PackageIcon className="h-3 w-3 mr-1" />
-        ) : (
-          <CircleDot className="h-3 w-3 mr-1" />
-        )}
-        {unitText}
-      </Badge>
-    );
-  };
-
-  const handleEditOrder = (docEntry: number) => {
-    navigate(`/orders/edit/${docEntry}`);
+  const handleEditOrder = (orderId: string) => {
+    navigate(`/orders/edit/${orderId}`);
   };
 
 
 
-  // פונקציה לבדוק אם הזמנה ניתנת לעריכה (רק אם התאריך הוא בעתיד ולא היום)
-  const isOrderEditable = (dueDate: string) => {
+  const isOrderEditable = (deliveryDate: string) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // איפוס שעה לתחילת היום
-    
-    // תיקון לתאריכים עם שנה 02025 במקום 2025
-    const fixedDateString = dueDate.startsWith('0') ? dueDate.substring(1) : dueDate;
-    const parts = fixedDateString.split('-').map(Number);
-    const orderDueDate = new Date(parts[0], parts[1] - 1, parts[2]);
-    
-    // הזמנה ניתנת לעריכה רק אם התאריך הוא בעתיד (לא היום ולא עבר)
-    return orderDueDate > today;
+    today.setHours(0, 0, 0, 0);
+    const orderDate = new Date(deliveryDate);
+    orderDate.setHours(0, 0, 0, 0);
+    return orderDate > today;
   };
 
-  // פונקציה לקיבוץ הזמנות לפי תאריכים
   const getOrdersByDate = () => {
-    const groupedByDate: Record<string, OrderGroup[]> = {};
+    const groupedByDate: Record<string, Order[]> = {};
     
     orders.forEach(order => {
-      const dateKey = order.dueDate;
+      const dateKey = order.delivery_date;
       if (!groupedByDate[dateKey]) {
         groupedByDate[dateKey] = [];
       }
       groupedByDate[dateKey].push(order);
     });
     
-    // מיון התאריכים (החדשים ביותר בראש)
+    // Sort dates (newest first)
     const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
-      const getDateFromString = (dateString: string) => {
-        const fixedDateString = dateString.startsWith('0') ? dateString.substring(1) : dateString;
-        const parts = fixedDateString.split('-').map(Number);
-        return new Date(parts[0], parts[1] - 1, parts[2]);
-      };
-      
-      const dateA = getDateFromString(a);
-      const dateB = getDateFromString(b);
+      const dateA = new Date(a);
+      const dateB = new Date(b);
       return dateB.getTime() - dateA.getTime();
     });
     
@@ -261,17 +206,28 @@ const OrderHistory = () => {
     }));
   };
 
-  const handleCancelSingleOrder = async (docEntry: number) => {
+  const handleCancelSingleOrder = async (orderId: string) => {
     if (!window.confirm('לבטל את ההזמנה?')) return;
-    setIsCancellingByDocEntry(prev => ({ ...prev, [docEntry]: true }));
+    setIsCancellingById(prev => ({ ...prev, [orderId]: true }));
     try {
-      const ok = await cancelOrder(docEntry);
-      if (ok) {
-        toast({ title: 'הזמנה בוטלה', description: `הזמנה #${docEntry} בוטלה בהצלחה` });
-        setOrders(prev => prev.filter(o => o.docEntry !== docEntry));
-      }
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', orderId);
+      
+      if (error) throw error;
+      
+      toast({ title: 'הזמנה בוטלה', description: `הזמנה #${orderId.slice(0, 8)} בוטלה בהצלחה` });
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o));
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      toast({ 
+        title: 'שגיאה בביטול ההזמנה', 
+        description: 'לא ניתן לבטל את ההזמנה כרגע',
+        variant: 'destructive'
+      });
     } finally {
-      setIsCancellingByDocEntry(prev => ({ ...prev, [docEntry]: false }));
+      setIsCancellingById(prev => ({ ...prev, [orderId]: false }));
     }
   };
 
@@ -305,144 +261,73 @@ const OrderHistory = () => {
               </div>
             ))}
           </div>
-        ) : ordersByDate.length > 0 ? (
-          <div className="space-y-6">
-            {ordersByDate.map(({ date, orders: dateOrders }) => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const fixedDateString = date.startsWith('0') ? date.substring(1) : date;
-              const parts = fixedDateString.split('-').map(Number);
-              const orderDate = new Date(parts[0], parts[1] - 1, parts[2]);
-              orderDate.setHours(0, 0, 0, 0);
-              
-              const isToday = orderDate.getTime() === today.getTime();
-              const isPast = orderDate < today;
-              const isFuture = orderDate > today;
-              
-              return (
-                <div key={date} className="space-y-3">
-                  {/* Date Header */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                      isToday ? 'bg-blue-100 text-blue-800' :
-                      isPast ? 'bg-gray-100 text-gray-700' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      <Clock className="h-4 w-4" />
-                      <span className="font-semibold">
-                        {getHebrewDayFromDate(date)} • {formatDate(date)}
-                        {isToday && ' (היום)'}
-                      </span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {dateOrders.length} הזמנות
-                    </Badge>
+        ) : orders.length > 0 ? (
+          <div className="space-y-4">
+            {orders.map((order, index) => (
+              <div key={order.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      הזמנה #{index + 1}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {formatDate(order.delivery_date)} • {getHebrewDayFromDate(order.delivery_date)}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {order.order_items.length} פריטים • {formatCurrency(order.total)}
+                    </p>
                   </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(order)}
+                    {isOrderCancellable(order.delivery_date) && order.status === 'pending' && (
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleCancelSingleOrder(order.id)}
+                        disabled={!!isCancellingById[order.id]}
+                      >
+                        {isCancellingById[order.id] ? 'מבטל...' : 'ביטול'}
+                      </Button>
+                    )}
+                    {isOrderEditable(order.delivery_date) && order.status === 'pending' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditOrder(order.id)}
+                      >
+                        <Edit className="h-4 w-4 ml-1" />
+                        עריכה
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="border-t pt-3">
+                  <p className="text-sm text-gray-600 mb-2">
+                    <strong>כתובת:</strong> {order.delivery_address}
+                  </p>
                   
-                  {/* Orders for this date */}
-                  <div className="space-y-3 mr-6">
-                    {dateOrders.map((order) => (
-                      <Card key={order.docEntry} className="overflow-hidden">
-                        <div 
-                          className="p-4 cursor-pointer hover:bg-gray-50 transition-colors" 
-                          onClick={() => toggleOrderDetails(order.docEntry)}
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">הזמנה #{order.docNum}</p>
-                              <p className="text-sm text-gray-600">{order.items.length} פריטים</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {getStatusBadge(order)}
-                              {isOrderCancellable(order.dueDate) && order.items.some(i => i.orderStatus === 'Open') && (
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCancelSingleOrder(order.docEntry);
-                                  }}
-                                  disabled={!!isCancellingByDocEntry[order.docEntry]}
-                                >
-                                  {isCancellingByDocEntry[order.docEntry] ? 'מבטל...' : 'ביטול'}
-                                </Button>
-                              )}
-                              {isOrderEditable(order.dueDate) && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditOrder(order.docEntry);
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4 ml-1" />
-                                  עריכה
-                                </Button>
-                              )}
-                              <ChevronDown className={`h-5 w-5 transition-transform ${expandedOrders[order.docEntry] ? 'transform rotate-180' : ''}`} />
-                            </div>
-                          </div>
+                  {order.special_instructions && (
+                    <p className="text-sm text-gray-600 mb-3">
+                      <strong>הוראות מיוחדות:</strong> {order.special_instructions}
+                    </p>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-900">פריטים:</h4>
+                    {order.order_items.map((item, itemIndex) => (
+                      <div key={itemIndex} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                        <span className="text-sm">{item.products.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">{item.quantity}×</span>
+                          <span className="text-sm font-medium">{formatCurrency(item.price * item.quantity)}</span>
                         </div>
-                        
-                        {expandedOrders[order.docEntry] && (
-                          <div className="bg-gray-50 p-4 border-t">
-                            <div className="flex justify-between items-center mb-3">
-                              <h3 className="font-medium">פרטי הזמנה:</h3>
-                              {isOrderEditable(order.dueDate) && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => handleEditOrder(order.docEntry)}
-                                >
-                                  <PlusCircle className="h-4 w-4 ml-1" />
-                                  הוספת פריטים
-                                </Button>
-                              )}
-                            </div>
-                            
-                            <div className="space-y-3">
-                              {order.items.map((item, index) => (
-                                <div key={index} className="flex justify-between py-2 border-b border-gray-200 last:border-0">
-                                  <div className="text-right flex-1 ml-4">
-                                    <p className="break-words whitespace-pre-wrap leading-relaxed font-medium">{item.description}</p>
-                                    <p className="text-xs text-gray-500 mt-1">קוד מוצר: {item.itemCode}</p>
-                                    <Badge 
-                                      variant="outline" 
-                                      className={`text-xs mt-2 ${
-                                        item.orderStatus === 'Open' ? 'bg-blue-50 text-blue-700' :
-                                        item.orderStatus === 'Closed' ? 'bg-green-50 text-green-700' :
-                                        item.orderStatus === 'Canceled' ? 'bg-red-50 text-red-700' :
-                                        'bg-gray-50 text-gray-700'
-                                      }`}
-                                    >
-                                      {item.orderStatus === 'Open' ? 'פתוח' :
-                                       item.orderStatus === 'Closed' ? 'סגור' :
-                                       item.orderStatus === 'Canceled' ? 'מבוטל' :
-                                       item.orderStatus}
-                                    </Badge>
-                                  </div>
-                                  <div className="text-left flex items-center gap-2">
-                                    {getUnitTypeInfo(item.uom)}
-                                    <Badge variant="outline" className="text-sm font-semibold">
-                                      {item.quantity}×
-                                    </Badge>
-                                  </div>
-                                </div>
-                              ))}
-                              <Separator className="my-3" />
-                              <div className="flex justify-between font-medium text-lg">
-                                <span>סה"כ: {order.totalAmount} פריטים</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </Card>
+                      </div>
                     ))}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-12">

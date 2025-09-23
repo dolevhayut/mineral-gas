@@ -26,8 +26,8 @@ export default function ProductCard({ product }: ProductCardProps) {
           />
         </Link>
         {product.featured && (
-          <Badge className="absolute top-2 right-2 bg-bakery-500 hover:bg-bakery-600">
-            Featured
+          <Badge className="absolute top-2 right-2 bg-amber-500 hover:bg-amber-600 text-white">
+            מומלץ
           </Badge>
         )}
       </div>
@@ -43,11 +43,11 @@ export default function ProductCard({ product }: ProductCardProps) {
       <CardFooter className="pt-0">
         <Button
           onClick={() => addItem(product)}
-          className="w-full bg-bakery-600 hover:bg-bakery-700"
+          className="w-full bg-bottle-600 hover:bg-bottle-700 text-white"
           disabled={!product.available}
         >
           <ShoppingCartIcon className="h-4 w-4 mr-2" />
-          {product.available ? "Add to Cart" : "Out of Stock"}
+          {product.available ? "הוסף לעגלה" : "אזל מהמלאי"}
         </Button>
       </CardFooter>
     </Card>

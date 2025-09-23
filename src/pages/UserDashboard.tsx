@@ -8,14 +8,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   HistoryIcon, 
-  PencilIcon, 
-  CalendarIcon, 
-  PlusIcon, 
+  PlusCircleIcon,
+  WrenchIcon,
   BellIcon,
-  PackageIcon,
-  AlertCircleIcon,
-  ArrowRightIcon,
-  ClockIcon
+  ArrowRightIcon
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
@@ -99,11 +95,11 @@ const UserDashboard = () => {
         console.log("Fetching active order for user:", user.id);
         
         // Get customer ID for this user with improved error handling
-        console.log("Querying customer with user_id:", user.id);
+        console.log("Querying customer with id:", user.id);
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
-          .select('id, user_id, name')
-          .eq('user_id', user.id)
+          .select('id, name')
+          .eq('id', user.id)
           .maybeSingle();
           
         console.log("Customer query result:", { customerData, customerError });
@@ -120,13 +116,13 @@ const UserDashboard = () => {
           // Try a case-insensitive query as a fallback
           const { data: customersAlternative } = await supabase
             .from('customers')
-            .select('id, user_id, name');
+            .select('id, name');
             
           console.log("All customers:", customersAlternative);
           console.log("Checking for case-insensitive match manually...");
           
           const matchingCustomer = customersAlternative?.find(
-            c => c.user_id.toLowerCase() === user.id.toLowerCase()
+            c => c.id.toLowerCase() === user.id.toLowerCase()
           );
           
           if (matchingCustomer) {
@@ -196,36 +192,20 @@ const UserDashboard = () => {
 
   const actionCards = [
     {
-      title: "עדכון הזמנה למחר",
-      icon: <CalendarIcon className="h-8 w-8 text-bakery-600" />,
-      action: () => {
-        if (activeOrder) {
-          // Navigate to edit page with tomorrow parameter
-          navigate(`/orders/edit/${activeOrder.id}?edit=tomorrow`);
-        } else {
-          toast({
-            title: "אין הזמנה פעילה",
-            description: "יש ליצור הזמנה חדשה תחילה",
-            variant: "destructive"
-          });
-        }
-      }
-    },
-    {
-      title: "הזמנה קבועה",
-      icon: <PencilIcon className="h-8 w-8 text-bakery-600" />,
-      action: () => {
-        if (activeOrder) {
-          navigate(`/orders/edit/${activeOrder.id}`);
-        } else {
-          navigate("/orders/new");
-        }
-      }
+      title: "ביצוע הזמנה חדשה",
+      icon: <PlusCircleIcon className="h-8 w-8 text-bottle-600" />,
+      action: () => navigate("/orders/new"),
+      isPrimary: true
     },
     {
       title: "צפייה בהיסטוריה",
-      icon: <HistoryIcon className="h-8 w-8 text-bakery-600" />,
+      icon: <HistoryIcon className="h-8 w-8 text-bottle-600" />,
       action: () => navigate("/orders")
+    },
+    {
+      title: "פתיחת קריאת שירות",
+      icon: <WrenchIcon className="h-8 w-8 text-bottle-600" />,
+      action: () => navigate("/service-request")
     }
   ];
 
@@ -267,7 +247,7 @@ const UserDashboard = () => {
     <MainLayoutWithFooter>
       <div className="container mx-auto px-4 py-6">
         {/* Welcome Section - Simplified */}
-        <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg p-4 mb-6 shadow-sm">
+        <div className="bg-gradient-to-r from-bottle-50 to-bottle-100 rounded-lg p-4 mb-6 shadow-sm">
           <div className="flex flex-col md:flex-row justify-between items-center md:items-start">
             <h1 className="text-xl font-serif font-bold text-right mb-2 md:mb-0">
               {`שלום, ${user?.name || 'לקוח'}`}
@@ -282,22 +262,21 @@ const UserDashboard = () => {
         
         {/* Action Cards */}
         <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {actionCards.map((card, index) => (
               <Card 
                 key={index} 
-                className={`group hover:bg-bakery-50 ${card.title === "עדכון הזמנה למחר" ? 
-                  "border-2 border-bakery-500 bg-bakery-100/70 shadow-lg" : 
-                  "border-2 border-bakery-200 bg-gradient-to-l from-white to-bakery-50/30 shadow-md"} 
-                  hover:border-bakery-400 transition-all duration-200 cursor-pointer relative overflow-hidden`}
+                className={`group hover:bg-bottle-50 ${card.isPrimary ? 
+                  "border-2 border-bottle-500 bg-bottle-100/70 shadow-lg" : 
+                  "border-2 border-bottle-200 bg-gradient-to-l from-white to-bottle-50/30 shadow-md"} 
+                  hover:border-bottle-400 transition-all duration-200 cursor-pointer relative overflow-hidden`}
                 onClick={card.action}
               >
-                <div className="flex flex-row-reverse justify-between items-center p-4">
-                  <div className={`${card.title === "עדכון הזמנה למחר" ? "bg-bakery-200" : "bg-bakery-100"} p-2 rounded-full shadow-sm`}>
+                <div className="flex flex-col items-center justify-center p-6">
+                  <div className={`${card.isPrimary ? "bg-bottle-200" : "bg-bottle-100"} p-4 rounded-full shadow-sm mb-4`}>
                     {card.icon}
                   </div>
-                  <h3 className={`text-lg font-medium text-right ${card.title === "עדכון הזמנה למחר" ? "text-bakery-800" : ""}`}>{card.title}</h3>
-                  <ArrowRightIcon className="h-5 w-5 text-bakery-400 absolute left-3 opacity-70 group-hover:opacity-100" />
+                  <h3 className={`text-lg font-medium text-center ${card.isPrimary ? "text-bottle-800" : ""}`}>{card.title}</h3>
                 </div>
               </Card>
             ))}
@@ -307,7 +286,7 @@ const UserDashboard = () => {
         {/* System Updates - Simplified */}
         <div className="mb-20">
           <h2 className="text-xl font-bold mb-3 text-right flex items-center">
-            <BellIcon className="ml-2 h-5 w-5 text-bakery-600" />
+            <BellIcon className="ml-2 h-5 w-5 text-bottle-600" />
             עדכונים
           </h2>
           <Separator className="mb-4" />

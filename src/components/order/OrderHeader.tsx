@@ -14,15 +14,10 @@ export default function OrderHeader() {
   return (
     <>
       <div className="text-center py-4 space-y-1">
-        <h1 className="text-xl font-bold">הזמנת מוצרי מאפייה</h1>
+        <h1 className="text-xl font-bold">הזמנת מוצרי גז</h1>
         <p className="text-sm text-gray-600">
-          ניתן להזמין בין השעות {openTime} ל-{cutoffTime}
+          בחר את המוצרים הרצויים ותאריכי המשלוח
         </p>
-        {isNightHours && (
-          <p className="text-xs text-blue-600 font-medium">
-            בשעות הלילה ניתן להזמין גם להיום וגם למחר
-          </p>
-        )}
       </div>
     </>
   );

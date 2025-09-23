@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import SapMigrationPopup from "@/components/SapMigrationPopup";
+// import SapMigrationPopup from "@/components/SapMigrationPopup"; // Removed - using Supabase only
 import { DateRangePicker } from "../../components/ui/date-range-picker";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,8 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { getReports } from "@/services/vawoOrderService";
-import { ProductReportItem, CustomerReportItem, DailySalesReportItem, SummaryReportData } from "@/integrations/vawo/types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TopCustomer {
   customer_id: string;
@@ -49,7 +48,7 @@ interface SummaryStats {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
 
 const AdminReports = () => {
-  const [showSapPopup, setShowSapPopup] = useState(true);
+  // const [showSapPopup, setShowSapPopup] = useState(true); // Removed - using Supabase only
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -81,7 +80,7 @@ const AdminReports = () => {
       try {
         setLoading(true);
 
-        // Fetch report data from VAWO API
+        // Fetch report data
         const reportData = await getReports(date.from, date.to, 'all');
         
         if (!reportData) {
@@ -449,11 +448,7 @@ const AdminReports = () => {
         </TabsContent>
       </Tabs>
       
-      {/* SAP Migration Popup */}
-      <SapMigrationPopup 
-        isOpen={showSapPopup} 
-        onClose={() => setShowSapPopup(false)} 
-      />
+      {/* SAP Migration Popup - Removed, using Supabase only */}
     </div>
   );
 };

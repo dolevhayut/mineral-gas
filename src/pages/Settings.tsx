@@ -85,7 +85,7 @@ const Settings = () => {
               <CardFooter className="flex justify-end">
                 <Button 
                   type="submit" 
-                  className="bg-bakery-600 hover:bg-bakery-700"
+                  className="bg-bottle-600 hover:bg-bottle-700"
                   disabled={isLoading}
                 >
                   {isLoading ? "מעדכן..." : "שמור שינויים"}
