@@ -41,3 +41,15 @@ export interface Category {
   id: string;
   name: string;
 }
+
+export interface OrderLineItem {
+  docEntry: number;
+  docNum: number;
+  dueDate: string;
+  description: string;
+  quantity: number;
+  uom: string;
+  itemCode: string;
+  lineNum: number;
+  orderStatus: 'Open' | 'Closed' | 'Canceled';
+}

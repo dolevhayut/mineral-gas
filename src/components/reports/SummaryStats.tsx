@@ -4,17 +4,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface SummaryStatsProps {
   loading: boolean;
   totalOrders: number;
-  totalRevenue: number;
+  totalSpent: number;
   averageOrderValue: number;
-  totalCustomers: number;
+  totalServiceRequests: number;
 }
 
 const SummaryStats = ({
   loading,
   totalOrders,
-  totalRevenue,
+  totalSpent,
   averageOrderValue,
-  totalCustomers,
+  totalServiceRequests,
 }: SummaryStatsProps) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('he-IL', {
@@ -42,20 +42,20 @@ const SummaryStats = ({
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">סה"כ הכנסות</CardTitle>
+          <CardTitle className="text-sm font-medium">סה"כ הוצאות</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <Skeleton className="h-7 w-1/2" />
           ) : (
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
           )}
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">ממוצע להזמנה</CardTitle>
+          <CardTitle className="text-sm font-medium">ממוצע הוצאה</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -68,13 +68,13 @@ const SummaryStats = ({
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">סה"כ לקוחות</CardTitle>
+          <CardTitle className="text-sm font-medium">קריאות שירות</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <Skeleton className="h-7 w-1/2" />
           ) : (
-            <div className="text-2xl font-bold">{totalCustomers}</div>
+            <div className="text-2xl font-bold">{totalServiceRequests}</div>
           )}
         </CardContent>
       </Card>

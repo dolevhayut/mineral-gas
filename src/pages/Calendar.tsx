@@ -11,6 +11,8 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package2 as Packag
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getOpenOrders } from "@/services/reportService";
+import { OrderLineItem } from "@/types";
 
 interface CalendarDay {
   date: Date;
@@ -79,7 +81,7 @@ const Calendar = () => {
         
         // Convert status filter to the correct type
         const orderStatus = statusFilter === "all" ? undefined : statusFilter as 'Open' | 'Closed' | 'Canceled';
-        const orderItems = await getOpenOrders(startDate, endDate, orderStatus);
+        const orderItems = await getOpenOrders(startDate, endDate, user?.id, orderStatus);
         
         if (orderItems && orderItems.length > 0) {
           setOrders(orderItems);
@@ -133,7 +135,7 @@ const Calendar = () => {
     };
 
     fetchOrders();
-  }, [currentDate, viewType, statusFilter]);
+  }, [currentDate, viewType, statusFilter, user?.id]);
 
   // Generate calendar days based on view type
   const generateCalendarDays = (isMobile: boolean = false): CalendarDay[] => {

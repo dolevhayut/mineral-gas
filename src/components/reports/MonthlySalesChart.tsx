@@ -32,7 +32,7 @@ const MonthlySalesChart = ({ loading, monthlyStats }: MonthlySalesChartProps) =>
   return (
     <Card>
       <CardHeader>
-        <CardTitle>מכירות חודשיות</CardTitle>
+        <CardTitle>פעילות חודשית</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -45,33 +45,34 @@ const MonthlySalesChart = ({ loading, monthlyStats }: MonthlySalesChartProps) =>
             <p className="text-muted-foreground">אין נתונים להצגה</p>
           </div>
         ) : (
-          <div className="h-[400px] w-full">
+          <div className="w-full" style={{ height: `${monthlyStats.length * 80 + 60}px` }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
+                layout="vertical"
                 data={monthlyStats}
-                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                margin={{ top: 5, right: 30, left: 20, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="month" 
-                  angle={-45} 
-                  textAnchor="end"
-                  height={80}
+                <XAxis type="number" xAxisId="left" orientation="top" stroke="#8884d8" />
+                <XAxis type="number" xAxisId="right" orientation="top" stroke="#82ca9d" />
+                <YAxis
+                  type="category"
+                  dataKey="month"
                   tickFormatter={formatMonth}
+                  width={150}
+                  tick={{ fontSize: 12 }}
                 />
-                <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                <Tooltip 
+                <Tooltip
                   formatter={(value, name) => {
-                    if (name === 'order_count') return [`${value} הזמנות`, 'מספר הזמנות'];
-                    if (name === 'total_amount') return [formatCurrency(Number(value)), 'סכום כולל'];
+                    if (name === 'order_count') return [`${value} הזמנות`, 'הזמנות שלי'];
+                    if (name === 'total_amount') return [formatCurrency(Number(value)), 'הוצאות שלי'];
                     return [value, name];
                   }}
                   labelFormatter={formatMonth}
                 />
                 <Legend />
-                <Bar yAxisId="left" dataKey="order_count" fill="#8884d8" name="מספר הזמנות" />
-                <Bar yAxisId="right" dataKey="total_amount" fill="#82ca9d" name="סכום כולל" />
+                <Bar xAxisId="left" dataKey="order_count" fill="#8884d8" name="הזמנות שלי" barSize={15} />
+                <Bar xAxisId="right" dataKey="total_amount" fill="#82ca9d" name="הוצאות שלי" barSize={15} />
               </BarChart>
             </ResponsiveContainer>
           </div>

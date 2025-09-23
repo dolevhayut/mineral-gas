@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getOpenOrders } from "@/services/reportService";
+import { OrderLineItem } from "@/types";
 
 // Interface for order display
 interface OrderGroup {
@@ -48,7 +50,7 @@ const Orders = () => {
         
         console.log(`Fetching orders from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
         
-        const orderItems = await getOpenOrders(startDate, endDate);
+        const orderItems = await getOpenOrders(startDate, endDate, user.id);
         
         if (!orderItems || orderItems.length === 0) {
           setOrders([]);
@@ -190,7 +192,7 @@ const Orders = () => {
         [itemKey]: true
       }));
       
-      const success = await updateOrderItemQuantity(docEntry, lineNum, newQuantity, uom);
+      const success = await updateItemQuantity(docEntry, lineNum, newQuantity, uom);
       
       if (success) {
         // Update the local state

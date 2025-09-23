@@ -30,7 +30,7 @@ const ProductsChart = ({ loading, products, showRevenue = false }: ProductsChart
   return (
     <Card>
       <CardHeader>
-        <CardTitle>מוצרים פופולריים</CardTitle>
+        <CardTitle>המוצרים שהזמנתי הכי הרבה</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -43,44 +43,42 @@ const ProductsChart = ({ loading, products, showRevenue = false }: ProductsChart
             <p className="text-muted-foreground">אין נתונים להצגה</p>
           </div>
         ) : (
-          <div className="h-[400px] w-full">
+          <div className="w-full" style={{ height: `${Math.max(240, products.length * 50 + 60)}px` }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
+                layout="vertical"
                 data={products}
-                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                margin={{ top: 5, right: 30, left: 20, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="product_name" 
-                  angle={-45} 
-                  textAnchor="end"
-                  height={80}
+                <XAxis type="number" />
+                <YAxis
+                  type="category"
+                  dataKey="product_name"
+                  width={150}
+                  tick={{ fontSize: 12 }}
                 />
-                <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                {showRevenue && <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />}
-                <Tooltip 
+                <Tooltip
                   formatter={(value, name) => {
-                    if (name === 'total_ordered') return [`${value} יחידות`, 'כמות שהוזמנה'];
-                    if (name === 'revenue') return [formatCurrency(Number(value)), 'הכנסות'];
+                    if (name === 'total_ordered') return [`${value} יחידות`, 'כמות שהזמנתי'];
+                    if (name === 'revenue') return [formatCurrency(Number(value)), 'הוצאות'];
                     return [value, name];
                   }}
                 />
-                <Bar 
-                  yAxisId="left" 
-                  dataKey="total_ordered" 
-                  fill="#8884d8" 
-                  name="כמות שהוזמנה"
+                <Bar
+                  dataKey="total_ordered"
+                  name="כמות שהזמנתי"
+                  barSize={20}
                 >
                   {products.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
                 {showRevenue && (
-                  <Bar 
-                    yAxisId="right" 
-                    dataKey="revenue" 
-                    fill="#82ca9d" 
-                    name="הכנסות" 
+                  <Bar
+                    dataKey="revenue"
+                    name="הוצאות"
+                    fill="#82ca9d"
                   />
                 )}
               </BarChart>
