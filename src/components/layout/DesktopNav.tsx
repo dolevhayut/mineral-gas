@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -14,6 +15,34 @@ interface DesktopNavProps {
   userRole?: string;
 }
 
+// Custom NavigationMenuLink that works with React Router
+const ListItem = React.forwardRef<
+  React.ElementRef<"a">,
+  React.ComponentPropsWithoutRef<"a"> & { href: string }
+>(({ className, title, children, href, ...props }, ref) => {
+  return (
+    <li>
+      <NavigationMenuLink asChild>
+        <Link
+          ref={ref}
+          to={href}
+          className={cn(
+            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+            className
+          )}
+          {...props}
+        >
+          <div className="text-sm font-medium leading-none">{title}</div>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+            {children}
+          </p>
+        </Link>
+      </NavigationMenuLink>
+    </li>
+  );
+});
+ListItem.displayName = "ListItem";
+
 export default function DesktopNav({ userRole }: DesktopNavProps) {
   const isAdmin = userRole === "admin";
   
@@ -25,137 +54,92 @@ export default function DesktopNav({ userRole }: DesktopNavProps) {
           {isAdmin ? (
             <>
               <NavigationMenuItem>
-                <Link to="/admin/dashboard">
-                  <NavigationMenuLink
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/admin/dashboard"
                     className={navigationMenuTriggerStyle()}
                   >
                     לוח בקרה
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               
               <NavigationMenuItem>
                 <NavigationMenuTrigger>ניהול</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
-                    <li>
-                      <Link
-                        to="/admin/products"
-                        className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                      >
-                        <div className="text-sm font-medium leading-none">
-                          מוצרים
-                        </div>
-                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                          ניהול מוצרים וקטגוריות
-                        </p>
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/admin/orders"
-                        className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                      >
-                        <div className="text-sm font-medium leading-none">
-                          הזמנות
-                        </div>
-                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                          ניהול הזמנות ומעקב
-                        </p>
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/admin/custom-users"
-                        className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                      >
-                        <div className="text-sm font-medium leading-none">
-                          משתמשים
-                        </div>
-                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                          ניהול משתמשים והרשאות
-                        </p>
-                      </Link>
-                    </li>
+                    <ListItem href="/admin/products" title="מוצרים">
+                      ניהול מוצרים וקטגוריות
+                    </ListItem>
+                    <ListItem href="/admin/orders" title="הזמנות">
+                      ניהול הזמנות ומעקב
+                    </ListItem>
+                    <ListItem href="/admin/custom-users" title="משתמשים">
+                      ניהול משתמשים והרשאות
+                    </ListItem>
                   </ul>
                 </NavigationMenuContent>
               </NavigationMenuItem>
               
               <NavigationMenuItem>
-                <Link to="/user/settings">
-                  <NavigationMenuLink
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/user/settings"
                     className={navigationMenuTriggerStyle()}
                   >
                     הגדרות
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
             </>
           ) : (
             <>
               {/* Regular User Navigation */}
               <NavigationMenuItem>
-                <Link to="/dashboard">
-                  <NavigationMenuLink
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/dashboard"
                     className={navigationMenuTriggerStyle()}
                   >
                     לוח בקרה
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               
               <NavigationMenuItem>
                 <NavigationMenuTrigger>הזמנות</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
-                    <li>
-                      <Link
-                        to="/orders/new"
-                        className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                      >
-                        <div className="text-sm font-medium leading-none">
-                          הזמנה חדשה
-                        </div>
-                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                          יצירת הזמנה חדשה
-                        </p>
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/orders"
-                        className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                      >
-                        <div className="text-sm font-medium leading-none">
-                          היסטוריה
-                        </div>
-                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                          צפייה בהיסטוריית ההזמנות שלך
-                        </p>
-                      </Link>
-                    </li>
+                    <ListItem href="/orders/new" title="הזמנה חדשה">
+                      יצירת הזמנה חדשה
+                    </ListItem>
+                    <ListItem href="/orders" title="היסטוריה">
+                      צפייה בהיסטוריית ההזמנות שלך
+                    </ListItem>
                   </ul>
                 </NavigationMenuContent>
               </NavigationMenuItem>
               
               <NavigationMenuItem>
-                <Link to="/reports">
-                  <NavigationMenuLink
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/reports"
                     className={navigationMenuTriggerStyle()}
                   >
                     דוחות
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               
               <NavigationMenuItem>
-                <Link to="/user/settings">
-                  <NavigationMenuLink
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/user/settings"
                     className={navigationMenuTriggerStyle()}
                   >
                     הגדרות
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
             </>
           )}

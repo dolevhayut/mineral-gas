@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
@@ -66,7 +67,25 @@ const NewOrder = () => {
             toast.error("לא ניתן לטעון את רשימת המוצרים");
           } else {
             // Convert database products to our Product interface
-            const formattedProducts: Product[] = (data || []).map((product: any) => ({
+            interface DatabaseProduct {
+              id: string;
+              name: string;
+              description?: string;
+              price: number;
+              image?: string;
+              category?: string;
+              cylinder_type?: string;
+              is_frozen?: boolean;
+              sku?: string;
+              available?: boolean;
+              featured?: boolean;
+              created_at?: string;
+              uom?: string;
+              package_amount?: number;
+              quantity_increment?: number;
+            }
+            
+            const formattedProducts: Product[] = (data || []).map((product: DatabaseProduct) => ({
               id: product.id,
               name: product.name,
               description: product.description || '',
@@ -93,7 +112,7 @@ const NewOrder = () => {
                 try {
                   const parsedQuantities = JSON.parse(savedQuantities);
                   // Only apply saved quantities for products that still exist
-                  const validQuantities: any = {};
+                  const validQuantities: Record<string, number> = {};
                   Object.keys(parsedQuantities).forEach(productId => {
                     if (formattedProducts.find(p => p.id === productId)) {
                       validQuantities[productId] = parsedQuantities[productId];
@@ -115,7 +134,7 @@ const NewOrder = () => {
     };
     
     fetchUserPermissionsAndProducts();
-  }, [user]);
+  }, [user, isFromOrderEdit]);
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -125,28 +144,63 @@ const NewOrder = () => {
     type: 'asap' | 'specific';
     date?: Date;
     time?: string;
-  }) => {
-    // Add product directly to cart
+  } | 'increment' | 'decrement') => {
     setQuantities(prev => {
       const currentQty = prev[productId] || 0;
-      return {
-        ...prev,
-        [productId]: currentQty + 1
-      };
+      const product = products.find(p => p.id === productId);
+      
+      // Handle increment/decrement actions
+      if (deliveryPreference === 'increment') {
+        return {
+          ...prev,
+          [productId]: currentQty + 1
+        };
+      } else if (deliveryPreference === 'decrement') {
+        const newQty = currentQty - 1;
+        if (newQty <= 0) {
+          if (product) {
+            toast.info(`${product.name} הוסר מההזמנה`);
+          }
+          const newQuantities = { ...prev };
+          delete newQuantities[productId];
+          // Also remove delivery preference
+          setDeliveryPreferences(prevPrefs => {
+            const newPrefs = { ...prevPrefs };
+            delete newPrefs[productId];
+            return newPrefs;
+          });
+          return newQuantities;
+        }
+        return {
+          ...prev,
+          [productId]: newQty
+        };
+      }
+      
+      // Handle initial add with delivery preference
+      if (currentQty === 0) {
+        if (product) {
+          toast.success(`${product.name} נוסף להזמנה`);
+        }
+        return {
+          ...prev,
+          [productId]: 1
+        };
+      } else {
+        // Default behavior - increment
+        return {
+          ...prev,
+          [productId]: currentQty + 1
+        };
+      }
     });
     
-    // Save delivery preference if provided
-    if (deliveryPreference) {
+    // Save delivery preference if provided and it's an object
+    if (deliveryPreference && typeof deliveryPreference === 'object') {
       setDeliveryPreferences(prev => ({
         ...prev,
         [productId]: deliveryPreference
       }));
-    }
-    
-    // Show toast message
-    const product = products.find(p => p.id === productId);
-    if (product) {
-      toast.success(`${product.name} נוסף להזמנה`);
     }
   };
   
@@ -172,53 +226,101 @@ const NewOrder = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 pb-20">
-        {isFromOrderEdit ? (
-          <div className="flex justify-between items-center mb-6">
-            <div className="ms-auto">
-              <h1 className="text-2xl font-bold">הוספת מוצרים להזמנה</h1>
-            </div>
-            <div className="me-auto">
-              <Button 
-                variant="outline" 
-                onClick={handleReturnToEdit}
-                className="flex items-center gap-2 whitespace-nowrap"
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {isFromOrderEdit ? (
+            <div className="flex justify-between items-center mb-6">
+              <motion.div 
+                className="ms-auto"
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
               >
-                <ArrowRight className="h-4 w-4" />
-                חזרה לעריכת ההזמנה
-              </Button>
+                <h1 className="text-2xl font-bold">הוספת מוצרים להזמנה</h1>
+              </motion.div>
+              <motion.div 
+                className="me-auto"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Button 
+                  variant="outline" 
+                  onClick={handleReturnToEdit}
+                  className="flex items-center gap-2 whitespace-nowrap transition-all hover:scale-105"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  חזרה לעריכת ההזמנה
+                </Button>
+              </motion.div>
             </div>
-          </div>
-        ) : (
-          <OrderHeader />
-        )}
+          ) : (
+            <OrderHeader />
+          )}
+        </motion.div>
         
-        {isFromOrderEdit && (
-          <Alert className="my-4 bg-blue-50 border-blue-200">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>הוספת מוצרים להזמנה קיימת</AlertTitle>
-            <AlertDescription>
-              ניתן לראות את המוצרים הקיימים בהזמנה מסומנים בירוק. לחץ עליהם כדי לשנות את הכמויות.
-            </AlertDescription>
-          </Alert>
-        )}
+        <AnimatePresence>
+          {isFromOrderEdit && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Alert className="my-4 bg-blue-50 border-blue-200">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>הוספת מוצרים להזמנה קיימת</AlertTitle>
+                <AlertDescription>
+                  ניתן לראות את המוצרים הקיימים בהזמנה מסומנים בירוק. לחץ עליהם כדי לשנות את הכמויות.
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {isLoading ? (
-          <div className="flex justify-center items-center h-48">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
+          <motion.div 
+            className="flex justify-center items-center h-48"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="rounded-full h-12 w-12 border-b-2 border-primary"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+          </motion.div>
         ) : (
           <>
-            {!canOrderFresh && (
-              <div className="bg-amber-100 border border-amber-300 text-amber-800 p-4 rounded mb-4 text-center">
-                ⚠️ חשוב לשים לב: חשבונך מוגבל להזמנת מוצרים קפואים בלבד
-              </div>
-            )}
+            <AnimatePresence>
+              {!canOrderFresh && (
+                <motion.div 
+                  className="bg-amber-100 border border-amber-300 text-amber-800 p-4 rounded mb-4 text-center"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                >
+                  ⚠️ חשוב לשים לב: חשבונך מוגבל להזמנת מוצרים קפואים בלבד
+                </motion.div>
+              )}
+            </AnimatePresence>
             
-            <ProductsList 
-              products={products} 
-              onSelectProduct={handleProductClick}
-              quantities={quantities}
-            />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              <ProductsList 
+                products={products} 
+                onSelectProduct={handleProductClick}
+                quantities={quantities}
+              />
+            </motion.div>
           </>
         )}
 

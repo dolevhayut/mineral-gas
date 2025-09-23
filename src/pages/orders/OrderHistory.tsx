@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -236,35 +237,99 @@ const OrderHistory = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">יומן הזמנות</h1>
-          <Button onClick={() => navigate('/orders/new')} className="bg-blue-600 hover:bg-blue-700">
-            <PlusCircle className="h-4 w-4 ml-1" />
-            הזמנה חדשה
-          </Button>
-        </div>
+        <motion.div 
+          className="flex justify-between items-center mb-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.h1 
+            className="text-2xl font-bold"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            יומן הזמנות
+          </motion.h1>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Button 
+              onClick={() => navigate('/orders/new')} 
+              className="bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105"
+            >
+              <PlusCircle className="h-4 w-4 ml-1" />
+              הזמנה חדשה
+            </Button>
+          </motion.div>
+        </motion.div>
 
         
 
-        {loading ? (
-          <div className="space-y-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="space-y-3">
-                <Skeleton className="h-8 w-48" />
-                <Card className="p-6">
-                  <div className="space-y-3">
-                    <Skeleton className="h-4 w-1/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-4 w-1/3" />
-                  </div>
-                </Card>
-              </div>
-            ))}
-          </div>
-        ) : orders.length > 0 ? (
-          <div className="space-y-4">
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div 
+              className="space-y-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              {[1, 2, 3].map((i) => (
+                <motion.div 
+                  key={i} 
+                  className="space-y-3"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <Skeleton className="h-8 w-48" />
+                  <Card className="p-6">
+                    <div className="space-y-3">
+                      <Skeleton className="h-4 w-1/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-4 w-1/3" />
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : orders.length > 0 ? (
+          <motion.div 
+            className="space-y-4"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.1
+                }
+              }
+            }}
+          >
             {orders.map((order, index) => (
-              <div key={order.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow-md transition-shadow">
+              <motion.div 
+                key={order.id} 
+                className="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow-md transition-all hover:scale-[1.01]"
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    transition: {
+                      type: "spring",
+                      stiffness: 100
+                    }
+                  }
+                }}
+                whileHover={{ 
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                  transition: { duration: 0.2 }
+                }}
+              >
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
@@ -278,18 +343,35 @@ const OrderHistory = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {getStatusBadge(order)}
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.3 + index * 0.1 }}
+                    >
+                      {getStatusBadge(order)}
+                    </motion.div>
                     {isOrderCancellable(order.delivery_date) && order.status === 'pending' && (
-                      <Button 
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + index * 0.1 }}
+                      >
+                        <Button 
                         variant="destructive" 
                         size="sm"
                         onClick={() => handleCancelSingleOrder(order.id)}
                         disabled={!!isCancellingById[order.id]}
                       >
                         {isCancellingById[order.id] ? 'מבטל...' : 'ביטול'}
-                      </Button>
+                        </Button>
+                      </motion.div>
                     )}
                     {isOrderEditable(order.delivery_date) && order.status === 'pending' && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 + index * 0.1 }}
+                      >
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -297,7 +379,8 @@ const OrderHistory = () => {
                       >
                         <Edit className="h-4 w-4 ml-1" />
                         עריכה
-                      </Button>
+                        </Button>
+                      </motion.div>
                     )}
                   </div>
                 </div>
@@ -316,21 +399,32 @@ const OrderHistory = () => {
                   <div className="space-y-2">
                     <h4 className="font-medium text-gray-900">פריטים:</h4>
                     {order.order_items.map((item, itemIndex) => (
-                      <div key={itemIndex} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                      <motion.div 
+                        key={itemIndex} 
+                        className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.6 + index * 0.1 + itemIndex * 0.05 }}
+                      >
                         <span className="text-sm">{item.products.name}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-gray-500">{item.quantity}×</span>
                           <span className="text-sm font-medium">{formatCurrency(item.price * item.quantity)}</span>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         ) : (
-          <div className="text-center py-12">
+          <motion.div 
+            className="text-center py-12"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
             <AlertCircle className="mx-auto h-10 w-10 text-gray-400 mb-3" />
             <h3 className="font-medium text-lg">אין הזמנות</h3>
             <p className="text-muted-foreground mb-4">
@@ -339,8 +433,9 @@ const OrderHistory = () => {
             <Button onClick={() => navigate('/orders/new')}>
               ליצירת הזמנה חדשה
             </Button>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </MainLayout>
   );

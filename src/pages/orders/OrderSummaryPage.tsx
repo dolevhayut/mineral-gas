@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, Send } from "lucide-react";
+import { motion } from "framer-motion";
 import { OrderProduct } from "@/components/order/orderConstants";
 import EmptyOrderMessage from "@/components/order/EmptyOrderMessage";
 import { submitOrder } from "@/services/orderService";
@@ -13,6 +14,7 @@ import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
+import OrderSuccessModal from "@/components/order/OrderSuccessModal";
 
 // Type for simple product summary
 interface ProductSummary {
@@ -40,6 +42,8 @@ const OrderSummaryPage = () => {
     date?: Date;
     time?: string;
   }>>({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [submittedOrderId, setSubmittedOrderId] = useState<string>("");
 
   useEffect(() => {
     // Get quantities and products from location state
@@ -139,23 +143,14 @@ const OrderSummaryPage = () => {
       const orderId = await submitOrder(quantities, products, user);
       
       if (orderId) {
-        // הצגת קונפטי
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
+        // Show success modal
+        setSubmittedOrderId(orderId);
+        setShowSuccessModal(true);
         
-        // הצגת הודעה על הצלחה
-        toast({
-          title: "🎉 הזמנה נשלחה בהצלחה!",
-          description: `הזמנה #${orderId.slice(0, 8)} נוצרה`,
-        });
-        
-        // ניווט מיידי לדף הבית
+        // Navigate after delay
         setTimeout(() => {
           navigate("/dashboard", { replace: true });
-        }, 1500);
+        }, 4000);
       } else {
         toast({
           title: "שגיאה בשליחת ההזמנה",
@@ -269,23 +264,49 @@ const OrderSummaryPage = () => {
         </Card>
 
         <div className="flex justify-center">
-          <Button 
-            size="lg" 
-            disabled={isSubmitting || !hasItems}
-            onClick={handleSubmitOrder}
-            className="min-w-[200px]"
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                שולח הזמנה...
-              </>
-            ) : (
-              'שלח הזמנה'
-            )}
-          </Button>
+            <Button 
+              size="lg" 
+              disabled={isSubmitting || !hasItems}
+              onClick={handleSubmitOrder}
+              className="min-w-[200px] bg-green-600 hover:bg-green-700 text-white font-medium transition-all"
+            >
+              {isSubmitting ? (
+                <motion.div 
+                  className="flex items-center"
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  שולח הזמנה...
+                </motion.div>
+              ) : (
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={{ x: 0 }}
+                  whileHover={{ x: -5 }}
+                >
+                  <Send className="h-4 w-4" />
+                  שלח הזמנה
+                </motion.div>
+              )}
+            </Button>
+          </motion.div>
         </div>
       </div>
+      
+      {/* Success Modal */}
+      <OrderSuccessModal 
+        isOpen={showSuccessModal}
+        orderId={submittedOrderId}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigate("/dashboard", { replace: true });
+        }}
+      />
     </MainLayout>
   );
 };
