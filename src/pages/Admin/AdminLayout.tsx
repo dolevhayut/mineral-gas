@@ -12,7 +12,8 @@ import {
   Fuel,
   Wrench,
   Menu,
-  X
+  X,
+  Route
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { path: "/admin/products", label: "מוצרים", icon: Fuel },
     { path: "/admin/orders", label: "הזמנות", icon: ShoppingCart },
     { path: "/admin/customers", label: "לקוחות", icon: Users },
+    { path: "/admin/routes", label: "ניהול מסלולים", icon: Route },
     { path: "/admin/service-requests", label: "קריאות שירות", icon: Wrench },
     { path: "/admin/reports", label: "דוחות", icon: FileText },
     { path: "/admin/settings", label: "הגדרות", icon: Settings },
@@ -80,10 +82,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
       </header>
 
-      {/* Overlay - מופיע כשהסיידבר פתוח במובייל */}
+      {/* Overlay - מופיע כשהסיידבר פתוח */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black/20 z-40 transition-opacity duration-300"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}

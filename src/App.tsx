@@ -43,6 +43,7 @@ import UserSettings from "@/pages/UserSettings";
 import Settings from "@/pages/Settings";
 import EditProfile from "@/pages/EditProfile";
 import ServiceRequest from "@/pages/ServiceRequest";
+import RouteOptimization from "@/pages/Admin/RouteOptimization";
 
 
 // HomePage component - now shows login page directly
@@ -100,6 +101,7 @@ function AppContent() {
                   <Route path="service-requests" element={<ServiceRequests />} />
                   <Route path="settings" element={<AdminSettings />} />
                   <Route path="reports" element={<AdminReports />} />
+                  <Route path="routes" element={<RouteOptimization />} />
                 </Routes>
               </AdminLayout>
             }

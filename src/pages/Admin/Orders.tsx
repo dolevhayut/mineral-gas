@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { SearchIcon, EyeIcon, Loader2Icon, FilterIcon, UserIcon, CalendarIcon, PackageIcon, Phone, MapPin } from "lucide-react";
+import { SearchIcon, EyeIcon, Loader2Icon, FilterIcon, UserIcon, CalendarIcon, PackageIcon, Phone, MapPin, Trash2, Edit3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -32,6 +32,20 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface OrderItem {
   id: string;
@@ -50,6 +64,9 @@ interface Order {
   total: number;
   created_at: string;
   delivery_address?: string;
+  delivery_date?: string;
+  target_date?: string;
+  special_instructions?: string;
   customers: {
     name: string;
     phone: string;
@@ -181,6 +198,43 @@ export default function Orders() {
     setIsDetailsOpen(true);
   };
 
+  const handleEditOrder = (order: Order) => {
+    // TODO: Implement edit order functionality
+    toast({
+      title: "עריכת הזמנה",
+      description: "פונקציונליות זו תהיה זמינה בקרוב",
+    });
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm("האם אתה בטוח שברצונך למחוק הזמנה זו?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "הזמנה נמחקה",
+        description: "ההזמנה נמחקה בהצלחה",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "אירעה שגיאה במחיקת ההזמנה";
+      toast({
+        title: "שגיאה במחיקת הזמנה",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Get customer initials for avatar
   const getCustomerInitials = (name: string) => {
     if (!name) return "?";
@@ -242,90 +296,303 @@ export default function Orders() {
           <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredOrders?.map((order) => (
-            <Card key={order.id} className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{order.customers.name}</CardTitle>
-                    <CardDescription className="flex items-center mt-1 gap-2">
-                      <Badge variant={statusMap[order.status]?.color || "default"}>
-                        {statusMap[order.status]?.label || order.status}
-                      </Badge>
-                      <span className="text-xs">₪{order.total}</span>
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="pb-2">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span dir="ltr">{order.customers.phone}</span>
-                  </div>
-                  
-                  {order.delivery_address && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <span className="flex-1">{order.delivery_address}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center text-sm text-muted-foreground gap-1">
-                    <CalendarIcon className="h-4 w-4" />
-                    <span>{formatDate(order.created_at)}</span>
-                  </div>
-                  
-                  <div className="flex items-center text-sm text-muted-foreground gap-1">
-                    <PackageIcon className="h-4 w-4" />
-                    <span>מוצרים: {order.order_items.length} פריטים</span>
-                  </div>
-                </div>
-              </CardContent>
-              
-              <CardFooter className="flex justify-between pt-2 gap-2">
-                <div className="w-1/2">
-                  <Select
-                    defaultValue={order.status}
-                    onValueChange={(value) =>
-                      updateOrderStatus.mutate({ id: order.id, status: value })
-                    }
-                  >
-                    <SelectTrigger className="w-full text-right flex flex-row-reverse justify-between">
-                      <SelectValue>
-                        עדכן סטטוס
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent align="end" className="text-right">
-                      {Object.entries(statusMap).map(([value, { label }]) => (
-                        <SelectItem key={value} value={value} className="flex justify-end">
-                          <Badge variant={statusMap[value as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
-                            {label}
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block">
+            <TooltipProvider>
+              <div className="rounded-md border bg-white shadow-sm overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="text-right">מספר הזמנה</TableHead>
+                      <TableHead className="text-right">לקוח</TableHead>
+                      <TableHead className="text-right">טלפון</TableHead>
+                      <TableHead className="text-right min-w-[200px]">כתובת</TableHead>
+                      <TableHead className="text-center">סטטוס</TableHead>
+                      <TableHead className="text-right">תאריך הזמנה</TableHead>
+                      <TableHead className="text-right">תאריך אספקה</TableHead>
+                      <TableHead className="text-right">הערות</TableHead>
+                      <TableHead className="text-center w-16">פריטים</TableHead>
+                      <TableHead className="text-right">סה"כ</TableHead>
+                      <TableHead className="text-center w-32">פעולות</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders?.map((order) => (
+                      <TableRow key={order.id} className="hover:bg-muted/20 transition-colors">
+                        {/* מספר הזמנה */}
+                        <TableCell className="font-medium">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">...{order.id.slice(-8)}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="font-mono text-xs">{order.id}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                        
+                        {/* לקוח */}
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-7 w-7">
+                              <AvatarFallback className="text-xs bg-primary/10">
+                                {getCustomerInitials(order.customers.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{order.customers.name}</span>
+                          </div>
+                        </TableCell>
+                        
+                        {/* טלפון */}
+                        <TableCell dir="ltr" className="text-right">{order.customers.phone}</TableCell>
+                        
+                        {/* כתובת */}
+                        <TableCell className="max-w-[200px]">
+                          <div className="truncate">
+                            {order.delivery_address ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">{order.delivery_address}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">{order.delivery_address}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        
+                        {/* סטטוס */}
+                        <TableCell>
+                          <Badge variant={statusMap[order.status]?.color || "default"} className="w-full justify-center">
+                            {statusMap[order.status]?.label || order.status}
                           </Badge>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                        </TableCell>
+                        
+                        {/* תאריך הזמנה */}
+                        <TableCell>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">
+                                {new Date(order.created_at).toLocaleDateString("he-IL")}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{formatDate(order.created_at)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                        
+                        {/* תאריך אספקה */}
+                        <TableCell>
+                          {order.delivery_date || order.target_date ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help font-medium">
+                                  {new Date(order.delivery_date || order.target_date!).toLocaleDateString("he-IL")}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{formatDate(order.delivery_date || order.target_date!)}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        
+                        {/* הערות */}
+                        <TableCell className="max-w-[150px]">
+                          {order.special_instructions ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help truncate block">
+                                  {order.special_instructions}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="whitespace-pre-wrap">{order.special_instructions}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        
+                        {/* פריטים */}
+                        <TableCell className="text-center">{order.order_items.length}</TableCell>
+                        
+                        {/* סה"כ */}
+                        <TableCell className="font-medium">₪{order.total}</TableCell>
+                        
+                        {/* פעולות */}
+                        <TableCell className="flex items-center justify-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => viewOrderDetails(order)}
+                              >
+                                <EyeIcon className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>צפייה בהזמנה</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                                onClick={() => handleEditOrder(order)}
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>עריכת הזמנה</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-600 hover:text-red-700"
+                                onClick={() => handleDeleteOrder(order.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>מחיקת הזמנה</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {filteredOrders?.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-xl font-medium text-muted-foreground">לא נמצאו הזמנות</p>
+                    <p className="text-sm text-muted-foreground">נסה לשנות את החיפוש או הפילטרים</p>
+                  </div>
+                )}
+              </div>
+            </TooltipProvider>
+          </div>
+
+          {/* Mobile Card View */}
+          <TooltipProvider>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
+              {filteredOrders?.map((order) => (
+              <Card key={order.id} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{order.customers.name}</CardTitle>
+                      <CardDescription className="flex items-center mt-1 gap-2">
+                        <Badge variant={statusMap[order.status]?.color || "default"}>
+                          {statusMap[order.status]?.label || order.status}
+                        </Badge>
+                        <span className="text-xs">₪{order.total}</span>
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
                 
-                <Button variant="outline" size="sm" onClick={() => viewOrderDetails(order)} className="w-1/2">
-                  <EyeIcon className="h-4 w-4 ml-2" />
-                  פרטים
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+                <CardContent className="pb-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span dir="ltr">{order.customers.phone}</span>
+                    </div>
+                    
+                    {order.delivery_address && (
+                      <div className="flex items-start gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <span className="flex-1">{order.delivery_address}</span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center text-sm text-muted-foreground gap-1">
+                      <CalendarIcon className="h-4 w-4" />
+                      <span>{formatDate(order.created_at)}</span>
+                    </div>
+                    
+                    <div className="flex items-center text-sm text-muted-foreground gap-1">
+                      <PackageIcon className="h-4 w-4" />
+                      <span>מוצרים: {order.order_items.length} פריטים</span>
+                    </div>
+                  </div>
+                </CardContent>
+                
+                <CardFooter className="flex justify-center pt-2 gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => viewOrderDetails(order)}
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>צפייה בהזמנה</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                        onClick={() => handleEditOrder(order)}
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>עריכת הזמנה</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteOrder(order.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>מחיקת הזמנה</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </CardFooter>
+              </Card>
+              ))}
+            </div>
+          </TooltipProvider>
+        </>
       )}
 
-      {filteredOrders?.length === 0 && !isLoading && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <p className="text-xl font-medium text-muted-foreground">לא נמצאו הזמנות</p>
-          <p className="text-sm text-muted-foreground">נסה לשנות את החיפוש או הפילטרים</p>
-        </div>
-      )}
       
       {/* Order Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
@@ -334,14 +601,20 @@ export default function Orders() {
             <>
               <DialogHeader>
                 <DialogTitle>פרטי הזמנה</DialogTitle>
-                <DialogDescription className="flex items-center">
-                  <Badge variant={statusMap[selectedOrder.status as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
-                    {statusMap[selectedOrder.status as keyof typeof statusMap].label}
-                  </Badge>
-                  <span className="mr-2 text-muted-foreground">
-                    {formatDate(selectedOrder.created_at)}
+                <DialogDescription>פרטי הזמנה מספר {selectedOrder.id.slice(-8)}</DialogDescription>
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={statusMap[selectedOrder.status as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
+                      {statusMap[selectedOrder.status as keyof typeof statusMap].label}
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      {formatDate(selectedOrder.created_at)}
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    #{selectedOrder.id.slice(-8)}
                   </span>
-                </DialogDescription>
+                </div>
               </DialogHeader>
               
               <div className="space-y-4">
@@ -351,7 +624,38 @@ export default function Orders() {
                   </Avatar>
                   <div>
                     <h3 className="font-medium">{selectedOrder.customers.name}</h3>
+                    <p className="text-sm text-muted-foreground" dir="ltr">{selectedOrder.customers.phone}</p>
                   </div>
+                </div>
+                
+                <Separator />
+                
+                {/* Order Details */}
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedOrder.delivery_address && (
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium mb-1">כתובת משלוח:</p>
+                      <p className="text-sm text-muted-foreground">{selectedOrder.delivery_address}</p>
+                    </div>
+                  )}
+                  
+                  {(selectedOrder.delivery_date || selectedOrder.target_date) && (
+                    <div>
+                      <p className="text-sm font-medium mb-1">תאריך אספקה:</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(selectedOrder.delivery_date || selectedOrder.target_date!)}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedOrder.special_instructions && (
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium mb-1">הערות מיוחדות:</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {selectedOrder.special_instructions}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 
                 <Separator />
@@ -392,28 +696,26 @@ export default function Orders() {
                   </div>
                 </Card>
                 
-                <div className="flex justify-between items-center">
-                  <p className="font-medium">עדכן סטטוס:</p>
-                  <Select
-                    defaultValue={selectedOrder.status}
-                    onValueChange={(value) => {
-                      updateOrderStatus.mutate({ id: selectedOrder.id, status: value });
-                      setSelectedOrder({...selectedOrder, status: value});
-                    }}
-                  >
-                    <SelectTrigger className="w-[180px] text-right flex flex-row-reverse justify-between">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent align="end" className="text-right">
-                      {Object.entries(statusMap).map(([value, { label }]) => (
-                        <SelectItem key={value} value={value} className="flex justify-end">
-                          <Badge variant={statusMap[value as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
-                            {label}
-                          </Badge>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="border rounded-lg p-4 bg-muted/20">
+                  <p className="font-medium mb-3">עדכון סטטוס הזמנה:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(statusMap).map(([value, { label, color }]) => (
+                      <Button
+                        key={value}
+                        variant={selectedOrder.status === value ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          updateOrderStatus.mutate({ id: selectedOrder.id, status: value });
+                          setSelectedOrder({...selectedOrder, status: value});
+                        }}
+                        className="transition-all"
+                      >
+                        <Badge variant={color as "default" | "secondary" | "outline" | "destructive"} className="mr-2">
+                          {label}
+                        </Badge>
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
               
