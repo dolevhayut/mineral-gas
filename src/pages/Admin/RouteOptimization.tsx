@@ -6,12 +6,67 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, MapPin, Navigation, Package, Clock, Phone, User } from "lucide-react";
+import { CalendarIcon, MapPin, Navigation, Package, Clock, Phone, User, Map as MapIcon, ExternalLink, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { supabase } from '@/integrations/supabase/client';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Fix z-index issues for leaflet popups and other overlapping elements
+const globalStyles = `
+  /* Leaflet map container should be at base level */
+  .leaflet-container {
+    z-index: 1 !important;
+  }
+  
+  /* Leaflet popups should be above map but below dialogs */
+  .leaflet-popup {
+    z-index: 1000 !important;
+  }
+  .leaflet-tooltip {
+    z-index: 1000 !important;
+  }
+  .leaflet-top,
+  .leaflet-bottom {
+    z-index: 999 !important;
+  }
+  
+  /* Ensure select dropdowns appear above everything */
+  [role="listbox"] {
+    z-index: 99999 !important;
+  }
+  
+  /* Dialog overlay should cover everything including map */
+  [data-state="open"][style*="pointer-events: auto"] {
+    z-index: 50 !important;
+  }
+  
+  /* Dialog content above overlay */
+  [role="dialog"] {
+    z-index: 51 !important;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const existingStyle = document.getElementById('route-optimization-styles');
+  if (!existingStyle) {
+    const style = document.createElement('style');
+    style.id = 'route-optimization-styles';
+    style.innerHTML = globalStyles;
+    document.head.appendChild(style);
+  }
+}
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // Fix for default markers in React-Leaflet
 interface IconDefault extends L.Icon.Default {
@@ -24,20 +79,53 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Define starting points by day of week
-const STARTING_POINTS = {
+// Define starting points
+const STARTING_POINTS: { [key: string]: { name: string; lat: number; lng: number } } = {
+  'אילון': {
+    name: "אילון",
+    lat: 33.062496363441625,
+    lng: 35.21917304766881
+  },
+  'צוריאל': {
+    name: "צוריאל",
+    lat: 33.00650324998519,
+    lng: 35.314795280087864
+  },
+  'פסוטה': {
+    name: "פסוטה",
+    lat: 33.04766403229962,
+    lng: 35.308441722568695
+  },
+  'חיפה': { 
+    name: "חיפה", 
+    lat: 32.7940, 
+    lng: 34.9896 
+  },
+  'נהריה': { 
+    name: "נהריה", 
+    lat: 33.0094, 
+    lng: 35.0947 
+  },
+  'עכו': {
+    name: "עכו",
+    lat: 32.9283,
+    lng: 35.0823
+  },
+  'כרמיאל': {
+    name: "כרמיאל",
+    lat: 32.9196,
+    lng: 35.2951
+  },
+  'קריית שמונה': {
+    name: "קריית שמונה",
+    lat: 33.2075,
+    lng: 35.5697
+  },
   default: {
     name: "אילון",
-    lat: 33.062496506108666,
-    lng: 35.21928128639784
-  },
-  sunday: { name: "חיפה", lat: 32.7940, lng: 34.9896 },
-  monday: { name: "נהריה", lat: 33.0094, lng: 35.0947 },
-  tuesday: { name: "חיפה", lat: 32.7940, lng: 34.9896 },
-  wednesday: { name: "נהריה", lat: 33.0094, lng: 35.0947 },
-  thursday: { name: "אילון", lat: 33.062496506108666, lng: 35.21928128639784 },
-  friday: { name: "אילון", lat: 33.062496506108666, lng: 35.21928128639784 },
-  saturday: { name: "אילון", lat: 33.062496506108666, lng: 35.21928128639784 }
+    lat: 33.062496363441625,
+    lng: 35.21917304766881
+  }
 };
 
 interface OrderWithLocation {
@@ -62,11 +150,18 @@ export default function RouteOptimization() {
   const [totalDistance, setTotalDistance] = useState(0);
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [algorithmType, setAlgorithmType] = useState<'nearest' | '2opt'>('2opt');
+  const [customStartPoint, setCustomStartPoint] = useState<string | null>(null);
+  const [showCustomLocation, setShowCustomLocation] = useState(false);
+  const [customLocationName, setCustomLocationName] = useState('');
+  const [customLocationLat, setCustomLocationLat] = useState('');
+  const [customLocationLng, setCustomLocationLng] = useState('');
   
-  // Get starting point based on selected date
+  // Get starting point based on selection
   const getStartingPoint = () => {
-    const dayOfWeek = format(selectedDate, 'EEEE').toLowerCase();
-    return STARTING_POINTS[dayOfWeek as keyof typeof STARTING_POINTS] || STARTING_POINTS.default;
+    if (customStartPoint && STARTING_POINTS[customStartPoint]) {
+      return STARTING_POINTS[customStartPoint];
+    }
+    return STARTING_POINTS.default;
   };
   
   const startingPoint = getStartingPoint();
@@ -352,6 +447,15 @@ export default function RouteOptimization() {
     fetchOrders();
   }, [selectedDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Update map center when starting point changes
+  useEffect(() => {
+    setMapCenter([startingPoint.lat, startingPoint.lng]);
+    // Clear optimized route when starting point changes
+    setOptimizedRoute([]);
+    setTotalDistance(0);
+    setEstimatedTime(0);
+  }, [startingPoint.lat, startingPoint.lng]);
+
   const getPolylinePoints = (): [number, number][] => {
     if (optimizedRoute.length === 0) return [];
 
@@ -388,14 +492,102 @@ ${routeText}
     alert('המסלול הועתק ללוח');
   };
 
+  // Export to Waze
+  const exportToWaze = () => {
+    if (optimizedRoute.length === 0) return;
+    
+    // Waze supports multiple stops via navigate URL
+    // First stop
+    const firstStop = optimizedRoute[0];
+    if (firstStop.lat && firstStop.lng) {
+      const wazeUrl = `https://www.waze.com/ul?ll=${firstStop.lat},${firstStop.lng}&navigate=yes&zoom=17`;
+      window.open(wazeUrl, '_blank');
+    }
+  };
+
+  // Export to Google Maps
+  const exportToGoogleMaps = () => {
+    if (optimizedRoute.length === 0) return;
+    
+    // Google Maps directions with waypoints
+    let url = 'https://www.google.com/maps/dir/';
+    
+    // Starting point
+    url += `${startingPoint.lat},${startingPoint.lng}/`;
+    
+    // Add all stops
+    optimizedRoute.forEach(order => {
+      if (order.lat && order.lng) {
+        url += `${order.lat},${order.lng}/`;
+      }
+    });
+    
+    // Return to starting point
+    url += `${startingPoint.lat},${startingPoint.lng}`;
+    
+    // Add parameters
+    url += '?travelmode=driving';
+    
+    window.open(url, '_blank');
+  };
+
+  // Export all stops as individual Waze links
+  const exportWazeStops = () => {
+    const wazeLinks = optimizedRoute.map((order, index) => {
+      if (order.lat && order.lng) {
+        return `${index + 1}. ${order.customer_name} - ${order.city}
+https://www.waze.com/ul?ll=${order.lat},${order.lng}&navigate=yes&zoom=17`;
+      }
+      return '';
+    }).filter(link => link).join('\n\n');
+    
+    const fullText = `רשימת עצירות ל-Waze
+${format(selectedDate, 'dd/MM/yyyy', { locale: he })}
+
+נקודת התחלה - ${startingPoint.name}:
+https://www.waze.com/ul?ll=${startingPoint.lat},${startingPoint.lng}&navigate=yes&zoom=17
+
+${wazeLinks}`;
+    
+    navigator.clipboard.writeText(fullText);
+    alert('קישורי Waze הועתקו ללוח');
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">ניהול מסלולים יומיים</h1>
-        <Badge variant="outline" className="text-lg">
-          <Navigation className="w-4 h-4 ml-2" />
-          נקודת התחלה: {startingPoint.name}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">נקודת התחלה:</span>
+          <Select 
+            value={customStartPoint || 'אילון'} 
+            onValueChange={setCustomStartPoint}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="z-[99999]" style={{ zIndex: 99999 }}>
+              {Object.entries(STARTING_POINTS)
+                .filter(([key]) => key !== 'default')
+                .map(([key, point]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      {point.name}
+                    </div>
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={() => setShowCustomLocation(true)}
+            variant="outline"
+            size="icon"
+            title="הוסף נקודת התחלה מותאמת"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -431,7 +623,7 @@ ${routeText}
 
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                נמצאו {orders.length} הזמנות לתאריך זה
+                {loading ? 'טוען הזמנות...' : `נמצאו ${orders.length} הזמנות לתאריך זה`}
               </p>
               
               <div>
@@ -448,12 +640,23 @@ ${routeText}
               </div>
 
               <Button 
-                onClick={optimizeRoute} 
+                onClick={() => {
+                  console.log('Button clicked, orders:', orders.length);
+                  if (orders.length > 0) {
+                    optimizeRoute();
+                  }
+                }}
                 disabled={orders.length === 0 || loading}
                 className="w-full"
               >
-                {loading ? 'טוען...' : 'חשב מסלול אופטימלי'}
+                {loading ? 'טוען...' : orders.length === 0 ? 'אין הזמנות' : 'חשב מסלול אופטימלי'}
               </Button>
+              
+              {orders.length === 0 && !loading && (
+                <p className="text-xs text-muted-foreground text-center">
+                  אין הזמנות לתאריך זה. נסה לבחור תאריך אחר או צור הזמנות חדשות.
+                </p>
+              )}
             </div>
 
             {optimizedRoute.length > 0 && (
@@ -472,27 +675,59 @@ ${routeText}
                   <span className="text-sm font-medium">עצירות:</span>
                   <span className="text-sm">{optimizedRoute.length}</span>
                 </div>
-                <Button 
-                  onClick={exportRoute}
-                  variant="outline" 
-                  className="w-full"
-                  size="sm"
-                >
-                  <Package className="w-4 h-4 ml-2" />
-                  ייצא מסלול
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    onClick={exportRoute}
+                    variant="outline" 
+                    className="w-full"
+                    size="sm"
+                  >
+                    <Package className="w-4 h-4 ml-2" />
+                    העתק רשימת מסלול
+                  </Button>
+                  
+                  <Button 
+                    onClick={exportToGoogleMaps}
+                    variant="outline" 
+                    className="w-full"
+                    size="sm"
+                  >
+                    <MapIcon className="w-4 h-4 ml-2" />
+                    פתח ב-Google Maps
+                  </Button>
+                  
+                  <Button 
+                    onClick={exportToWaze}
+                    variant="outline" 
+                    className="w-full"
+                    size="sm"
+                  >
+                    <i className="fab fa-waze ml-2" />
+                    נווט ב-Waze
+                  </Button>
+                  
+                  <Button 
+                    onClick={exportWazeStops}
+                    variant="outline" 
+                    className="w-full"
+                    size="sm"
+                  >
+                    <ExternalLink className="w-4 h-4 ml-2" />
+                    קישורי Waze לכל עצירה
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Map */}
-        <Card className="lg:col-span-2 h-[600px]">
-          <CardContent className="p-0 h-full">
+        <Card className="lg:col-span-2 h-[600px]" style={{ position: 'relative', zIndex: 1 }}>
+          <CardContent className="p-0 h-full" style={{ position: 'relative', zIndex: 1 }}>
             <MapContainer 
               center={mapCenter} 
               zoom={10} 
-              style={{ height: '100%', width: '100%' }}
+              style={{ height: '100%', width: '100%', zIndex: 1 }}
               className="rounded-lg"
               scrollWheelZoom={true}
             >
@@ -559,9 +794,13 @@ ${routeText}
               {optimizedRoute.length > 0 && (
                 <Polyline 
                   positions={getPolylinePoints()} 
-                  color="blue" 
-                  weight={3}
-                  opacity={0.7}
+                  color="#2563eb" 
+                  weight={4}
+                  opacity={0.8}
+                  smoothFactor={1}
+                  dashArray="10, 5"
+                  lineCap="round"
+                  lineJoin="round"
                 />
               )}
             </MapContainer>
@@ -627,9 +866,126 @@ ${routeText}
                 <span className="font-medium">סיום: חזרה ל{startingPoint.name}</span>
               </div>
             </div>
+            
+            {/* Navigation Actions */}
+            <div className="mt-6 pt-6 border-t">
+              <h4 className="text-sm font-medium mb-3">אפשרויות ניווט</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  onClick={exportToGoogleMaps}
+                  variant="default" 
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <MapIcon className="w-4 h-4 ml-2" />
+                  Google Maps
+                </Button>
+                
+                <Button 
+                  onClick={exportToWaze}
+                  variant="default" 
+                  className="bg-cyan-600 hover:bg-cyan-700"
+                >
+                  <i className="fab fa-waze ml-2" />
+                  Waze
+                </Button>
+              </div>
+              
+              <div className="mt-2 text-xs text-muted-foreground text-center">
+                * Google Maps יציג את כל המסלול עם כל העצירות<br/>
+                * Waze יתחיל ניווט לעצירה הראשונה
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Custom Location Dialog */}
+      <Dialog open={showCustomLocation} onOpenChange={setShowCustomLocation}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>הוסף נקודת התחלה מותאמת</DialogTitle>
+            <DialogDescription>
+              הזן את פרטי הנקודה החדשה. ניתן למצוא קואורדינטות ב-Google Maps
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                שם המקום
+              </Label>
+              <Input
+                id="name"
+                value={customLocationName}
+                onChange={(e) => setCustomLocationName(e.target.value)}
+                className="col-span-3"
+                placeholder="לדוגמה: מחסן ראשי"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="lat" className="text-right">
+                קו רוחב
+              </Label>
+              <Input
+                id="lat"
+                value={customLocationLat}
+                onChange={(e) => setCustomLocationLat(e.target.value)}
+                className="col-span-3"
+                placeholder="33.062496"
+                type="number"
+                step="0.000001"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="lng" className="text-right">
+                קו אורך
+              </Label>
+              <Input
+                id="lng"
+                value={customLocationLng}
+                onChange={(e) => setCustomLocationLng(e.target.value)}
+                className="col-span-3"
+                placeholder="35.219173"
+                type="number"
+                step="0.000001"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowCustomLocation(false);
+                setCustomLocationName('');
+                setCustomLocationLat('');
+                setCustomLocationLng('');
+              }}
+            >
+              ביטול
+            </Button>
+            <Button 
+              onClick={() => {
+                if (customLocationName && customLocationLat && customLocationLng) {
+                  // Add custom location temporarily
+                  const tempKey = `custom_${Date.now()}`;
+                  STARTING_POINTS[tempKey] = {
+                    name: customLocationName,
+                    lat: parseFloat(customLocationLat),
+                    lng: parseFloat(customLocationLng)
+                  };
+                  setCustomStartPoint(tempKey);
+                  setShowCustomLocation(false);
+                  setCustomLocationName('');
+                  setCustomLocationLat('');
+                  setCustomLocationLng('');
+                }
+              }}
+              disabled={!customLocationName || !customLocationLat || !customLocationLng}
+            >
+              הוסף
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
