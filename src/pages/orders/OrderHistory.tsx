@@ -13,17 +13,18 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 
 // Interface for orders
-interface Order {
-  id: string;
-  customer_id: string;
-  status: string;
-  total: number;
-  created_at: string;
-  delivery_date: string;
-  delivery_address: string;
-  special_instructions: string | null;
-  order_items: OrderItem[];
-}
+  interface Order {
+    id: string;
+    customer_id: string;
+    status: string;
+    total: number;
+    created_at: string;
+    delivery_date: string | null;
+    delivery_address: string | null;
+    special_instructions: string | null;
+    order_items: OrderItem[];
+    order_number?: number;
+  }
 
 interface OrderItem {
   id: string;
@@ -31,8 +32,8 @@ interface OrderItem {
   product_id: string;
   quantity: number;
   price: number;
-  day_of_week: string;
-  products: {
+  day_of_week?: string;
+  products?: {
     id: string;
     name: string;
     price: number;
@@ -83,7 +84,7 @@ const OrderHistory = () => {
           return;
         }
         
-        setOrders(ordersData);
+        setOrders(ordersData || []);
       } catch (error) {
         console.error("Error fetching order history:", error);
         toast({
@@ -112,7 +113,8 @@ const OrderHistory = () => {
     }));
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '';
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('he-IL', {
@@ -125,7 +127,8 @@ const OrderHistory = () => {
     }
   };
 
-  const getHebrewDayFromDate = (dateString: string) => {
+  const getHebrewDayFromDate = (dateString: string | null) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     const days = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
     return days[date.getDay()];
@@ -153,7 +156,8 @@ const OrderHistory = () => {
     }
   };
   
-  const isOrderToday = (deliveryDate: string) => {
+  const isOrderToday = (deliveryDate: string | null) => {
+    if (!deliveryDate) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const orderDate = new Date(deliveryDate);
@@ -161,7 +165,8 @@ const OrderHistory = () => {
     return orderDate.getTime() === today.getTime();
   };
 
-  const isOrderCancellable = (deliveryDate: string) => {
+  const isOrderCancellable = (deliveryDate: string | null) => {
+    if (!deliveryDate) return true; // Orders without delivery date can be cancelled
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const orderDate = new Date(deliveryDate);
@@ -175,7 +180,8 @@ const OrderHistory = () => {
 
 
 
-  const isOrderEditable = (deliveryDate: string) => {
+  const isOrderEditable = (deliveryDate: string | null) => {
+    if (!deliveryDate) return true; // Orders without delivery date can be edited
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const orderDate = new Date(deliveryDate);
@@ -187,7 +193,8 @@ const OrderHistory = () => {
     const groupedByDate: Record<string, Order[]> = {};
     
     orders.forEach(order => {
-      const dateKey = order.delivery_date;
+      // Use created_at date for grouping if delivery_date is not available
+      const dateKey = order.delivery_date || order.created_at?.split('T')[0] || 'unknown';
       if (!groupedByDate[dateKey]) {
         groupedByDate[dateKey] = [];
       }
@@ -196,6 +203,8 @@ const OrderHistory = () => {
     
     // Sort dates (newest first)
     const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+      if (a === 'unknown') return 1;
+      if (b === 'unknown') return -1;
       const dateA = new Date(a);
       const dateB = new Date(b);
       return dateB.getTime() - dateA.getTime();
@@ -295,22 +304,25 @@ const OrderHistory = () => {
                 </motion.div>
               ))}
             </motion.div>
-          ) : orders.length > 0 ? (
+          ) : ordersByDate.length > 0 ? (
           <motion.div 
-            className="space-y-4"
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: {
-                  staggerChildren: 0.1
-                }
-              }
-            }}
+            className="space-y-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
           >
-            {orders.map((order, index) => (
+            {ordersByDate.map((dateGroup, groupIndex) => (
+              <motion.div
+                key={dateGroup.date}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: groupIndex * 0.1 }}
+              >
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                  {dateGroup.date === 'unknown' ? 'ללא תאריך' : `${formatDate(dateGroup.date)} - ${getHebrewDayFromDate(dateGroup.date)}`}
+                </h2>
+                <div className="space-y-4">
+                  {dateGroup.orders.map((order, index) => (
               <motion.div 
                 key={order.id} 
                 className="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow-md transition-all hover:scale-[1.01]"
@@ -333,13 +345,17 @@ const OrderHistory = () => {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      הזמנה #{index + 1}
+                      הזמנה #{order.order_number ? String(order.order_number).padStart(3, '0') : String(index + 1).padStart(3, '0')}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {formatDate(order.delivery_date)} • {getHebrewDayFromDate(order.delivery_date)}
+                      {order.delivery_date ? (
+                        <>{formatDate(order.delivery_date)} • {getHebrewDayFromDate(order.delivery_date)}</>
+                      ) : (
+                        <>{formatDate(order.created_at)} • {getHebrewDayFromDate(order.created_at)}</>
+                      )}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {order.order_items.length} פריטים • {formatCurrency(order.total)}
+                      {order.order_items?.length || 0} פריטים • {formatCurrency(order.total)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -386,9 +402,11 @@ const OrderHistory = () => {
                 </div>
                 
                 <div className="border-t pt-3">
-                  <p className="text-sm text-gray-600 mb-2">
-                    <strong>כתובת:</strong> {order.delivery_address}
-                  </p>
+                  {order.delivery_address && (
+                    <p className="text-sm text-gray-600 mb-2">
+                      <strong>כתובת:</strong> {order.delivery_address}
+                    </p>
+                  )}
                   
                   {order.special_instructions && (
                     <p className="text-sm text-gray-600 mb-3">
@@ -398,7 +416,7 @@ const OrderHistory = () => {
                   
                   <div className="space-y-2">
                     <h4 className="font-medium text-gray-900">פריטים:</h4>
-                    {order.order_items.map((item, itemIndex) => (
+                    {(order.order_items || []).map((item, itemIndex) => (
                       <motion.div 
                         key={itemIndex} 
                         className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0"
@@ -406,7 +424,7 @@ const OrderHistory = () => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.6 + index * 0.1 + itemIndex * 0.05 }}
                       >
-                        <span className="text-sm">{item.products.name}</span>
+                        <span className="text-sm">{item.products?.name || item.product_id || 'מוצר לא ידוע'}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-gray-500">{item.quantity}×</span>
                           <span className="text-sm font-medium">{formatCurrency(item.price * item.quantity)}</span>
@@ -414,6 +432,9 @@ const OrderHistory = () => {
                       </motion.div>
                     ))}
                   </div>
+                </div>
+              </motion.div>
+                  ))}
                 </div>
               </motion.div>
             ))}

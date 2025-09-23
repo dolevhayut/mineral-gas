@@ -44,6 +44,7 @@ const OrderSummaryPage = () => {
   }>>({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [submittedOrderId, setSubmittedOrderId] = useState<string>("");
+  const [submittedOrderNumber, setSubmittedOrderNumber] = useState<number>(0);
 
   useEffect(() => {
     // Get quantities and products from location state
@@ -140,11 +141,12 @@ const OrderSummaryPage = () => {
 
     try {
       // Submit the order
-      const orderId = await submitOrder(quantities, products, user);
+      const orderResult = await submitOrder(quantities, products, user);
       
-      if (orderId) {
+      if (orderResult) {
         // Show success modal
-        setSubmittedOrderId(orderId);
+        setSubmittedOrderId(orderResult.orderId);
+        setSubmittedOrderNumber(orderResult.orderNumber || 0);
         setShowSuccessModal(true);
         
         // Navigate after delay
@@ -302,6 +304,7 @@ const OrderSummaryPage = () => {
       <OrderSuccessModal 
         isOpen={showSuccessModal}
         orderId={submittedOrderId}
+        orderNumber={submittedOrderNumber}
         onClose={() => {
           setShowSuccessModal(false);
           navigate("/dashboard", { replace: true });

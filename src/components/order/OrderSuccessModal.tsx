@@ -6,10 +6,11 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 interface OrderSuccessModalProps {
   isOpen: boolean;
   orderId: string;
+  orderNumber?: number;
   onClose: () => void;
 }
 
-export default function OrderSuccessModal({ isOpen, orderId, onClose }: OrderSuccessModalProps) {
+export default function OrderSuccessModal({ isOpen, orderId, orderNumber, onClose }: OrderSuccessModalProps) {
   useEffect(() => {
     if (isOpen) {
       // Fire multiple confetti bursts
@@ -94,7 +95,7 @@ export default function OrderSuccessModal({ isOpen, orderId, onClose }: OrderSuc
                 </h2>
                 <div className="bg-green-50 rounded-lg p-4 mb-4">
                   <p className="text-lg font-semibold text-green-700">
-                    מספר הזמנה: <span className="text-green-900">#{orderId.slice(0, 8)}</span>
+                    מספר הזמנה: <span className="text-green-900">#{orderNumber ? String(orderNumber).padStart(3, '0') : '001'}</span>
                   </p>
                 </div>
                 <p className="text-gray-600">

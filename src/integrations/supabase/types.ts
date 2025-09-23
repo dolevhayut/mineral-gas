@@ -180,6 +180,7 @@ export type Database = {
           emergency_contact: string | null
           id: string
           installation_required: boolean | null
+          order_number: number
           safety_inspection_required: boolean | null
           service_type: string | null
           special_instructions: string | null
@@ -202,6 +203,7 @@ export type Database = {
           emergency_contact?: string | null
           id?: string
           installation_required?: boolean | null
+          order_number?: number
           safety_inspection_required?: boolean | null
           service_type?: string | null
           special_instructions?: string | null

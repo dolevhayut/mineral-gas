@@ -62,7 +62,7 @@ export const submitOrder = async (
     const { data, error } = await supabase
       .from('orders')
       .insert(orderData)
-      .select();
+      .select('id, order_number');
     
     if (error) {
       console.error("Error submitting order:", error);
@@ -76,6 +76,7 @@ export const submitOrder = async (
     
     console.log("Order created:", data);
     const orderId = data?.[0]?.id;
+    const orderNumber = data?.[0]?.order_number;
     
     // Add order items
     const orderItems = [];
@@ -123,7 +124,7 @@ export const submitOrder = async (
       description: "ההזמנה שלך התקבלה ותטופל בהקדם",
     });
     
-    return orderId;
+    return { orderId, orderNumber };
   } catch (error) {
     console.error("Unexpected error:", error);
     toast({
