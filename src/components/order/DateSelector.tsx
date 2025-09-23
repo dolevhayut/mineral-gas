@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -13,9 +12,22 @@ interface DateSelectorProps {
 }
 
 export default function DateSelector({ targetDate, setTargetDate }: DateSelectorProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const handleDateSelect = (date: Date | undefined) => {
+    console.log("DateSelector: Date selected:", date);
+    setTargetDate(date);
+    setIsOpen(false); // סגירת הפופאובר אחרי בחירת תאריך
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    console.log("DateSelector: Popover open state:", open);
+    setIsOpen(open);
+  };
+
   return (
     <div className="w-full flex justify-end">
-      <Popover>
+      <Popover open={isOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -23,6 +35,10 @@ export default function DateSelector({ targetDate, setTargetDate }: DateSelector
               "w-full justify-between text-right",
               !targetDate && "text-muted-foreground"
             )}
+            onClick={() => {
+              console.log("DateSelector: Button clicked");
+              setIsOpen(!isOpen);
+            }}
           >
             {targetDate ? format(targetDate, "dd/MM/yyyy") : "בחר תאריך יעד"}
             <CalendarIcon className="ml-2 h-4 w-4" />
@@ -32,10 +48,16 @@ export default function DateSelector({ targetDate, setTargetDate }: DateSelector
           <Calendar
             mode="single"
             selected={targetDate}
-            onSelect={setTargetDate}
+            onSelect={handleDateSelect}
             initialFocus
-            className={cn("p-3 pointer-events-auto")}
-            disabled={(date) => date < new Date()}
+            className={cn("p-3")}
+            disabled={(date) => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const isDisabled = date < today;
+              console.log("DateSelector: Date check:", date, "disabled:", isDisabled);
+              return isDisabled;
+            }}
           />
         </PopoverContent>
       </Popover>

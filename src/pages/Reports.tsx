@@ -5,17 +5,28 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
+import { addDays } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { getOpenOrders, getReports } from "@/services/vawoOrderService";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+// Import report components
+import SummaryStats from "@/components/reports/SummaryStats";
+import ProductsChart from "@/components/reports/ProductsChart";
+import MonthlySalesChart from "@/components/reports/MonthlySalesChart";
+import CustomersChart from "@/components/reports/CustomersChart";
+import DailySalesChart from "@/components/reports/DailySalesChart";
+import ProductsPieChart from "@/components/reports/ProductsPieChart";
 
 interface ProductStat {
   product_id: string;
   product_name: string;
   total_ordered: number;
+  revenue?: number;
 }
 
 interface MonthlyStat {
@@ -32,523 +43,314 @@ interface CustomerStat {
   avg_order_amount: number;
 }
 
-// Interface for order items from the database
-interface OrderItemData {
-  product_id: string;
-  products: {
-    name: string;
-  };
+interface DailySalesStat {
+  date: string;
+  order_count: number;
+  total_amount: number;
 }
 
-// Interface for orders from the database
-interface OrderData {
-  customer_id: string;
-  created_at: string;
-  total: number;
-  customers: {
-    name: string;
-  };
+interface SummaryStats {
+  totalOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  totalCustomers: number;
 }
 
 const Reports = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [topProducts, setTopProducts] = useState<ProductStat[]>([]);
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStat[]>([]);
   const [customerStats, setCustomerStats] = useState<CustomerStat[]>([]);
+  const [dailySales, setDailySales] = useState<DailySalesStat[]>([]);
+  const [summaryStats, setSummaryStats] = useState<SummaryStats>({
+    totalOrders: 0,
+    totalRevenue: 0,
+    averageOrderValue: 0,
+    totalCustomers: 0
+  });
+  
   const [loading, setLoading] = useState(true);
-  const [selectedReport, setSelectedReport] = useState("products");
-  const [activeTab, setActiveTab] = useState("products");
+  const [activeTab, setActiveTab] = useState("summary");
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -30),
+    to: new Date(),
+  });
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
+  const tabOptions = [
+    { value: "summary", label: "סיכום" },
+    { value: "products", label: "מוצרים פופולריים" },
+    { value: "monthly", label: "מכירות חודשיות" },
+    { value: "daily", label: "מכירות יומיות" },
+    { value: "distribution", label: "התפלגות מוצרים" }
+  ];
 
   useEffect(() => {
     const fetchReportData = async () => {
-      if (!user?.id) return;
+      if (!user?.id || !date?.from || !date?.to) return;
       
       try {
         setLoading(true);
         
-        // Fetch top products
-        const { data: productsData, error: productsError } = await supabase
-          .from('order_items')
-          .select(`
-            product_id,
-            products!inner(name)
-          `)
-          .returns<OrderItemData[]>()
-          .then(({ data, error }) => {
-            if (error) throw error;
-            
-            if (!data || data.length === 0) return { data: [] as ProductStat[], error: null };
-            
-            // Process and aggregate the data
-            const productCounts: Record<string, ProductStat> = {};
-            
-            data.forEach(item => {
-              const productId = item.product_id;
-              const productName = item.products.name;
-              
-              if (!productCounts[productId]) {
-                productCounts[productId] = {
-                  product_id: productId,
-                  product_name: productName,
+        // Fetch report data from VAWO API
+        const reportData = await getReports(date.from, date.to, 'all');
+        
+        if (!reportData) {
+          setLoading(false);
+          return;
+        }
+        
+        // Process summary stats
+        if (reportData.summary) {
+          setSummaryStats({
+            totalOrders: reportData.summary.totalOrders || 0,
+            totalRevenue: reportData.summary.totalRevenue || 0,
+            averageOrderValue: reportData.summary.averageOrderValue || 0,
+            totalCustomers: reportData.summary.totalCustomers || 0
+          });
+        }
+        
+        // Process product stats
+        if (reportData.productStats) {
+          const formattedProducts = reportData.productStats.map(item => ({
+            product_id: item.itemCode,
+            product_name: item.description,
+            total_ordered: item.quantity,
+            revenue: item.revenue
+          })).sort((a, b) => b.total_ordered - a.total_ordered).slice(0, 10);
+          
+          setTopProducts(formattedProducts);
+        } else {
+          // Fallback to legacy method if API doesn't return product stats
+          const orderItems = await getOpenOrders(date.from, date.to);
+          
+          if (orderItems && orderItems.length > 0) {
+            const productMap: Record<string, ProductStat> = {};
+            orderItems.forEach(item => {
+              if (!productMap[item.itemCode]) {
+                productMap[item.itemCode] = {
+                  product_id: item.itemCode,
+                  product_name: item.description,
                   total_ordered: 0
                 };
               }
-              
-              productCounts[productId].total_ordered += 1;
+              productMap[item.itemCode].total_ordered += item.quantity;
             });
             
-            const formattedData = Object.values(productCounts)
+            const formattedProducts = Object.values(productMap)
               .sort((a, b) => b.total_ordered - a.total_ordered)
               .slice(0, 10);
             
-            return { data: formattedData, error: null };
-          });
-
-        if (productsError) {
-          console.error("Error fetching top products:", productsError);
-          toast({
-            title: "שגיאה בטעינת נתוני מוצרים",
-            description: productsError.message,
-            variant: "destructive",
-          });
-        } else {
-          setTopProducts(productsData || []);
+            setTopProducts(formattedProducts);
+          }
         }
         
-        // Fetch monthly stats
-        const { data: monthlyData, error: monthlyError } = await supabase
-          .from('orders')
-          .select('created_at, total')
-          .returns<Pick<OrderData, 'created_at' | 'total'>[]>()
-          .then(({ data, error }) => {
-            if (error) throw error;
+        // Process customer stats
+        if (reportData.customerStats) {
+          const formattedCustomers = reportData.customerStats.map(item => ({
+            customer_id: item.cardCode,
+            customer_name: item.cardName,
+            order_count: item.orderCount,
+            total_amount: item.totalAmount,
+            avg_order_amount: item.totalAmount / (item.orderCount || 1)
+          })).sort((a, b) => b.total_amount - a.total_amount).slice(0, 10);
+          
+          setCustomerStats(formattedCustomers);
+        }
+        
+        // Process daily sales
+        if (reportData.dailySales) {
+          const formattedDailySales = reportData.dailySales.map(item => ({
+            date: item.date,
+            order_count: item.orderCount,
+            total_amount: item.totalAmount
+          })).sort((a, b) => a.date.localeCompare(b.date));
+          
+          setDailySales(formattedDailySales);
+        }
+        
+        // Process monthly stats from daily data if available
+        if (reportData.dailySales) {
+          const monthlyMap: Record<string, MonthlyStat> = {};
+          reportData.dailySales.forEach(item => {
+            const date = new Date(item.date);
+            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
             
-            if (!data || data.length === 0) return { data: [] as MonthlyStat[], error: null };
+            if (!monthlyMap[monthKey]) {
+              monthlyMap[monthKey] = {
+                month: monthKey,
+                order_count: 0,
+                total_amount: 0
+              };
+            }
             
-            // Process and aggregate the data by month
-            const monthlyStats: Record<string, MonthlyStat> = {};
+            monthlyMap[monthKey].order_count += item.orderCount;
+            monthlyMap[monthKey].total_amount += item.totalAmount;
+          });
+          
+          const formattedMonthly = Object.values(monthlyMap)
+            .sort((a, b) => a.month.localeCompare(b.month));
+          
+          setMonthlyStats(formattedMonthly);
+        } else {
+          // Fallback to legacy method if API doesn't return daily sales
+          const orderItems = await getOpenOrders(date.from, date.to);
+          
+          if (orderItems && orderItems.length > 0) {
+            const parseAsLocalDate = (dateString: string): Date => {
+              const fixedDate = dateString.startsWith('0') ? dateString.substring(1) : dateString;
+              const parts = fixedDate.split('-').map(Number);
+              return new Date(parts[0], parts[1] - 1, parts[2]);
+            };
             
-            data.forEach(order => {
-              const month = new Date(order.created_at).toISOString().substring(0, 7); // YYYY-MM format
+            const processedOrders = orderItems.map(item => ({
+              ...item,
+              localDueDate: parseAsLocalDate(item.dueDate),
+            }));
+            
+            const monthlyMap: Record<string, MonthlyStat> = {};
+            processedOrders.forEach(item => {
+              const monthKey = `${item.localDueDate.getFullYear()}-${(item.localDueDate.getMonth() + 1).toString().padStart(2, '0')}`;
               
-              if (!monthlyStats[month]) {
-                monthlyStats[month] = {
-                  month: order.created_at,
+              if (!monthlyMap[monthKey]) {
+                monthlyMap[monthKey] = {
+                  month: monthKey,
                   order_count: 0,
                   total_amount: 0
                 };
               }
               
-              monthlyStats[month].order_count += 1;
-              monthlyStats[month].total_amount += Number(order.total);
+              if (!monthlyMap[monthKey].order_count) {
+                monthlyMap[monthKey].order_count = 1;
+              }
+              
+              const estimatedAmount = item.quantity * 50;
+              monthlyMap[monthKey].total_amount += estimatedAmount;
             });
             
-            const formattedData = Object.values(monthlyStats)
-              .sort((a, b) => new Date(b.month).getTime() - new Date(a.month).getTime())
-              .slice(0, 12);
+            const formattedMonthly = Object.values(monthlyMap)
+              .sort((a, b) => a.month.localeCompare(b.month));
             
-            return { data: formattedData, error: null };
-          });
-
-        if (monthlyError) {
-          console.error("Error fetching monthly stats:", monthlyError);
-          toast({
-            title: "שגיאה בטעינת נתוני הזמנות חודשיים",
-            description: monthlyError.message,
-            variant: "destructive",
-          });
-        } else {
-          setMonthlyStats(monthlyData || []);
-        }
-
-        // If user is customer, fetch only their stats
-        if (user.role === 'customer') {
-          const { data: customerData, error: customerError } = await supabase
-            .from('customers')
-            .select('id')
-            .eq('user_id', user.id)
-            .single();
-          
-          if (customerError) {
-            console.error("Error fetching customer ID:", customerError);
-          } else if (customerData?.id) {
-            const { data: statsData, error: statsError } = await supabase
-              .from('orders')
-              .select(`
-                customer_id,
-                customers!inner(name),
-                total
-              `)
-              .eq('customer_id', customerData.id)
-              .returns<OrderData[]>()
-              .then(({ data, error }) => {
-                if (error) throw error;
-                
-                if (!data || data.length === 0) return { data: [] as CustomerStat[], error: null };
-                
-                // Aggregate the customer data
-                const customerId = data[0].customer_id;
-                const customerName = data[0].customers.name;
-                const orderCount = data.length;
-                const totalAmount = data.reduce((sum, order) => sum + Number(order.total), 0);
-                const avgOrderAmount = totalAmount / orderCount;
-                
-                const customerStats = [{
-                  customer_id: customerId,
-                  customer_name: customerName,
-                  order_count: orderCount,
-                  total_amount: totalAmount,
-                  avg_order_amount: avgOrderAmount
-                }];
-                
-                return { data: customerStats, error: null };
-              });
-            
-            if (statsError) {
-              console.error("Error fetching customer stats:", statsError);
-            } else {
-              setCustomerStats(statsData || []);
-            }
-          }
-        } else {
-          // For admin users, fetch top customers
-          const { data: customerStatsData, error: customerStatsError } = await supabase
-            .from('orders')
-            .select(`
-              customer_id,
-              customers!inner(name),
-              total
-            `)
-            .returns<OrderData[]>()
-            .then(({ data, error }) => {
-              if (error) throw error;
-              
-              if (!data || data.length === 0) return { data: [] as CustomerStat[], error: null };
-              
-              // Process and aggregate the data by customer
-              const customerStats: Record<string, CustomerStat> = {};
-              
-              data.forEach(order => {
-                const customerId = order.customer_id;
-                const customerName = order.customers.name;
-                
-                if (!customerStats[customerId]) {
-                  customerStats[customerId] = {
-                    customer_id: customerId,
-                    customer_name: customerName,
-                    order_count: 0,
-                    total_amount: 0,
-                    avg_order_amount: 0
-                  };
-                }
-                
-                customerStats[customerId].order_count += 1;
-                customerStats[customerId].total_amount += Number(order.total);
-              });
-              
-              // Calculate average order amount
-              Object.values(customerStats).forEach(customer => {
-                customer.avg_order_amount = customer.total_amount / customer.order_count;
-              });
-              
-              const formattedData = Object.values(customerStats)
-                .sort((a, b) => b.total_amount - a.total_amount)
-                .slice(0, 10);
-              
-              return { data: formattedData, error: null };
-            });
-          
-          if (customerStatsError) {
-            console.error("Error fetching customer stats:", customerStatsError);
-            toast({
-              title: "שגיאה בטעינת נתוני לקוחות",
-              description: customerStatsError.message,
-              variant: "destructive",
-            });
-          } else {
-            setCustomerStats(customerStatsData || []);
+            setMonthlyStats(formattedMonthly);
           }
         }
       } catch (error) {
-        console.error("Unexpected error in reports:", error);
+        console.error("Error fetching reports:", error);
+        toast({
+          title: "שגיאה בטעינת דוחות",
+          description: error instanceof Error ? error.message : "אירעה שגיאה בטעינת הדוחות",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchReportData();
-  }, [user]);
+  }, [user?.id, date]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('he-IL', {
-      style: 'currency',
-      currency: 'ILS',
-    }).format(amount);
-  };
-
-  const formatMonth = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('he-IL', {
-      year: 'numeric',
-      month: 'long',
-    });
-  };
-
   return (
     <MainLayout>
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 text-right" dir="rtl">
-        <div className="flex justify-between items-center mb-4 sm:mb-6">
-          <h1 className="text-2xl font-bold">דוחות</h1>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => navigate('/dashboard')}>
-            חזרה לדף הבית
-          </Button>
+      <div className="container mx-auto p-4" dir="rtl">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          <div className="flex items-center gap-4 mb-4 md:mb-0">
+            <h1 className="text-2xl font-bold">דוחות</h1>
+            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
+              חזרה לדף הבית
+            </Button>
+          </div>
+          <div className="w-full md:w-auto">
+            <DateRangePicker
+              date={date}
+              onDateChange={setDate}
+              locale="he"
+              placeholder="בחר טווח תאריכים"
+            />
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-end mb-6">
-          <div className="w-full sm:w-1/2 text-right">
-            <Select value={selectedReport} onValueChange={setSelectedReport} dir="rtl">
-              <SelectTrigger className="text-right">
-                <SelectValue placeholder="בחר סוג דוח" />
+        {/* Mobile Dropdown */}
+        {isMobile ? (
+          <div className="mb-4">
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="בחר דוח" />
               </SelectTrigger>
-              <SelectContent dir="rtl">
-                <SelectItem value="products">מוצרים פופולריים</SelectItem>
-                <SelectItem value="monthly">סטטיסטיקת הזמנות</SelectItem>
-                <SelectItem value="customers">סטטיסטיקת לקוחות</SelectItem>
+              <SelectContent>
+                {tabOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          <Button 
-            className="w-full sm:w-auto"
-            onClick={() => setActiveTab(selectedReport)}
-          >
-            הצג דוח
-          </Button>
+        ) : (
+          /* Desktop Tabs */
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="mb-4">
+              {tabOptions.map((option) => (
+                <TabsTrigger key={option.value} value={option.value}>
+                  {option.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        )}
+
+        {/* Content for both mobile and desktop */}
+        <div className="w-full">
+
+          {activeTab === "summary" && (
+            <div className="space-y-6">
+              <SummaryStats 
+                loading={loading}
+                totalOrders={summaryStats.totalOrders}
+                totalRevenue={summaryStats.totalRevenue}
+                averageOrderValue={summaryStats.averageOrderValue}
+                totalCustomers={summaryStats.totalCustomers}
+              />
+              
+              <div className="grid gap-6 md:grid-cols-2">
+                <ProductsChart loading={loading} products={topProducts.slice(0, 5)} />
+                <MonthlySalesChart loading={loading} monthlyStats={monthlyStats.slice(-6)} />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "products" && (
+            <ProductsChart loading={loading} products={topProducts} showRevenue={true} />
+          )}
+
+          {activeTab === "monthly" && (
+            <MonthlySalesChart loading={loading} monthlyStats={monthlyStats} />
+          )}
+
+          {activeTab === "daily" && (
+            <DailySalesChart loading={loading} dailySales={dailySales} />
+          )}
+          
+          {activeTab === "distribution" && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <ProductsPieChart 
+                loading={loading} 
+                products={topProducts} 
+                title="התפלגות מוצרים לפי כמות" 
+              />
+              <ProductsPieChart 
+                loading={loading} 
+                products={topProducts} 
+                showRevenue={true} 
+                title="התפלגות מוצרים לפי הכנסות" 
+              />
+            </div>
+          )}
         </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="space-y-6">
-            <TabsContent value="products">
-              <Card className="overflow-hidden">
-                <CardHeader className="px-3 py-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">מוצרים פופולריים</CardTitle>
-                </CardHeader>
-                <CardContent className="px-2 sm:px-6 pb-4 sm:pb-6">
-                  {loading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-12 w-full" />
-                      ))}
-                    </div>
-                  ) : topProducts.length > 0 ? (
-                    <>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart
-                          data={topProducts}
-                          margin={{ top: 20, right: 5, left: 5, bottom: 70 }}
-                          layout="vertical"
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" />
-                          <YAxis 
-                            dataKey="product_name" 
-                            type="category"
-                            tick={{ fontSize: 10 }}
-                            width={120}
-                            tickFormatter={(value) => value.length > 12 ? value.substring(0, 12) + '...' : value}
-                          />
-                          <Tooltip formatter={(value) => [`${value} יחידות`, 'כמות הזמנות']} />
-                          <Bar dataKey="total_ordered" fill="#8884d8" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                      <Separator className="my-6" />
-                      <div className="space-y-4 text-right">
-                        {topProducts.map((product, index) => (
-                          <div key={product.product_id} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-50">
-                            <span className="text-sm sm:text-lg">{product.total_ordered} יחידות</span>
-                            <span className="font-medium text-xs sm:text-sm">{index + 1}. {product.product_name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground">אין נתונים זמינים</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="monthly">
-              <Card className="overflow-hidden">
-                <CardHeader className="px-3 py-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">סטטיסטיקת הזמנות חודשית</CardTitle>
-                </CardHeader>
-                <CardContent className="px-2 sm:px-6 pb-4 sm:pb-6">
-                  {loading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-12 w-full" />
-                      ))}
-                    </div>
-                  ) : monthlyStats.length > 0 ? (
-                    <>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart
-                          data={monthlyStats}
-                          margin={{ top: 20, right: 5, left: 5, bottom: 70 }}
-                          layout="vertical"
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" />
-                          <YAxis 
-                            dataKey="month" 
-                            type="category"
-                            tickFormatter={formatMonth}
-                            tick={{ fontSize: 10 }}
-                            width={120}
-                          />
-                          <Tooltip formatter={(value, name) => [
-                            name === 'order_count' ? `${value} הזמנות` : formatCurrency(Number(value)),
-                            name === 'order_count' ? 'מספר הזמנות' : 'סכום כולל'
-                          ]} />
-                          <Bar dataKey="order_count" name="מספר הזמנות" fill="#8884d8" />
-                          <Bar dataKey="total_amount" name="סכום כולל" fill="#82ca9d" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                      <Separator className="my-6" />
-                      <div className="space-y-4 text-right">
-                        {monthlyStats.map((month) => (
-                          <div key={month.month} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-50">
-                            <div className="text-right text-xs sm:text-sm">
-                              <p>{month.order_count} הזמנות</p>
-                              <p className="text-muted-foreground">{formatCurrency(month.total_amount)}</p>
-                            </div>
-                            <span className="font-medium text-xs sm:text-sm">{formatMonth(month.month)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground">אין נתונים זמינים</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="customers">
-              <Card className="overflow-hidden">
-                <CardHeader className="px-3 py-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">{user?.role === 'customer' ? 'נתוני הזמנות שלי' : 'סטטיסטיקת לקוחות'}</CardTitle>
-                </CardHeader>
-                <CardContent className="px-2 sm:px-6 pb-4 sm:pb-6">
-                  {loading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-12 w-full" />
-                      ))}
-                    </div>
-                  ) : customerStats.length > 0 ? (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-6">
-                        {user?.role === 'customer' && customerStats[0] && (
-                          <>
-                            <Card className="overflow-hidden">
-                              <CardHeader className="pb-2 px-3 sm:px-6">
-                                <CardTitle className="text-xs sm:text-sm font-medium">סה"כ הזמנות</CardTitle>
-                              </CardHeader>
-                              <CardContent className="px-3 sm:px-6">
-                                <div className="text-xl sm:text-2xl font-bold">{customerStats[0].order_count}</div>
-                              </CardContent>
-                            </Card>
-                            <Card className="overflow-hidden">
-                              <CardHeader className="pb-2 px-3 sm:px-6">
-                                <CardTitle className="text-xs sm:text-sm font-medium">סה"כ הוצאות</CardTitle>
-                              </CardHeader>
-                              <CardContent className="px-3 sm:px-6">
-                                <div className="text-xl sm:text-2xl font-bold">
-                                  {formatCurrency(customerStats[0].total_amount)}
-                                </div>
-                              </CardContent>
-                            </Card>
-                            <Card className="overflow-hidden">
-                              <CardHeader className="pb-2 px-3 sm:px-6">
-                                <CardTitle className="text-xs sm:text-sm font-medium">עלות ממוצעת להזמנה</CardTitle>
-                              </CardHeader>
-                              <CardContent className="px-3 sm:px-6">
-                                <div className="text-xl sm:text-2xl font-bold">
-                                  {formatCurrency(customerStats[0].avg_order_amount)}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </>
-                        )}
-                      </div>
-
-                      {user?.role === 'admin' && (
-                        <>
-                          <ResponsiveContainer width="100%" height={300}>
-                            <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                              <Pie
-                                data={customerStats}
-                                dataKey="total_amount"
-                                nameKey="customer_name"
-                                cx="50%"
-                                cy="50%"
-                                outerRadius={90}
-                                fill="#8884d8"
-                                label={({ customer_name, percent }) => 
-                                  `${customer_name.length > 10 ? customer_name.substring(0, 10) + '...' : customer_name}: ${(percent * 100).toFixed(0)}%`
-                                }
-                              >
-                                {customerStats.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <Separator className="my-6" />
-                        </>
-                      )}
-
-                      <div className="space-y-4">
-                        {user?.role === 'admin' ? (
-                          customerStats.map((customer, index) => (
-                            <div key={customer.customer_id} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-50">
-                              <div className="text-right text-xs sm:text-sm">
-                                <p>{formatCurrency(customer.total_amount)}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  ממוצע: {formatCurrency(customer.avg_order_amount)}
-                                </p>
-                              </div>
-                              <div>
-                                <span className="font-medium text-xs sm:text-sm">{index + 1}. {customer.customer_name}</span>
-                                <p className="text-xs text-muted-foreground">{customer.order_count} הזמנות</p>
-                              </div>
-                            </div>
-                          ))
-                        ) : null}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground">אין נתונים זמינים</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </div>
-        </Tabs>
       </div>
     </MainLayout>
   );

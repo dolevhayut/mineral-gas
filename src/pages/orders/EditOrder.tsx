@@ -1,638 +1,751 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import ProductDialog from "@/components/order/ProductDialog";
-import OrderHeader from "@/components/order/OrderHeader";
-import { quantityOptions, hebrewDays, OrderProduct } from "@/components/order/orderConstants";
 import { Button } from "@/components/ui/button";
+import { Package2 as PackageIcon, CircleDot } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { 
+  getOpenOrders, 
+  updateOrderItemQuantity, 
+  deleteOrderItem,
+  submitOrder,
+  OrderQuantities,
+  cancelOrder
+} from "@/services/vawoOrderService";
+import { OrderProduct } from "@/components/order/orderConstants";
+import { OrderLineItem } from "@/integrations/vawo/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, CalendarIcon, Edit, PackageIcon } from "lucide-react";
-import DateSelector from "@/components/order/DateSelector";
+import { Badge } from "@/components/ui/badge";
+import { getHebrewDayName } from "@/components/order/utils/orderUtils";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/lib/supabase";
+import ProductDialog from "@/components/order/ProductDialog";
 
-// Define interfaces
-interface Product extends OrderProduct {
-  is_frozen?: boolean;
-}
-
-interface OrderItem {
-  id: string;
-  order_id: string;
-  product_id: string;
-  day_of_week: string;
-  quantity: number;
-  price: number;
-  product?: Product;
-}
-
-interface Order {
-  id: string;
-  customer_id: string;
-  status: string;
-  total: number;
-  created_at: string;
-  updated_at: string;
-  target_date?: string;
-  order_items?: OrderItem[];
-}
-
-// Database product type
-interface DBProduct {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  image?: string;
-  category?: string;
-  is_frozen?: boolean;
-  sku?: string;
-  available?: boolean;
-  featured?: boolean;
-  created_at?: string;
-  updated_at?: string;
+interface OrderItemGroup {
+  docEntry: number;
+  docNum: number;
+  dueDate: string;
+  items: OrderLineItem[];
 }
 
 const EditOrder = () => {
-  const { orderId } = useParams();
+  const { orderId } = useParams<{ orderId: string }>();
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  const [order, setOrder] = useState<Order | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const isTomorrowEdit = searchParams.get('edit') === 'tomorrow';
+  const isFriday = new Date().getDay() === 5;
+  const isSaturdayBlocked = isTomorrowEdit && isFriday;
+  const [orderItems, setOrderItems] = useState<OrderLineItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
-  const [tomorrowDayOfWeek, setTomorrowDayOfWeek] = useState<string>("");
-  const [isTomorrowEdit, setIsTomorrowEdit] = useState(false);
+  const [orderInfo, setOrderInfo] = useState<{ docNum: number, dueDate: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [products, setProducts] = useState<Record<string, { image: string; name: string }>>({});
+  // Track pending changes - only submit at the end
+  const [pendingChanges, setPendingChanges] = useState<Record<string, { quantity: number; uom: string; originalQuantity: number }>>({});
+  const [hasChanges, setHasChanges] = useState(false);
+  // Store original quantities to display correctly
+  const [originalQuantities, setOriginalQuantities] = useState<Record<string, number>>({});
+  // ProductDialog state
+  const [selectedProduct, setSelectedProduct] = useState<OrderProduct | null>(null);
+  const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
+  const [tempQuantities, setTempQuantities] = useState<Record<string, Record<string, number>>>({});
+  const [selectedOrderItem, setSelectedOrderItem] = useState<OrderLineItem | null>(null);
+  // Cancel order state
+  const [isCancellingOrder, setIsCancellingOrder] = useState(false);
 
-  // Get tomorrow's date function
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow;
-  };
 
-  // Get day of week name for tomorrow
-  const getTomorrowDayOfWeek = (): string => {
+
+  // Get the day of the week from a date string
+  const getDayOfWeek = (dateString: string): string => {
+    const fixedDateString = dateString.startsWith('0') ? dateString.substring(1) : dateString;
+    const parts = fixedDateString.split('-').map(Number);
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const tomorrow = getTomorrowDate();
-    return days[tomorrow.getDay()];
+    return days[date.getDay()];
   };
 
-  // Set tomorrow day of week on component mount
+  // Get Hebrew day name from date string
+  const getHebrewDayFromDate = (dateString: string): string => {
+    const dayKey = getDayOfWeek(dateString);
+    return getHebrewDayName(dayKey);
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const fixedDateString = dateString.startsWith('0') ? dateString.substring(1) : dateString;
+      const parts = fixedDateString.split('-').map(Number);
+      const date = new Date(parts[0], parts[1] - 1, parts[2]);
+      return date.toLocaleDateString('he-IL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Handle cancel order
+  const handleCancelOrder = async () => {
+    if (!orderId || !window.confirm('האם אתה בטוח שברצונך לבטל את ההזמנה?')) return;
+    
+    setIsCancellingOrder(true);
+    try {
+      const success = await cancelOrder(parseInt(orderId));
+      if (success) {
+        toast({
+          title: "ההזמנה בוטלה בהצלחה",
+          description: "ההזמנה בוטלה והוסרה מהמערכת",
+        });
+        navigate('/orders');
+      }
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast({
+        title: "שגיאה בביטול ההזמנה",
+        description: "אירעה שגיאה בעת ביטול ההזמנה",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCancellingOrder(false);
+    }
+  };
+
+  // Load products from database to get images
   useEffect(() => {
-    setTomorrowDayOfWeek(getTomorrowDayOfWeek());
+    const fetchProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('vawo_code, image, name');
+        
+        if (error) {
+          console.error("Error fetching products:", error);
+          return;
+        }
+        
+        // Create a mapping from vawo_code to product info
+        const productMap: Record<string, { image: string; name: string }> = {};
+        data?.forEach(product => {
+          if (product.vawo_code) {
+            productMap[product.vawo_code] = {
+              image: product.image || '',
+              name: product.name
+            };
+          }
+        });
+        
+        setProducts(productMap);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+    
+    fetchProducts();
   }, []);
 
-  // Check for URL parameter and location state when component mounts
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const editParam = searchParams.get('edit');
-    
-    if (editParam === 'tomorrow') {
-      setTargetDate(getTomorrowDate());
-      setIsTomorrowEdit(true);
-    }
-    
-    // Check if we're returning from the NewOrder page with updated quantities
-    if (location.state && location.state.updatedQuantities) {
-      setQuantities(location.state.updatedQuantities);
-      
-      // Clear the state to prevent issues with repeated navigation
-      window.history.replaceState({}, document.title);
-    }
-  }, [location]);
+    const fetchOrderItems = async () => {
+      if (!orderId) {
+        return;
+      }
 
-  // Fetch order details and products
-  useEffect(() => {
-    const fetchOrderAndProducts = async () => {
-      if (!orderId || !user?.id) return;
-      
       try {
         setIsLoading(true);
         
-        // Get customer ID for this user
-        const { data: customerData, error: customerError } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        // For fetching orders, we need a wider date range to ensure we get all relevant orders
+        const startDate = new Date();
+        startDate.setFullYear(startDate.getFullYear() - 1); // 1 year back
         
-        if (customerError && customerError.code !== 'PGRST116') {
-          console.error("Error fetching customer:", customerError);
+        const endDate = new Date();
+        endDate.setFullYear(endDate.getFullYear() + 1); // 1 year forward
+        
+        const orderItems = await getOpenOrders(startDate, endDate);
+        
+        if (!orderItems || orderItems.length === 0) {
           toast({
-            title: "שגיאה",
-            description: "לא ניתן לאתר מידע לקוח",
+            title: "לא נמצאו הזמנות",
+            description: "לא נמצאו הזמנות במערכת",
             variant: "destructive"
           });
-          navigate('/dashboard');
+          navigate('/orders/current');
           return;
         }
         
-        if (!customerData?.id) {
-          console.log("No customer record found");
+        // The orderId parameter is the docEntry we want to filter by
+        const docEntryNum = Number(orderId);
+        
+        // Filter by docEntry only (not docNum)
+        const matchingItems = orderItems.filter(item => item.docEntry === docEntryNum);
+        
+        // If no matches, let's see what we have
+        if (matchingItems.length === 0) {
           toast({
-            title: "שגיאה",
-            description: "לא נמצא רשומת לקוח",
+            title: "לא נמצאה הזמנה",
+            description: `ההזמנה המבוקשת (docEntry: ${orderId}) לא נמצאה`,
             variant: "destructive"
           });
-          navigate('/dashboard');
+          navigate('/orders/current');
           return;
         }
         
-        // Fetch the order with its items
-        const { data: orderData, error: orderError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', orderId)
-          .eq('customer_id', customerData.id)
-          .single();
-        
-        if (orderError) {
-          console.error("Error fetching order:", orderError);
-          toast({
-            title: "שגיאה",
-            description: "לא ניתן לטעון את ההזמנה",
-            variant: "destructive"
-          });
-          navigate('/dashboard');
-          return;
-        }
-        
-        // Fetch order items
-        const { data: orderItemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select('*')
-          .eq('order_id', orderId);
-        
-        if (itemsError) {
-          console.error("Error fetching order items:", itemsError);
-          toast({
-            title: "שגיאה",
-            description: "לא ניתן לטעון את פריטי ההזמנה",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        // Get the user's permissions for fresh products
-        const { data: userData, error: userError } = await supabase
-          .from('custom_users')
-          .select('can_order_fresh')
-          .eq('id', user.id)
-          .single();
-        
-        if (userError) {
-          console.error("Error fetching user permissions:", userError);
-          toast({
-            title: "שגיאה",
-            description: "לא ניתן לטעון הרשאות משתמש",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        const canOrderFresh = userData?.can_order_fresh ?? true;
-        
-        // Fetch user's allowed fresh products if they can order fresh
-        let allowedProductIds: string[] = [];
-        
-        if (canOrderFresh) {
-          // Direct query using from() with type assertion
-          const { data, error: allowedProductsError } = await supabase
-            .from('custom_user_products' as any)
-            .select('product_id')
-            .eq('user_id', user.id);
-            
-          if (allowedProductsError) {
-            console.error("Error fetching allowed products:", allowedProductsError);
-          } else if (data) {
-            allowedProductIds = data.map((item: any) => item.product_id);
-          }
-        }
-        
-        // Fetch all products
-        const { data: productsData, error: productsError } = await supabase
-          .from('products')
-          .select('*');
-        
-        if (productsError) {
-          console.error("Error fetching products:", productsError);
-          toast({
-            title: "שגיאה",
-            description: "לא ניתן לטעון את רשימת המוצרים",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        // Filter products based on permissions
-        const filteredProductsData = productsData?.filter((product: any) => {
-          // Always include products that are in the order
-          const productInOrder = orderItemsData?.some(item => item.product_id === product.id);
-          if (productInOrder) return true;
-          
-          // If product is frozen, always include it
-          if (product.is_frozen) return true;
-          
-          // If user can't order fresh, exclude fresh products
-          if (!canOrderFresh) return false;
-          
-          // If product is fresh, check if it's in the allowed list or if there are no specific permissions
-          return allowedProductIds.length === 0 || allowedProductIds.includes(product.id);
-        }) || [];
-        
-        // Process products data
-        const formattedProducts: Product[] = (filteredProductsData || []).map((product: DBProduct) => ({
-          id: product.id,
-          name: product.name,
-          description: product.description || '',
-          price: product.price,
-          image: product.image || '/placeholder.png',
-          category: product.category || '',
-          is_frozen: product.is_frozen || false,
-          sku: product.sku || `מק"ט-${product.id}`,
-          available: product.available !== false,
-          featured: product.featured || false,
-          createdAt: product.created_at || new Date().toISOString()
-        }));
-        
-        setProducts(formattedProducts);
-        
-        // Build quantities object from order items
-        const initialQuantities: Record<string, Record<string, number>> = {};
-        orderItemsData?.forEach(item => {
-          if (!initialQuantities[item.product_id]) {
-            initialQuantities[item.product_id] = {};
-          }
-          initialQuantities[item.product_id][item.day_of_week] = item.quantity;
-        });
-        
-        // Set full order with items
-        const fullOrder: Order = {
-          ...orderData as Order,
-          order_items: orderItemsData
+        // Fix date format if needed (VAWO API sometimes returns dates in format "02025-03-16")
+        const fixDateFormat = (dateString: string): string => {
+          const fixed = dateString.startsWith('0') ? dateString.substring(1) : dateString;
+          return fixed;
         };
         
-        setOrder(fullOrder);
-        setQuantities(initialQuantities);
+        // Extract order info from the first item
+        const firstItem = matchingItems[0];
+        const orderInfo = {
+          docNum: firstItem.docNum,
+          dueDate: fixDateFormat(firstItem.dueDate)
+        };
+        setOrderInfo(orderInfo);
         
-        // Set target date if it exists in the order
-        // Or if URL parameter wasn't already processed (to prevent overriding)
-        if ((orderData as unknown as Order)?.target_date && !targetDate) {
-          setTargetDate(new Date((orderData as unknown as Order).target_date as string));
-        }
+        // Fix dates in all items
+        const itemsWithFixedDates = matchingItems.map(item => ({
+          ...item,
+          dueDate: fixDateFormat(item.dueDate)
+        }));
         
+        // Sort items by itemCode (VAWO code) numerically
+        const sortedItems = [...itemsWithFixedDates].sort((a, b) => {
+          const aCode = parseInt(a.itemCode) || 0;
+          const bCode = parseInt(b.itemCode) || 0;
+          
+          if (aCode && bCode) {
+            return aCode - bCode;
+          }
+          
+          // Fallback to description sort if no valid codes
+          return a.description.localeCompare(b.description, 'he');
+        });
+        
+        // Store original quantities
+        const originalQtys: Record<string, number> = {};
+        sortedItems.forEach(item => {
+          const key = `${item.docEntry}-${item.lineNum}`;
+          originalQtys[key] = item.quantity;
+        });
+        setOriginalQuantities(originalQtys);
+        
+        setOrderItems(sortedItems);
       } catch (error) {
-        console.error("Unexpected error:", error);
+        console.error("[EditOrder] Error fetching order items:", error);
         toast({
-          title: "שגיאה לא צפויה",
-          description: "אירעה שגיאה בעת טעינת ההזמנה",
+          title: "שגיאה בטעינת ההזמנה",
+          description: "אירעה שגיאה בטעינת פרטי ההזמנה",
           variant: "destructive"
         });
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchOrderAndProducts();
-  }, [orderId, user, navigate, targetDate]);
-  
-  // Handle opening the dialog for a product
-  const handleProductClick = (productId: string) => {
-    setSelectedProduct(productId);
-    setIsDialogOpen(true);
+
+    if (isAuthenticated) {
+      fetchOrderItems();
+    }
+  }, [orderId, isAuthenticated, navigate, isTomorrowEdit]);
+
+  useEffect(() => {
+    if (isSaturdayBlocked) {
+      toast({
+        title: "לא ניתן לערוך למחר",
+        description: "לא ניתן לעדכן הזמנה לשבת.",
+        variant: "destructive"
+      });
+    }
+  }, [isSaturdayBlocked]);
+
+
+
+  const handleDeleteItem = async (item: OrderLineItem) => {
+    try {
+      setIsLoading(true);
+      
+      const success = await deleteOrderItem(item.docEntry, item.lineNum, item.uom);
+      
+      if (success) {
+        // Remove the item from the local state
+        setOrderItems(prev => 
+          prev.filter(i => !(i.docEntry === item.docEntry && i.lineNum === item.lineNum))
+        );
+        
+        // If no items left, navigate back to current orders
+        if (orderItems.length <= 1) {
+          toast({
+            title: "כל הפריטים הוסרו",
+            description: "ההזמנה בוטלה כיוון שכל הפריטים הוסרו",
+          });
+          navigate('/orders/current');
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting order item:", error);
+      toast({
+        title: "שגיאה במחיקת הפריט",
+        description: "אירעה שגיאה במחיקת הפריט",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  // Handle quantity changes in the dialog
-  const handleQuantityChange = (day: string, value: string) => {
+
+  const handleAddItems = () => {
+    navigate('/orders/new', {
+      state: {
+        fromOrderEdit: true,
+        orderId: orderId
+      }
+    });
+  };
+
+  // Convert OrderLineItem to OrderProduct for the dialog
+  const convertToOrderProduct = (item: OrderLineItem): OrderProduct => {
+    const productInfo = products[item.itemCode];
+    return {
+      id: item.itemCode,
+      name: item.description,
+      price: 0, // Not needed for editing
+      image: productInfo?.image || '',
+      sku: item.itemCode,
+      is_frozen: item.uom === "קר",
+      vawo_code: item.itemCode,
+      quantity_increment: 1,
+      package_amount: null
+    };
+  };
+
+  // Handle product card click
+  const handleProductClick = (item: OrderLineItem) => {
+    const orderProduct = convertToOrderProduct(item);
+    setSelectedProduct(orderProduct);
+    setSelectedOrderItem(item);
+    
+    // Initialize temp quantities with current item quantity
+    const dayKey = getDayOfWeek(item.dueDate);
+    const initialQuantities = {
+      [orderProduct.id]: {
+        [dayKey]: item.quantity
+      }
+    };
+    
+    setTempQuantities(initialQuantities);
+    setIsProductDialogOpen(true);
+  };
+
+  // Get Hebrew days filtered for the specific order item
+  const getFilteredHebrewDays = (item: OrderLineItem) => {
+    const dayKey = getDayOfWeek(item.dueDate);
+    const dayName = getHebrewDayName(dayKey);
+    
+    // Return only the specific day for this order item
+    return [{ id: dayKey, name: dayName }];
+  };
+
+  // Handle quantity change in dialog
+  const handleDialogQuantityChange = (day: string, value: string) => {
     if (!selectedProduct) return;
     
-    setQuantities(prev => ({
-      ...prev,
-      [selectedProduct]: {
-        ...(prev[selectedProduct] || {}),
-        [day]: parseInt(value)
-      }
-    }));
-  };
-  
-  // Save dialog changes
-  const handleSave = () => {
-    setIsDialogOpen(false);
-  };
-  
-  // Close dialog
-  const handleClose = () => {
-    setIsDialogOpen(false);
-  };
-  
-  // Update the order in the database
-  const handleUpdateOrder = async () => {
-    if (!order) return;
+    const newValue = parseInt(value) || 0;
     
-    if (!targetDate) {
+    setTempQuantities(prev => {
+      const updated = {
+        ...prev,
+        [selectedProduct.id]: {
+          ...prev[selectedProduct.id],
+          [day]: newValue
+        }
+      };
+      return updated;
+    });
+  };
+
+  // Handle save from dialog
+  const handleDialogSave = () => {
+    if (!selectedProduct) return;
+    
+    // Get the current quantities from the dialog
+    const currentQuantities = tempQuantities[selectedProduct.id] || {};
+    
+    // Find the order item and update its quantity
+    const dayQuantity = Object.values(currentQuantities)[0] || 0; // Get the first (and likely only) day quantity
+    
+    // Find the corresponding order item
+    const orderItem = orderItems.find(item => item.itemCode === selectedProduct.id);
+    if (orderItem) {
+      const changeKey = `${orderItem.docEntry}-${orderItem.lineNum}`;
+      const originalQuantity = originalQuantities[changeKey] || orderItem.quantity;
+      
+      // Save to pending changes
+      setPendingChanges(prev => ({
+        ...prev,
+        [changeKey]: { 
+          quantity: dayQuantity, 
+          uom: orderItem.uom, 
+          originalQuantity 
+        }
+      }));
+      
+      // Update local state for immediate UI feedback
+      setOrderItems(prev => 
+        prev.map(item => 
+          item.itemCode === selectedProduct.id
+            ? { ...item, quantity: dayQuantity }
+            : item
+        )
+      );
+      
+      setHasChanges(true);
+      
       toast({
-        title: "שגיאה",
-        description: "יש לבחור תאריך יעד להזמנה",
+        title: "השינוי נשמר זמנית",
+        description: `הכמות עודכנה ל-${dayQuantity} ${orderItem.uom === "קר" ? "קרטונים" : "יחידות"}. לחץ על "בצע עדכון" כדי לשלוח את כל השינויים`,
+      });
+    }
+    
+    setIsProductDialogOpen(false);
+    setSelectedProduct(null);
+  };
+
+  // Hebrew days for dialog
+  const hebrewDays = [
+    { id: 'sunday', name: 'ראשון' },
+    { id: 'monday', name: 'שני' },
+    { id: 'tuesday', name: 'שלישי' },
+    { id: 'wednesday', name: 'רביעי' },
+    { id: 'thursday', name: 'חמישי' },
+    { id: 'friday', name: 'שישי' },
+    { id: 'saturday', name: 'שבת' }
+  ];
+
+  // Group items by day
+  const itemsByDay = orderItems.reduce((groups: Record<string, OrderLineItem[]>, item) => {
+    const day = getDayOfWeek(item.dueDate);
+    if (!groups[day]) groups[day] = [];
+    groups[day].push(item);
+    return groups;
+  }, {});
+
+  // Sort days
+  const dayOrder: Record<string, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+  };
+
+  const sortedDays = Object.keys(itemsByDay).sort(
+    (a, b) => (dayOrder[a] || 99) - (dayOrder[b] || 99)
+  );
+
+    // New function to handle order submission with pending changes
+  const handleSubmitOrder = async () => {
+    if (orderItems.length === 0) {
+      toast({
+        title: "אין פריטים בהזמנה",
+        description: "לא ניתן לשלוח הזמנה ריקה",
         variant: "destructive"
       });
       return;
     }
+
+    setIsSubmitting(true);
     
     try {
-      setIsSaving(true);
-      
-      // Calculate the new total
-      let total = 0;
-      for (const [productId, dayQuantities] of Object.entries(quantities)) {
-        const productPrice = products.find(p => p.id === productId)?.price || 0;
-        for (const quantity of Object.values(dayQuantities)) {
-          total += productPrice * quantity;
-        }
-      }
-      
-      // First, update the order with the new total
-      const { error: orderUpdateError } = await supabase
-        .from('orders')
-        .update({ 
-          total, 
-          updated_at: new Date().toISOString(),
-          target_date: targetDate.toISOString().split('T')[0]
-        })
-        .eq('id', order.id);
-      
-      if (orderUpdateError) {
-        console.error("Error updating order:", orderUpdateError);
-        toast({
-          title: "שגיאה בעדכון ההזמנה",
-          description: orderUpdateError.message,
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Delete existing order items
-      const { error: deleteError } = await supabase
-        .from('order_items')
-        .delete()
-        .eq('order_id', order.id);
-      
-      if (deleteError) {
-        console.error("Error deleting order items:", deleteError);
-        toast({
-          title: "שגיאה בעדכון פריטי ההזמנה",
-          description: deleteError.message,
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Create new order items from quantities
-      const orderItems = [];
-      for (const [productId, dayQuantities] of Object.entries(quantities)) {
-        for (const [day, quantity] of Object.entries(dayQuantities)) {
-          if (quantity > 0) {
-            orderItems.push({
-              order_id: order.id,
-              product_id: productId,
-              day_of_week: day,
-              quantity: quantity,
-              price: products.find(p => p.id === productId)?.price || 0
+      // First, apply all pending changes via API
+      if (Object.keys(pendingChanges).length > 0) {
+        for (const [changeKey, change] of Object.entries(pendingChanges)) {
+          const [docEntry, lineNum] = changeKey.split('-').map(Number);
+          
+          try {
+            // Calculate target date for tomorrow edits
+            let targetDate: Date | undefined = undefined;
+            if (isTomorrowEdit && !isFriday) {
+              const now = new Date();
+              const currentHour = now.getHours();
+              const isNightHours = currentHour >= 0 && currentHour < 2;
+              
+              // בשעות הלילה מחזירים את היום, אחרת מחר
+              if (isNightHours) {
+                targetDate = new Date(); // היום
+              } else {
+                targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() + 1); // מחר
+              }
+            }
+            
+            const success = await updateOrderItemQuantity(docEntry, lineNum, change.quantity, change.uom, targetDate);
+            
+            if (!success) {
+              throw new Error(`Failed to update item ${changeKey}`);
+            }
+          } catch (error) {
+            console.error(`Error updating item ${changeKey}:`, error);
+            toast({
+              title: "שגיאה בעדכון פריט",
+              description: `שגיאה בעדכון פריט ${changeKey}`,
+              variant: "destructive"
             });
+            return;
           }
         }
-      }
-      
-      if (orderItems.length > 0) {
-        const { error: insertError } = await supabase
-          .from('order_items')
-          .insert(orderItems);
         
-        if (insertError) {
-          console.error("Error inserting order items:", insertError);
-          toast({
-            title: "שגיאה בעדכון פריטי ההזמנה",
-            description: insertError.message,
-            variant: "destructive"
-          });
-          return;
-        }
+        // Clear pending changes after successful updates
+        setPendingChanges({});
+        setHasChanges(false);
+        
+        toast({
+          title: "כל השינויים נשלחו בהצלחה",
+          description: "ההזמנה עודכנה במערכת",
+        });
+        
+        // Navigate to external orders page after successful update
+        setTimeout(() => {
+          window.location.href = 'https://www.orbarbakery.com/orders';
+        }, 1000);
+      } else {
+        toast({
+          title: "אין שינויים לעדכון",
+          description: "לא בוצעו שינויים בהזמנה",
+        });
       }
-      
-      toast({
-        title: "ההזמנה עודכנה בהצלחה",
-        description: "השינויים שביצעת נשמרו במערכת",
-      });
-      
-      // Navigate back to order list
-      navigate('/orders/current');
       
     } catch (error) {
-      console.error("Unexpected error:", error);
+      console.error("Error submitting order updates:", error);
       toast({
-        title: "שגיאה לא צפויה",
-        description: "אירעה שגיאה בעת עדכון ההזמנה",
+        title: "שגיאה בעדכון ההזמנה",
+        description: "אירעה שגיאה בעדכון ההזמנה",
         variant: "destructive"
       });
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
+      setShowSubmitDialog(false);
     }
   };
-  
-  // Get the current product for the dialog
-  const currentProduct = products.find(p => p.id === selectedProduct) || null;
-  
-  // Format date for display
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('he-IL');
-  };
+
+  if (!isAuthenticated) {
+    navigate('/login');
+    return null;
+  }
+
+
 
   return (
     <MainLayout>
       <div className="container mx-auto px-4 pb-20 pt-6">
-        {/* Header with explicit RTL positioning and more spacing */}
-        <div className="flex justify-between items-center mb-6 w-full px-4">
-          <div className="ms-auto">
+        {/* Header */}
+        <div className="flex justify-center items-center mb-6 w-full px-4">
+          <div className="text-center">
             <h1 className="text-2xl font-bold">עריכת הזמנה</h1>
-          </div>
-          <div className="me-auto">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/orders/current')}
-              className="flex items-center gap-2 whitespace-nowrap mr-8"
-            >
-              <ArrowRight className="h-4 w-4" />
-              חזרה להזמנות
-            </Button>
+            {orderInfo && (
+              <div className="mt-2">
+                <p className="text-muted-foreground">
+                  תאריך אספקה: {formatDate(orderInfo.dueDate)}
+                </p>
+                <div className="mt-1 bg-gradient-to-r from-amber-100 to-orange-100 px-4 py-2 rounded-lg border border-amber-200">
+                  <p className="text-lg font-semibold text-amber-800">
+                    יום {getHebrewDayFromDate(orderInfo.dueDate)}
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <Button
+                    variant="destructive"
+                    onClick={handleCancelOrder}
+                    disabled={isCancellingOrder}
+                  >
+                    {isCancellingOrder ? 'מבטל הזמנה...' : 'ביטול הזמנה'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        
+
         {isLoading ? (
           <div className="space-y-4 mt-8">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-[150px] w-full" />
+            <Skeleton className="h-[150px] w-full" />
+            <Skeleton className="h-[150px] w-full" />
           </div>
-        ) : order ? (
-          <>
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-2 text-center">תאריך יעד להזמנה:</h3>
-              <DateSelector 
-                targetDate={targetDate} 
-                setTargetDate={setTargetDate} 
-              />
-              {targetDate && (
-                <div className="flex justify-center mt-2">
-                  <span className="text-sm bg-gray-100 px-2 py-1 rounded flex items-center">
-                    <CalendarIcon className="inline-block h-4 w-4 ml-1" />
-                    מחר: {formatDate(targetDate.toISOString())}
-                  </span>
-                </div>
-              )}
-              <p className="text-sm text-gray-500 mt-2 text-center">
-                ההזמנה תחזור על עצמה עד לתאריך היעד
-              </p>
-              
-              <div className="flex justify-center mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/orders/new', {
-                    state: {
-                      existingQuantities: quantities,
-                      existingProducts: products,
-                      fromOrderEdit: true,
-                      orderId: orderId
-                    }
-                  })}
-                  className="flex items-center gap-2"
-                >
-                  <PackageIcon className="h-4 w-4" />
-                  הוסף מוצרים להזמנה
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-4 mb-12">
-              {products
-                .filter(product => quantities[product.id] && 
-                  // Only filter by tomorrow's day if editing tomorrow's order
-                  (isTomorrowEdit 
-                    ? quantities[product.id][tomorrowDayOfWeek] > 0 
-                    : Object.values(quantities[product.id]).some(q => q > 0))
-                )
-                .map(product => (
-                  <div key={product.id} className="relative">
-                    <Card className="overflow-hidden mb-2">
-                      <div className="p-4 border-b bg-gray-50">
-                        <div className="flex justify-between items-center">
-                          <h3 className="font-medium text-lg">{product.name}</h3>
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <div className="flex flex-row-reverse justify-between items-center">
-                          <div className="rtl:ml-4">
-                            <img 
-                              src={product.image || '/placeholder.png'} 
-                              alt={product.name} 
-                              className="h-20 w-20 object-cover rounded-md shadow-sm"
-                            />
-                          </div>
-                          
-                          <div className="text-right flex-1 mx-4">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 rtl:text-right">
-                              {Object.entries(quantities[product.id] || {})
-                                .filter(([day, qty]) => qty > 0 && 
-                                  // Only filter by tomorrow's day if editing tomorrow's order
-                                  (isTomorrowEdit ? day === tomorrowDayOfWeek : true)
-                                )
-                                .map(([day, qty]) => {
-                                  // Hebrew day name mapping
-                                  const dayTranslation = {
-                                    'sunday': 'ראשון',
-                                    'monday': 'שני',
-                                    'tuesday': 'שלישי',
-                                    'wednesday': 'רביעי',
-                                    'thursday': 'חמישי',
-                                    'friday': 'שישי',
-                                    'saturday': 'שבת'
-                                  };
-                                  
-                                  const dayName = dayTranslation[day as keyof typeof dayTranslation] || day;
-                                  
-                                  return (
-                                    <div key={day} className="bg-gray-100 rounded px-2 py-1 inline-block text-sm">
-                                      <span className="font-semibold">{dayName}</span>: {qty}
-                                    </div>
-                                  );
-                                })
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                    <div className="flex justify-end mb-6">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleProductClick(product.id)}
-                        className="flex items-center gap-1"
-                      >
-                        <Edit className="h-4 w-4 ml-1" />
-                        עריכה
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-            
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center shadow-md">
-              <Button
-                variant="default"
-                size="lg"
-                onClick={handleUpdateOrder}
-                disabled={isSaving}
-                className="flex-1 max-w-xs mx-auto"
-              >
-                {isSaving ? "מעדכן..." : "שמור שינויים"}
-              </Button>
-            </div>
-            
-            <ProductDialog 
-              isOpen={isDialogOpen}
-              onClose={handleClose}
-              product={currentProduct}
-              quantities={quantities}
-              onQuantityChange={handleQuantityChange}
-              onSave={handleSave}
-              hebrewDays={hebrewDays}
-              quantityOptions={quantityOptions}
-              isTomorrowEdit={isTomorrowEdit}
-            />
-          </>
         ) : (
-          <div className="text-center py-12">
-            <h3 className="font-medium text-lg">ההזמנה לא נמצאה</h3>
-            <p className="text-muted-foreground mb-4">
-              לא ניתן למצוא את ההזמנה המבוקשת
-            </p>
-            <Button onClick={() => navigate('/dashboard')}>
-              חזרה לדף הבית
-            </Button>
+          <>
+            {/* Order items display in ProductCard style */}
+            <div className="space-y-4">
+              {orderItems.map((item, index) => {
+                const unitText = item.uom === "קר" ? "קרטון" : "יחידה";
+                const changeKey = `${item.docEntry}-${item.lineNum}`;
+                const hasPendingChange = pendingChanges[changeKey];
+                
+                return (
+                  <Card 
+                    key={`${item.docEntry}-${item.lineNum}`} 
+                    className={`overflow-hidden border cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 ${
+                      hasPendingChange ? "border-orange-500 bg-orange-50 shadow-md" : "border-gray-200 hover:border-amber-400 hover:bg-amber-50/30"
+                    }`}
+                    onClick={() => handleProductClick(item)}
+                  >
+                    <div className="flex items-stretch min-h-[100px] flex-row-reverse">
+                      
+                      {/* Product Image */}
+                      <div className="w-20 h-20 bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden rounded m-2">
+                        {products[item.itemCode]?.image ? (
+                          <img 
+                            src={products[item.itemCode].image} 
+                            alt={item.description} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <PackageIcon className="h-6 w-6 text-gray-400" />
+                        )}
+                      </div>
+                      
+                      {/* Product Info */}
+                      <div className="flex-1 p-4 text-right min-w-0 flex items-center justify-start">
+                        <div className="flex items-center gap-4 text-base flex-row-reverse w-full">
+                          {/* Quantity */}
+                          <span className="font-medium">
+                            {hasPendingChange ? pendingChanges[changeKey].quantity : item.quantity}
+                            {hasPendingChange && (
+                              <span className="text-orange-600 text-sm"> (עודכן)</span>
+                            )}
+                          </span>
+                          
+                          {/* Product Name */}
+                          <span className="flex-1 text-right">{item.description}</span>
+                          
+                          {/* Product Code */}
+                          <span className="text-gray-600 text-sm">מק"ט: {item.itemCode}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+            
+            {orderItems.length === 0 && !isLoading && (
+              <div className="text-center py-12 border rounded-lg bg-muted/20">
+                <h3 className="font-medium text-lg">אין פריטים בהזמנה</h3>
+                <p className="text-muted-foreground mb-4">
+                  ההזמנה ריקה או שכל הפריטים הוסרו
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={handleAddItems}>
+                    הוסף פריטים
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        
+        {/* Action buttons at the bottom like in NewOrder */}
+        {!isLoading && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-md">
+            <div className="flex gap-2 max-w-xs mx-auto">
+              <Button 
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2"
+                onClick={handleAddItems}
+              >
+                הוספת מוצרים להזמנה
+              </Button>
+              {orderItems.length > 0 && (
+                <Button 
+                  className={`flex-1 text-white font-medium py-2 ${hasChanges ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}`}
+                  onClick={() => setShowSubmitDialog(true)}
+                  disabled={isSubmitting || !hasChanges}
+                >
+                  {isSubmitting ? "שולח..." : hasChanges ? `בצע עדכון (${Object.keys(pendingChanges).length})` : "אין שינויים"}
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </div>
-    </MainLayout>
-  );
-};
+      
+      {/* Submit Order Confirmation Dialog */}
+      <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>עדכון הזמנה</AlertDialogTitle>
+            <AlertDialogDescription>
+              {hasChanges ? (
+                <>
+                  יש לך {Object.keys(pendingChanges).length} שינויים ממתינים. האם ברצונך לשלוח את כל השינויים למערכת?
+                  <div className="mt-2 p-2 bg-orange-50 rounded text-sm">
+                    <strong>שינויים ממתינים:</strong>
+                    <ul className="list-disc list-inside mt-1">
+                      {Object.entries(pendingChanges).map(([key, change]) => {
+                        const item = orderItems.find(i => `${i.docEntry}-${i.lineNum}` === key);
+                        return (
+                          <li key={key}>
+                            {item?.description}: כמות חדשה {change.quantity} {change.uom === "קר" ? "קרטונים" : "יחידות"}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </>
+              ) : (
+                "אין שינויים ממתינים לעדכון."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>ביטול</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleSubmitOrder();
+              }}
+              disabled={isSubmitting}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isSubmitting ? "שולח..." : "אישור ושליחה"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+                  </AlertDialogContent>
+        </AlertDialog>
 
-export default EditOrder; 
+        {/* Product Dialog */}
+        <ProductDialog
+          isOpen={isProductDialogOpen}
+          onClose={() => {
+            setIsProductDialogOpen(false);
+            setSelectedProduct(null);
+            setSelectedOrderItem(null);
+          }}
+          product={selectedProduct}
+          quantities={tempQuantities}
+          onQuantityChange={handleDialogQuantityChange}
+          onSave={handleDialogSave}
+          hebrewDays={selectedOrderItem ? getFilteredHebrewDays(selectedOrderItem) : hebrewDays}
+          quantityOptions={[]} // Not used in new dialog
+          isTomorrowEdit={isTomorrowEdit}
+        />
+      </MainLayout>
+    );
+  };
+  
+  export default EditOrder; 

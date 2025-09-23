@@ -4,9 +4,8 @@ import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight } from "lucide-react";
 import { OrderProduct } from "@/components/order/orderConstants";
-import DateSelector from "@/components/order/DateSelector";
 import EmptyOrderMessage from "@/components/order/EmptyOrderMessage";
-import { submitOrder } from "@/services/orderService";
+import { submitOrder } from "@/services/vawoOrderService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
@@ -30,7 +29,6 @@ const OrderSummaryPage = () => {
   const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
   const [products, setProducts] = useState<OrderProduct[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     // Get quantities and products from location state
@@ -118,45 +116,57 @@ const OrderSummaryPage = () => {
   };
 
   const handleSubmitOrder = async () => {
-    if (!user || !user.id) {
-      console.error("No user ID available for order");
+    if (!user) {
       toast({
-        title: "שגיאה",
-        description: "לא ניתן לשלוח הזמנה ללא משתמש מחובר",
-        variant: "destructive"
+        title: "אינך מחובר למערכת",
+        description: "יש להתחבר כדי לבצע הזמנה",
+        variant: "destructive",
       });
       return;
     }
 
-    if (!targetDate) {
+    if (!hasItems) {
       toast({
-        title: "שגיאה",
-        description: "יש לבחור תאריך יעד להזמנה",
-        variant: "destructive"
+        title: "אין פריטים בהזמנה",
+        description: "לא ניתן לשלוח הזמנה ריקה",
+        variant: "destructive",
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      console.log("Submitting order with target date:", targetDate);
-      const orderId = await submitOrder(user.id, quantities, products, targetDate);
-      if (orderId) {
+      // Submit the order using our VAWO service
+      const orderIds = await submitOrder(quantities, products);
+      
+      if (orderIds && orderIds.length > 0) {
+        // הצגת הודעה על הצלחה והישארות בדף הנוכחי
         toast({
-          title: "הזמנה נשלחה בהצלחה",
-          description: "ההזמנה שלך נקלטה במערכת",
+          title: "ההזמנות נשלחו בהצלחה",
+          description: `נוצרו ${orderIds.length} הזמנות: ${orderIds.join(", ")}. תועבר לדף הבית בעוד רגע.`,
         });
-        navigate("/dashboard");
+        
+        // המתנה קצרה לפני ניווט לדף הבית
+        setTimeout(() => {
+          navigate("/", { replace: true });
+        }, 2000);
+      } else {
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error("Error submitting order:", error);
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "אירעה שגיאה בעת שליחת ההזמנה";
+      
       toast({
         title: "שגיאה בשליחת ההזמנה",
-        description: "אירעה שגיאה בעת שליחת ההזמנה. אנא נסה שנית",
-        variant: "destructive"
+        description: errorMessage,
+        variant: "destructive",
       });
-    } finally {
+      
       setIsSubmitting(false);
     }
   };
@@ -181,37 +191,22 @@ const OrderSummaryPage = () => {
             <div className="space-y-6">
               <div className="space-y-4">
                 <h3 className="font-medium text-xl mb-4 text-right">פריטים לפי ימים:</h3>
-                {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map(dayKey => {
-                  const daySummary = dayOrderSummary.find(d => d.day === dayKey);
-                  if (!daySummary) return null;
-                  
-                  return (
-                    <div key={daySummary.day} className="flex flex-col border-b pb-4 pt-2 rtl">
-                      <div className="flex items-center mb-2 rtl text-right">
-                        <h4 className="font-medium text-lg ml-auto">יום {daySummary.dayHebrew}</h4>
-                        <span className="text-sm text-gray-500 mr-auto">סה"כ: {daySummary.totalQuantity} יח׳</span>
-                      </div>
-                      
-                      {daySummary.products.map((product, idx) => (
-                        <div key={`${daySummary.day}-${product.productId}-${idx}`} className="flex items-center my-1 text-right rtl pr-4">
-                          <span className="text-sm text-gray-700 ml-auto">{product.productName}</span>
-                          <span className="text-sm mr-auto">{product.quantity} יח׳</span>
-                        </div>
-                      ))}
+                
+                {dayOrderSummary.map((daySummary) => (
+                  <div key={daySummary.day} className="flex flex-col border-b pb-4 pt-2">
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-500">סה"כ: {daySummary.totalQuantity} יח׳</span>
+                      <h4 className="font-medium text-lg">יום {daySummary.dayHebrew}</h4>
                     </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-8">
-                <h3 className="font-medium mb-3 text-right">תאריך יעד להזמנה:</h3>
-                <DateSelector 
-                  targetDate={targetDate} 
-                  setTargetDate={setTargetDate} 
-                />
-                <p className="text-sm text-gray-500 mt-2 text-right">
-                  ההזמנה תחזור על עצמה עד לתאריך היעד
-                </p>
+                    
+                    {daySummary.products.map((product) => (
+                      <div key={product.productId} className="flex justify-between my-1 pr-4">
+                        <span className="text-sm">{product.quantity} יח׳</span>
+                        <span className="text-sm text-gray-700">{product.productName}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
@@ -219,23 +214,17 @@ const OrderSummaryPage = () => {
           )}
         </Card>
 
-        <div className="flex justify-between gap-4 mt-8">
+        <div className="flex justify-center">
           <Button 
-            className="flex-1" 
-            variant="outline"
-            onClick={handleBackToOrder}
-          >
-            חזור להזמנה
-          </Button>
-          <Button 
-            className="flex-1 bg-green-500 hover:bg-green-600" 
+            size="lg" 
+            disabled={isSubmitting || !hasItems}
             onClick={handleSubmitOrder}
-            disabled={!hasItems || !targetDate || isSubmitting}
+            className="min-w-[200px]"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                מעבד הזמנה...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                שולח הזמנה...
               </>
             ) : (
               'שלח הזמנה'

@@ -1,6 +1,7 @@
 
 import { OrderProduct } from "./orderConstants";
 import ProductCard from "./ProductCard";
+import { sortProductsByVawoCode } from "./utils/orderUtils";
 
 interface ProductsListProps {
   products: OrderProduct[];
@@ -9,9 +10,12 @@ interface ProductsListProps {
 }
 
 export default function ProductsList({ products, onSelectProduct, quantities }: ProductsListProps) {
+  // Sort products by VAWO code using utility function
+  const sortedProducts = sortProductsByVawoCode(products);
+
   return (
     <div className="space-y-4">
-      {products.map((product) => (
+      {sortedProducts.map((product) => (
         <ProductCard 
           key={product.id} 
           product={product} 

@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { OrderProduct } from "./orderConstants";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Package2 as PackageIcon, CircleDot } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface ProductCardProps {
   product: OrderProduct;
@@ -9,6 +10,14 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, onSelect, isSelected }: ProductCardProps) {
+  // קביעת טקסט יחידת המידה
+  const unitText = product.is_frozen ? "קרטון" : "יחידה";
+  
+  // טקסט כמות בקרטון (רק למוצרים קפואים)
+  const packageInfo = product.is_frozen && product.package_amount 
+    ? `${product.package_amount} יח׳ בקרטון`
+    : null;
+
   return (
     <Card 
       key={product.id}
@@ -22,6 +31,21 @@ export default function ProductCard({ product, onSelect, isSelected }: ProductCa
       />
       <div className="flex-1 p-4 text-right">
         <h3 className="font-medium">{product.name}</h3>
+        
+        <div className="mt-1 flex items-center justify-end gap-2">
+          <Badge variant={product.is_frozen ? "secondary" : "outline"} className="text-xs">
+            {product.is_frozen ? (
+              <PackageIcon className="h-3 w-3 mr-1" />
+            ) : (
+              <CircleDot className="h-3 w-3 mr-1" />
+            )}
+            {unitText}
+          </Badge>
+          
+          {packageInfo && (
+            <span className="text-xs text-gray-500">{packageInfo}</span>
+          )}
+        </div>
       </div>
       
       {isSelected && (

@@ -1,4 +1,3 @@
-
 // New type definition for order products that includes sku field
 export interface OrderProduct {
   id: string;
@@ -6,6 +5,11 @@ export interface OrderProduct {
   price: number;
   image: string;
   sku: string;
+  vawo_code?: string;    // מק"ט VAWO/SAP
+  uom?: string;          // יחידת מידה: קר/יח
+  is_frozen?: boolean;   // האם המוצר קפוא
+  package_amount?: number | string; // כמות יחידות בקרטון
+  quantity_increment?: number; // קפיצות כמות
   description?: string;
   category?: string;
   available?: boolean;
@@ -13,83 +17,6 @@ export interface OrderProduct {
   createdAt?: string;
 }
 
-// Sample products for now - in real app would come from Supabase
-export const products: OrderProduct[] = [
-  {
-    id: "110",
-    name: "פיתה אסלית פלאפל במקאה",
-    price: 15,
-    image: "/lovable-uploads/1c64f1d7-4732-4bb7-b120-01c462fcbf1b.png",
-    sku: "מק\"ט-110",
-    description: "",
-    category: "",
-    available: true,
-    featured: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "111",
-    name: "פיתה אסלית שווארמה במקאה",
-    price: 18,
-    image: "/lovable-uploads/1c64f1d7-4732-4bb7-b120-01c462fcbf1b.png",
-    sku: "מק\"ט-111",
-    description: "",
-    category: "",
-    available: true,
-    featured: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "112",
-    name: "פיתה ביס (פרוסה) במקאה",
-    price: 12,
-    image: "/lovable-uploads/1c64f1d7-4732-4bb7-b120-01c462fcbf1b.png",
-    sku: "מק\"ט-112",
-    description: "",
-    category: "",
-    available: true,
-    featured: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "113",
-    name: "פיתה אסלית קמח מלא במקאה",
-    price: 16,
-    image: "/lovable-uploads/1c64f1d7-4732-4bb7-b120-01c462fcbf1b.png",
-    sku: "מק\"ט-113",
-    description: "",
-    category: "",
-    available: true,
-    featured: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "13",
-    name: "לאפות",
-    price: 20,
-    image: "/lovable-uploads/1c64f1d7-4732-4bb7-b120-01c462fcbf1b.png",
-    sku: "מק\"ט-13",
-    description: "",
-    category: "",
-    available: true,
-    featured: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "114",
-    name: "בגט",
-    price: 10,
-    image: "/lovable-uploads/1c64f1d7-4732-4bb7-b120-01c462fcbf1b.png",
-    sku: "מק\"ט-114",
-    description: "",
-    category: "",
-    available: true,
-    featured: false,
-    createdAt: new Date().toISOString()
-  }
-];
-
-export const quantityOptions = [0, 50, 100, 150, 200, 250, 300];
 
 export const hebrewDays = [
   { id: "sunday", name: "ראשון" },
@@ -99,3 +26,11 @@ export const hebrewDays = [
   { id: "thursday", name: "חמישי" },
   { id: "friday", name: "שישי" }
 ];
+
+// Default quantity options for backward compatibility
+// This is now mainly used as a fallback - actual options are calculated in ProductDialog
+export const quantityOptions = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+// Maximum quantities for different product types
+export const MAX_FROZEN_QUANTITY = 100; // עד 100 קרטונים למוצרים קפואים
+export const MAX_FRESH_QUANTITY = 1000; // עד 1000 יחידות למוצרים טריים

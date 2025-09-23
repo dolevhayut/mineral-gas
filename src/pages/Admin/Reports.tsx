@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import SapMigrationPopup from "@/components/SapMigrationPopup";
 import { DateRangePicker } from "../../components/ui/date-range-picker";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
+import { getReports } from "@/services/vawoOrderService";
+import { ProductReportItem, CustomerReportItem, DailySalesReportItem, SummaryReportData } from "@/integrations/vawo/types";
 
 interface TopCustomer {
   customer_id: string;
@@ -47,6 +49,7 @@ interface SummaryStats {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
 
 const AdminReports = () => {
+  const [showSapPopup, setShowSapPopup] = useState(true);
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -78,177 +81,89 @@ const AdminReports = () => {
       try {
         setLoading(true);
 
-        // Format dates for Supabase queries
-        const fromDate = date.from.toISOString();
-        const toDate = date.to.toISOString();
+        // Fetch report data from VAWO API
+        const reportData = await getReports(date.from, date.to, 'all');
         
-        // Count unique customers with orders in date range
-        const { count: customersCount, error: customersError } = await supabase
-          .from('orders')
-          .select('customer_id', { count: 'exact', head: true })
-          .gte('created_at', fromDate)
-          .lte('created_at', toDate)
-          .not('customer_id', 'is', null);
+        if (!reportData) {
+          setLoading(false);
+          return;
+        }
         
-        // Get orders stats
-        const { data: ordersData, error: ordersError } = await supabase
-          .from('orders')
-          .select('total')
-          .gte('created_at', fromDate)
-          .lte('created_at', toDate);
-        
-        if (!ordersError && ordersData) {
-          const totalOrders = ordersData.length;
-          const totalRevenue = ordersData.reduce((sum, order) => sum + Number(order.total), 0);
-          const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-          
+        // Process summary stats
+        if (reportData.summary) {
           setSummaryStats({
-            total_customers: customersCount || 0,
-            total_orders: totalOrders,
-            total_revenue: totalRevenue,
-            average_order_value: averageOrderValue
+            total_customers: reportData.summary.totalCustomers,
+            total_orders: reportData.summary.totalOrders,
+            total_revenue: reportData.summary.totalRevenue,
+            average_order_value: reportData.summary.averageOrderValue
           });
         }
         
-        // Fetch top customers in date range
-        const { data: customerData, error: customerError } = await supabase
-          .from('orders')
-          .select(`
-            customer_id,
-            customers!inner(name),
-            total
-          `)
-          .gte('created_at', fromDate)
-          .lte('created_at', toDate)
-          .order('created_at', { ascending: false });
-        
-        if (customerError) {
-          console.error("Error fetching top customers:", customerError);
-          toast({
-            title: "שגיאה בטעינת נתוני לקוחות",
-            description: customerError.message,
-            variant: "destructive",
-          });
-        } else if (customerData) {
-          // Process and aggregate the data by customer
-          const customerStats: Record<string, TopCustomer> = {};
+        // Process customer stats
+        if (reportData.customerStats) {
+          const formattedCustomers = reportData.customerStats.map(item => ({
+            customer_id: item.cardCode,
+            customer_name: item.cardName,
+            order_count: item.orderCount,
+            total_amount: item.totalAmount
+          }))
+          .sort((a, b) => b.total_amount - a.total_amount)
+          .slice(0, 10);
           
-          customerData.forEach(order => {
-            const customerId = order.customer_id;
-            const customerName = order.customers.name;
-            
-            if (!customerStats[customerId]) {
-              customerStats[customerId] = {
-                customer_id: customerId,
-                customer_name: customerName,
-                order_count: 0,
-                total_amount: 0
-              };
-            }
-            
-            customerStats[customerId].order_count += 1;
-            customerStats[customerId].total_amount += Number(order.total);
-          });
-          
-          // Sort by total amount and get top 10
-          const formattedData = Object.values(customerStats)
-            .sort((a, b) => b.total_amount - a.total_amount)
-            .slice(0, 10);
-          
-          setTopCustomers(formattedData);
+          setTopCustomers(formattedCustomers);
         }
         
-        // Fetch product sales stats
-        const { data: productsData, error: productsError } = await supabase
-          .from('order_items')
-          .select(`
-            product_id,
-            products!inner(name),
-            quantity,
-            price
-          `)
-          .gte('created_at', fromDate)
-          .lte('created_at', toDate);
-        
-        if (productsError) {
-          console.error("Error fetching product stats:", productsError);
-        } else if (productsData) {
-          // Process and aggregate data by product
-          const productSalesStats: Record<string, ProductSalesStat> = {};
+        // Process product stats
+        if (reportData.productStats) {
+          const formattedProducts = reportData.productStats.map(item => ({
+            product_id: item.itemCode,
+            product_name: item.description,
+            quantity_sold: item.quantity,
+            revenue: item.revenue || 0
+          }))
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 10);
           
-          productsData.forEach(item => {
-            const productId = item.product_id;
-            const productName = item.products.name;
-            const quantity = item.quantity || 1;
-            const price = Number(item.price);
+          setProductStats(formattedProducts);
+          
+          // Process category stats (group by first word in product name as a simple approach)
+          const categoriesMap: Record<string, CategorySalesStat> = {};
+          
+          reportData.productStats.forEach(item => {
+            // Extract category from product name (first word)
+            const category = item.description.split(' ')[0] || 'אחר';
             
-            if (!productSalesStats[productId]) {
-              productSalesStats[productId] = {
-                product_id: productId,
-                product_name: productName,
+            if (!categoriesMap[category]) {
+              categoriesMap[category] = {
+                category,
                 quantity_sold: 0,
                 revenue: 0
               };
             }
             
-            productSalesStats[productId].quantity_sold += quantity;
-            productSalesStats[productId].revenue += price * quantity;
+            categoriesMap[category].quantity_sold += item.quantity;
+            categoriesMap[category].revenue += item.revenue || 0;
           });
           
-          // Sort by revenue and get top 10
-          const formattedData = Object.values(productSalesStats)
-            .sort((a, b) => b.revenue - a.revenue)
-            .slice(0, 10);
-          
-          setProductStats(formattedData);
-        }
-
-        // Fetch category sales stats
-        const { data: categoryData, error: categoryError } = await supabase
-          .from('order_items')
-          .select(`
-            products!inner(category, name),
-            quantity,
-            price
-          `)
-          .gte('created_at', fromDate)
-          .lte('created_at', toDate);
-        
-        if (categoryError) {
-          console.error("Error fetching category stats:", categoryError);
-        } else if (categoryData) {
-          // Process and aggregate data by category
-          const categorySalesStats: Record<string, CategorySalesStat> = {};
-          
-          categoryData.forEach(item => {
-            const category = item.products.category || 'אחר';
-            const quantity = item.quantity || 1;
-            const price = Number(item.price);
-            
-            if (!categorySalesStats[category]) {
-              categorySalesStats[category] = {
-                category: category,
-                quantity_sold: 0,
-                revenue: 0
-              };
-            }
-            
-            categorySalesStats[category].quantity_sold += quantity;
-            categorySalesStats[category].revenue += price * quantity;
-          });
-          
-          // Sort by revenue
-          const formattedData = Object.values(categorySalesStats)
+          const formattedCategories = Object.values(categoriesMap)
             .sort((a, b) => b.revenue - a.revenue);
           
-          setCategoryStats(formattedData);
+          setCategoryStats(formattedCategories);
         }
         
+        // Process orders stats
+        if (reportData.summary) {
+          setOrdersStats({
+            total_count: reportData.summary.totalOrders,
+            total_value: reportData.summary.totalRevenue,
+            average_value: reportData.summary.averageOrderValue
+          });
+        }
       } catch (error) {
         console.error("Error fetching report data:", error);
         toast({
-          title: "שגיאה בטעינת הדוחות",
-          description: "אירעה שגיאה בעת טעינת נתוני הדוחות. נסה שוב מאוחר יותר.",
+          title: "שגיאה בטעינת דוחות",
+          description: error instanceof Error ? error.message : "אירעה שגיאה בטעינת הדוחות",
           variant: "destructive",
         });
       } finally {
@@ -263,31 +178,31 @@ const AdminReports = () => {
     return new Intl.NumberFormat('he-IL', {
       style: 'currency',
       currency: 'ILS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 text-right" dir="rtl">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">דוחות מנהל</h1>
+    <div className="p-6" dir="rtl">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <h1 className="text-2xl font-bold mb-4 md:mb-0">דוחות ניהוליים</h1>
+        <div className="w-full md:w-auto">
+          <DateRangePicker
+            date={date}
+            onDateChange={setDate}
+            locale="he"
+            placeholder="בחר טווח תאריכים"
+          />
+        </div>
       </div>
 
-      <div className="mb-6">
-        <DateRangePicker
-          date={date}
-          onDateChange={setDate}
-          className="w-full sm:w-auto"
-          locale="he"
-          placeholder="בחר טווח תאריכים"
-        />
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="summary">סיכום</TabsTrigger>
-          <TabsTrigger value="customers">לקוחות</TabsTrigger>
           <TabsTrigger value="products">מוצרים</TabsTrigger>
           <TabsTrigger value="categories">קטגוריות</TabsTrigger>
+          <TabsTrigger value="customers">לקוחות</TabsTrigger>
         </TabsList>
 
         <TabsContent value="summary">
@@ -410,46 +325,6 @@ const AdminReports = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="customers">
-          <Card>
-            <CardHeader>
-              <CardTitle>לקוחות מובילים</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : topCustomers.length > 0 ? (
-                <>
-                  <div className="space-y-4">
-                    {topCustomers.map((customer, index) => (
-                      <div key={customer.customer_id} className="flex justify-between items-center p-4 rounded-md hover:bg-muted border-b">
-                        <div className="flex items-center gap-4 w-full">
-                          <div className="flex-shrink-0 font-bold text-lg w-6 text-center">{index + 1}</div>
-                          <div className="flex-grow">
-                            <div className="font-medium text-base">{customer.customer_name}</div>
-                            <div className="text-sm text-muted-foreground">{customer.order_count} הזמנות</div>
-                          </div>
-                          <div className="text-right font-bold text-lg">
-                            {formatCurrency(customer.total_amount)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">אין נתונים זמינים</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="products">
           <Card>
             <CardHeader>
@@ -532,7 +407,53 @@ const AdminReports = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="customers">
+          <Card>
+            <CardHeader>
+              <CardTitle>לקוחות מובילים</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : topCustomers.length > 0 ? (
+                <>
+                  <div className="space-y-4">
+                    {topCustomers.map((customer, index) => (
+                      <div key={customer.customer_id} className="flex justify-between items-center p-4 rounded-md hover:bg-muted border-b">
+                        <div className="flex items-center gap-4 w-full">
+                          <div className="flex-shrink-0 font-bold text-lg w-6 text-center">{index + 1}</div>
+                          <div className="flex-grow">
+                            <div className="font-medium text-base">{customer.customer_name}</div>
+                            <div className="text-sm text-muted-foreground">{customer.order_count} הזמנות</div>
+                          </div>
+                          <div className="text-right font-bold text-lg">
+                            {formatCurrency(customer.total_amount)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">אין נתונים זמינים</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+      
+      {/* SAP Migration Popup */}
+      <SapMigrationPopup 
+        isOpen={showSapPopup} 
+        onClose={() => setShowSapPopup(false)} 
+      />
     </div>
   );
 };
