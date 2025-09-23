@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       // First try to get the user by SAP ID only
       const { data: userBySap, error: sapError } = await supabase
-        .from('custom_users')
+        .from('customers')
         .select('*')
         .eq('sap_customer_id', sapCustomerId)
         .maybeSingle();

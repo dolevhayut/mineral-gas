@@ -9,6 +9,7 @@ import { submitOrder } from "@/services/orderService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
+import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
@@ -135,19 +136,26 @@ const OrderSummaryPage = () => {
 
     try {
       // Submit the order
-      const orderId = await submitOrder(quantities, products, user?.id);
+      const orderId = await submitOrder(quantities, products, user);
       
       if (orderId) {
-        // הצגת הודעה על הצלחה והישארות בדף הנוכחי
-        toast({
-          title: "ההזמנה נשלחה בהצלחה",
-          description: `הזמנה #${orderId} נוצרה בהצלחה. תועבר לדף הבית בעוד רגע.`,
+        // הצגת קונפטי
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
         });
         
-        // המתנה קצרה לפני ניווט לדף הבית
+        // הצגת הודעה על הצלחה
+        toast({
+          title: "🎉 הזמנה נשלחה בהצלחה!",
+          description: `הזמנה #${orderId.slice(0, 8)} נוצרה`,
+        });
+        
+        // ניווט מיידי לדף הבית
         setTimeout(() => {
-          navigate("/", { replace: true });
-        }, 2000);
+          navigate("/dashboard", { replace: true });
+        }, 1500);
       } else {
         toast({
           title: "שגיאה בשליחת ההזמנה",

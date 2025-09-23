@@ -131,11 +131,11 @@ export default function CustomUsers() {
 
   // Fetch custom users
   const { data: users, isLoading: isUsersLoading } = useQuery({
-    queryKey: ["custom_users"],
+    queryKey: ["customers"],
     queryFn: async () => {
       // First, get all custom users
       const { data: userData, error: userError } = await supabase
-        .from("custom_users")
+        .from("customers")
         .select(`*`)
         .order("created_at", { ascending: false });
 
@@ -229,7 +229,7 @@ export default function CustomUsers() {
   // Handle refresh
   const handleRefresh = () => {
     setIsRefreshing(true);
-    queryClient.invalidateQueries({ queryKey: ["custom_users"] })
+    queryClient.invalidateQueries({ queryKey: ["customers"] })
       .then(() => {
         toast({
           title: "רשימת המשתמשים עודכנה",
@@ -250,7 +250,7 @@ export default function CustomUsers() {
         if (isNewUser) {
           // Create new user
           const { data: newUser, error } = await supabase
-            .from("custom_users")
+            .from("customers")
             .insert([
               { 
                 name: user.name,
@@ -282,7 +282,7 @@ export default function CustomUsers() {
         } else {
           // Update existing user
           const { error } = await supabase
-            .from("custom_users")
+            .from("customers")
             .update({ 
               name: user.name,
               phone: user.phone,
@@ -326,7 +326,7 @@ export default function CustomUsers() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["custom_users"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast({
         title: "משתמש נשמר",
         description: "פרטי המשתמש נשמרו בהצלחה",
@@ -352,7 +352,7 @@ export default function CustomUsers() {
       setIsLoading(true);
       
       const { error } = await supabase
-        .from("custom_users")
+        .from("customers")
         .delete()
         .eq("id", userId);
         
@@ -361,7 +361,7 @@ export default function CustomUsers() {
       setIsLoading(false);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["custom_users"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast({
         title: "משתמש נמחק",
         description: "המשתמש נמחק בהצלחה",

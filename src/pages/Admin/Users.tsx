@@ -74,7 +74,7 @@ export default function Users() {
     queryKey: ["users"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("custom_users")
+        .from("customers")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -132,7 +132,7 @@ export default function Users() {
       // Check if phone already exists for new users
       if (!user.id) {
         const { data: existingUser } = await supabase
-          .from("custom_users")
+          .from("customers")
           .select("id")
           .eq("phone", user.phone)
           .maybeSingle();
@@ -153,7 +153,7 @@ export default function Users() {
       if (user.id) {
         // Update existing user
         const { error } = await supabase
-          .from("custom_users")
+          .from("customers")
           .update({ 
             name: user.name,
             phone: user.phone,
@@ -168,7 +168,7 @@ export default function Users() {
       } else {
         // Create new user
         const { error, data } = await supabase
-          .from("custom_users")
+          .from("customers")
           .insert([{ 
             name: user.name,
             phone: user.phone,
@@ -207,7 +207,7 @@ export default function Users() {
   const deleteUser = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("custom_users")
+        .from("customers")
         .delete()
         .eq("id", id);
 
@@ -233,7 +233,7 @@ export default function Users() {
   const toggleVerification = useMutation({
     mutationFn: async ({ id, is_verified }: { id: string; is_verified: boolean }) => {
       const { error } = await supabase
-        .from("custom_users")
+        .from("customers")
         .update({ is_verified })
         .eq("id", id);
 

@@ -92,7 +92,7 @@ const CustomUsersManagement = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('custom_users')
+        .from('customers')
         .select('*') as { data: CustomUser[] | null, error: PostgrestError | null };
 
       if (error) {
@@ -168,7 +168,7 @@ const CustomUsersManagement = () => {
 
       if (!error && data) {
         const { error: updateError } = await supabase
-          .from('custom_users')
+          .from('customers')
           .update({ can_order_fresh: formCanOrderFresh })
           .eq('id', data);
           
@@ -215,7 +215,7 @@ const CustomUsersManagement = () => {
         });
 
         const { error: updateError } = await supabase
-          .from('custom_users')
+          .from('customers')
           .update({ can_order_fresh: formCanOrderFresh })
           .eq('id', currentUser.id);
           
@@ -244,7 +244,7 @@ const CustomUsersManagement = () => {
         };
 
         const { error } = await supabase
-          .from('custom_users')
+          .from('customers')
           .update(updateData)
           .eq('id', currentUser.id);
 
@@ -276,7 +276,7 @@ const CustomUsersManagement = () => {
 
     try {
       const { error } = await supabase
-        .from('custom_users')
+        .from('customers')
         .delete()
         .eq('id', currentUser.id);
 
