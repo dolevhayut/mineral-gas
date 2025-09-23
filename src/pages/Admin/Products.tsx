@@ -472,7 +472,7 @@ export default function Products() {
                 )}
                 <p className="text-sm font-medium flex items-center mt-1">
                   <Badge variant={product.is_frozen ? "secondary" : "default"} className="mr-1">
-                    {product.is_frozen ? "קפוא" : "טרי"}
+                    {product.is_frozen ? "גדול" : "קטן"}
                   </Badge>
                 </p>
               </CardContent>
@@ -619,8 +619,8 @@ export default function Products() {
                   <SelectValue placeholder="בחר סוג מוצר" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="false">טרי</SelectItem>
-                  <SelectItem value="true">קפוא</SelectItem>
+                  <SelectItem value="false">בלון קטן</SelectItem>
+                  <SelectItem value="true">בלון גדול</SelectItem>
                 </SelectContent>
               </Select>
             </div>

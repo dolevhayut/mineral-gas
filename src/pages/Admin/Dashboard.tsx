@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CakeIcon, ShoppingCartIcon, UsersIcon, TrendingUpIcon, Loader2 } from "lucide-react";
+import { Fuel, ShoppingCartIcon, UsersIcon, TrendingUpIcon, Loader2, Package, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { SystemUpdatesManager } from "@/components/SystemUpdatesManager";
@@ -201,7 +201,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">סה״כ מוצרים</CardTitle>
-            <CakeIcon className="h-4 w-4 text-muted-foreground" />
+            <Fuel className="h-4 w-4 text-bottle-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{dashboardData?.productsCount || 0}</div>

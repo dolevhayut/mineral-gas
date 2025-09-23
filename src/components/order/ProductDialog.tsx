@@ -65,7 +65,7 @@ export default function ProductDialog({
       }
       return options;
     } 
-    // עבור מוצרים טריים - לפי quantity_increment עד MAX_FRESH_QUANTITY
+    // עבור בלונים רגילים - לפי quantity_increment עד MAX_FRESH_QUANTITY
     else {
       const increment = product.quantity_increment || 1;
       const options = [0];

@@ -27,39 +27,23 @@ import Calendar from "@/pages/Calendar";
 import Home from "@/pages/Home";
 
 // Admin Components & Pages
-import AdminLayout from "@/components/AdminLayout";
+import AdminLogin from "@/pages/Admin/AdminLogin";
+import AdminLayout from "@/pages/Admin/AdminLayout";
 import Dashboard from "@/pages/Admin/Dashboard";
 import Products from "@/pages/Admin/Products";
 import ProductsManagement from "@/pages/Admin/ProductsManagement";
 import Orders from "@/pages/Admin/Orders";
-import CustomUsers from "@/pages/Admin/CustomUsers";
-import CustomUsersManagement from "@/pages/Admin/CustomUsersManagement";
 import Customers from "@/pages/Admin/Customers";
 import AdminSettings from "@/pages/Admin/Settings";
-import Users from "@/pages/Admin/Users";
-import UsersManagement from "@/pages/Admin/UsersManagement";
 import AdminReports from "@/pages/Admin/Reports";
 import AdminOrders from "@/pages/Admin/Orders";
 import OrdersManagement from "@/pages/Admin/OrdersManagement";
+import ServiceRequests from "@/pages/Admin/ServiceRequests";
 import UserSettings from "@/pages/UserSettings";
 import Settings from "@/pages/Settings";
 import EditProfile from "@/pages/EditProfile";
 import ServiceRequest from "@/pages/ServiceRequest";
 
-// RequireAuth component
-function RequireAuth({ children }: { children: ReactNode }) {
-  const { isAuthenticated, user } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (!user?.role || user.role !== "admin") {
-    return <Navigate to="/catalog" replace />;
-  }
-
-  return <>{children}</>;
-}
 
 // HomePage component - now shows login page directly
 function HomePage() {
@@ -101,28 +85,23 @@ function AppContent() {
           <Route path="/service-request" element={<ServiceRequest />} />
 
           {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLogin />} />
           <Route
             path="/admin/*"
             element={
-              <RequireAuth>
-                <AdminLayout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="dashboard" element={<Dashboard />} />
-                    <Route path="products" element={<Products />} />
-                    <Route path="products/manage" element={<ProductsManagement />} />
-                    <Route path="orders" element={<AdminOrders />} />
-                    <Route path="orders/manage" element={<OrdersManagement />} />
-                    <Route path="customers" element={<Customers />} />
-                    <Route path="users" element={<Users />} />
-                    <Route path="users/manage" element={<UsersManagement />} />
-                    <Route path="custom-users" element={<CustomUsers />} />
-                    <Route path="custom-users/manage" element={<CustomUsersManagement />} />
-                    <Route path="settings" element={<AdminSettings />} />
-                    <Route path="reports" element={<AdminReports />} />
-                  </Routes>
-                </AdminLayout>
-              </RequireAuth>
+              <AdminLayout>
+                <Routes>
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="products" element={<Products />} />
+                  <Route path="products/manage" element={<ProductsManagement />} />
+                  <Route path="orders" element={<AdminOrders />} />
+                  <Route path="orders/manage" element={<OrdersManagement />} />
+                  <Route path="customers" element={<Customers />} />
+                  <Route path="service-requests" element={<ServiceRequests />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                  <Route path="reports" element={<AdminReports />} />
+                </Routes>
+              </AdminLayout>
             }
           />
 

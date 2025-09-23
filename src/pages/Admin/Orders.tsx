@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { SearchIcon, EyeIcon, Loader2Icon, FilterIcon, UserIcon, CalendarIcon, PackageIcon } from "lucide-react";
+import { SearchIcon, EyeIcon, Loader2Icon, FilterIcon, UserIcon, CalendarIcon, PackageIcon, Phone, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -38,8 +38,7 @@ interface OrderItem {
   product_id: string;
   quantity: number;
   price: number;
-  day_of_week: string;
-  product: {
+  products: {
     name: string;
   };
 }
@@ -50,29 +49,36 @@ interface Order {
   status: string;
   total: number;
   created_at: string;
-  customer: {
+  delivery_address?: string;
+  customers: {
     name: string;
+    phone: string;
   };
   order_items: OrderItem[];
 }
 
-const statusMap = {
-  pending: { label: "ממתין", color: "default" },
-  processing: { label: "בהכנה", color: "secondary" },
-  completed: { label: "הושלם", color: "outline" },
-  cancelled: { label: "בוטל", color: "destructive" },
+const statusMap: Record<string, { label: string; color: "default" | "secondary" | "outline" | "destructive" }> = {
+  pending: { label: "ממתינה", color: "default" },
+  in_progress: { label: "בטיפול", color: "secondary" },
+  completed: { label: "הושלמה", color: "outline" },
+  cancelled: { label: "בוטלה", color: "destructive" },
 };
 
-// Map of English day names to Hebrew day names for display
-const dayNameMap: Record<string, string> = {
-  sunday: "ראשון",
-  monday: "שני",
-  tuesday: "שלישי",
-  wednesday: "רביעי",
-  thursday: "חמישי",
-  friday: "שישי",
-  saturday: "שבת",
+// חישוב מע"מ - ברירת מחדל 17%
+const VAT_PERCENTAGE = 17;
+
+const calculateVAT = (total: number, vatPercentage: number = VAT_PERCENTAGE) => {
+  // המחיר כולל מע"מ, לכן נחלץ את סכום המע"מ
+  const vatAmount = total - (total / (1 + vatPercentage / 100));
+  const priceBeforeVAT = total - vatAmount;
+  
+  return {
+    priceBeforeVAT: priceBeforeVAT.toFixed(2),
+    vatAmount: vatAmount.toFixed(2),
+    total: total.toFixed(2)
+  };
 };
+
 
 export default function Orders() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,18 +97,17 @@ export default function Orders() {
         .from("orders")
         .select(`
           *,
-          customer:customers(
+          customers!inner(
             id,
             name,
-            user_id
+            phone
           ),
           order_items(
             id,
             product_id,
             quantity,
             price,
-            day_of_week,
-            product:products(name)
+            products(name)
           )
         `)
         .order("created_at", { ascending: false });
@@ -153,7 +158,7 @@ export default function Orders() {
 
   const filteredOrders = orders?.filter((order) => {
     const matchesSearch = 
-      order.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.customers.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.id.includes(searchQuery);
       
     const matchesStatus = filterStatus === "all" || order.status === filterStatus;
@@ -186,56 +191,6 @@ export default function Orders() {
     return name[0];
   };
 
-  // Process order items to group by day
-  const groupOrderItemsByDay = (orderItems: OrderItem[]) => {
-    const groupedByDay: Record<string, {
-      day: string;
-      dayHebrew: string;
-      items: {
-        id: string;
-        productName: string;
-        quantity: number;
-        price: number;
-      }[];
-      totalQuantity: number;
-    }> = {};
-
-    orderItems.forEach(item => {
-      const day = item.day_of_week;
-      if (!groupedByDay[day]) {
-        groupedByDay[day] = {
-          day,
-          dayHebrew: dayNameMap[day] || day,
-          items: [],
-          totalQuantity: 0
-        };
-      }
-
-      groupedByDay[day].items.push({
-        id: item.id,
-        productName: item.product.name,
-        quantity: item.quantity,
-        price: item.price
-      });
-
-      groupedByDay[day].totalQuantity += item.quantity;
-    });
-
-    // Sort days according to week order
-    const dayOrder: Record<string, number> = {
-      sunday: 0,
-      monday: 1,
-      tuesday: 2,
-      wednesday: 3,
-      thursday: 4,
-      friday: 5,
-      saturday: 6
-    };
-
-    return Object.values(groupedByDay).sort((a, b) => {
-      return (dayOrder[a.day] || 99) - (dayOrder[b.day] || 99);
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -292,28 +247,31 @@ export default function Orders() {
             <Card key={order.id} className="overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">הזמנה #{order.id.slice(0, 8)}</CardTitle>
-                    <CardDescription className="flex items-center mt-1">
-                      <Badge variant={statusMap[order.status as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
-                        {statusMap[order.status as keyof typeof statusMap].label}
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{order.customers.name}</CardTitle>
+                    <CardDescription className="flex items-center mt-1 gap-2">
+                      <Badge variant={statusMap[order.status]?.color || "default"}>
+                        {statusMap[order.status]?.label || order.status}
                       </Badge>
+                      <span className="text-xs">₪{order.total}</span>
                     </CardDescription>
                   </div>
-                  <p className="text-xl font-bold">₪{order.total}</p>
                 </div>
               </CardHeader>
               
               <CardContent className="pb-2">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8 bg-primary/10">
-                      <AvatarFallback>{getCustomerInitials(order.customer.name)}</AvatarFallback>
-                    </Avatar>
-                    <div className="text-sm">
-                      <span className="font-medium">{order.customer.name}</span>
-                    </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span dir="ltr">{order.customers.phone}</span>
                   </div>
+                  
+                  {order.delivery_address && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <span className="flex-1">{order.delivery_address}</span>
+                    </div>
+                  )}
                   
                   <div className="flex items-center text-sm text-muted-foreground gap-1">
                     <CalendarIcon className="h-4 w-4" />
@@ -375,7 +333,7 @@ export default function Orders() {
           {selectedOrder && (
             <>
               <DialogHeader>
-                <DialogTitle>פרטי הזמנה #{selectedOrder.id.slice(0, 8)}</DialogTitle>
+                <DialogTitle>פרטי הזמנה</DialogTitle>
                 <DialogDescription className="flex items-center">
                   <Badge variant={statusMap[selectedOrder.status as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
                     {statusMap[selectedOrder.status as keyof typeof statusMap].label}
@@ -389,11 +347,10 @@ export default function Orders() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 bg-primary/10">
-                    <AvatarFallback>{getCustomerInitials(selectedOrder.customer.name)}</AvatarFallback>
+                    <AvatarFallback>{getCustomerInitials(selectedOrder.customers.name)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-medium">{selectedOrder.customer.name}</h3>
-                    <p className="text-sm text-muted-foreground">לקוח #{selectedOrder.customer_id.slice(0, 8)}</p>
+                    <h3 className="font-medium">{selectedOrder.customers.name}</h3>
                   </div>
                 </div>
                 
@@ -402,25 +359,31 @@ export default function Orders() {
                 {/* Order Summary Layout similar to OrderSummaryPage */}
                 <Card className="p-4 shadow-sm">
                   <div className="space-y-4">
-                    <h3 className="font-medium text-xl mb-4 text-right">פריטים לפי ימים:</h3>
+                    <h3 className="font-medium text-xl mb-4 text-right">פריטי ההזמנה:</h3>
                     
-                    {groupOrderItemsByDay(selectedOrder.order_items).map((daySummary) => (
-                      <div key={daySummary.day} className="flex flex-col border-b pb-4 pt-2">
-                        <div className="flex justify-between mb-2">
-                          <span className="text-sm text-gray-500">סה"כ: {daySummary.totalQuantity} יח׳</span>
-                          <h4 className="font-medium text-lg">יום {daySummary.dayHebrew}</h4>
+                    {selectedOrder.order_items.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                        <div className="flex-1">
+                          <span className="font-medium">{item.products.name}</span>
                         </div>
-                        
-                        {daySummary.items.map((item) => (
-                          <div key={item.id} className="flex justify-between my-1 pr-4">
-                            <span className="text-sm">{item.quantity} יח׳ × ₪{item.price}</span>
-                            <span className="text-sm text-gray-700">{item.productName}</span>
-                          </div>
-                        ))}
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm text-gray-600">{item.quantity} יח׳</span>
+                          <span className="text-sm">₪{item.price}</span>
+                          <span className="font-medium">₪{(item.quantity * item.price).toFixed(2)}</span>
+                        </div>
                       </div>
                     ))}
                     
-                    <div className="bg-muted p-3 rounded-md">
+                    <div className="bg-muted p-3 rounded-md space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <p>סכום לפני מע״מ:</p>
+                        <p>₪{calculateVAT(selectedOrder.total).priceBeforeVAT}</p>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <p>מע״מ ({VAT_PERCENTAGE}%):</p>
+                        <p>₪{calculateVAT(selectedOrder.total).vatAmount}</p>
+                      </div>
+                      <Separator className="my-2" />
                       <div className="flex justify-between">
                         <p className="font-medium">סה״כ לתשלום:</p>
                         <p className="font-bold text-lg">₪{selectedOrder.total}</p>

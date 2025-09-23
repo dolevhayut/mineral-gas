@@ -32,5 +32,5 @@ export const hebrewDays = [
 export const quantityOptions = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 // Maximum quantities for different product types
-export const MAX_FROZEN_QUANTITY = 100; // עד 100 קרטונים למוצרים קפואים
-export const MAX_FRESH_QUANTITY = 1000; // עד 1000 יחידות למוצרים טריים
+export const MAX_FROZEN_QUANTITY = 100; // עד 100 בלונים גדולים
+export const MAX_FRESH_QUANTITY = 1000; // עד 1000 בלונים קטנים

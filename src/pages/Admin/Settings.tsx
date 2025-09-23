@@ -26,6 +26,7 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string>("/assets/logo.png");
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [vatPercentage, setVatPercentage] = useState(18);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,7 +96,7 @@ export default function Settings() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="store-description">תיאור החנות</Label>
-              <Input id="store-description" defaultValue="קונדיטוריה מתוקה" />
+              <Input id="store-description" defaultValue="אספקת גז ביתי" />
             </div>
             <div className="space-y-2">
               <Label>לוגו החנות</Label>
@@ -162,6 +163,43 @@ export default function Settings() {
                   <SelectItem value="EUR">€ אירו</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>הגדרות מס</CardTitle>
+            <CardDescription>הגדרות מע"מ ומיסים</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="vat-percentage">אחוז מע"מ</Label>
+              <div className="flex items-center gap-2">
+                <Input 
+                  id="vat-percentage" 
+                  type="number" 
+                  value={vatPercentage}
+                  onChange={(e) => setVatPercentage(Number(e.target.value))}
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                אחוז המע"מ הנוכחי בישראל הוא 17%
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>הצג פירוט מע"מ בהזמנות</Label>
+                <p className="text-sm text-muted-foreground">
+                  הצג את סכום המע"מ בנפרד בסיכום ההזמנה
+                </p>
+              </div>
+              <Switch defaultChecked />
             </div>
           </CardContent>
         </Card>

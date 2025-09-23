@@ -766,7 +766,7 @@ const Calendar = () => {
                       <CircleDot className="h-3 w-3 mr-1" />
                       יחידה
                     </Badge>
-                    <span>מוצרים טריים</span>
+                    <span>בלוני גז</span>
                   </div>
                 </div>
                 

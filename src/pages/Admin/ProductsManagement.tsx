@@ -119,7 +119,7 @@ const ProductsManagement = () => {
           <h1 className="text-3xl font-serif font-bold">Products Management</h1>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-bakery-600 hover:bg-bakery-700">
+              <Button className="bg-bottle-600 hover:bg-bottle-700">
                 <PlusCircleIcon className="mr-2 h-4 w-4" />
                 Add Product
               </Button>
@@ -197,7 +197,7 @@ const ProductsManagement = () => {
                       description: "New product has been created successfully.",
                     });
                   }}
-                  className="bg-bakery-600 hover:bg-bakery-700"
+                  className="bg-bottle-600 hover:bg-bottle-700"
                 >
                   Add Product
                 </Button>
@@ -397,7 +397,7 @@ const ProductsManagement = () => {
                   description: "The product has been updated successfully.",
                 });
               }}
-              className="bg-bakery-600 hover:bg-bakery-700"
+              className="bg-bottle-600 hover:bg-bottle-700"
             >
               Save Changes
             </Button>

@@ -51,28 +51,21 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-interface User {
-  id: string;
-  name: string;
-  phone: string;
-}
-
 interface Customer {
   id: string;
   name: string;
   phone?: string;
-  user_id?: string;
   address?: string;
   notes?: string;
   active_orders_count?: number;
   total_orders_count?: number;
-  can_order_fresh?: boolean;
   discount_percentage?: number;
-  associated_user?: {
-    id: string;
-    name: string;
-    phone: string;
-  } | null;
+  city?: string;
+  business_type?: string;
+  customer_type?: string;
+  created_at?: string;
+  updated_at?: string;
+  open_balance?: number;
 }
 
 export default function Customers() {
@@ -84,8 +77,6 @@ export default function Customers() {
   const [currentCustomer, setCurrentCustomer] = useState<Partial<Customer>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [isUsersLoading, setIsUsersLoading] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -114,41 +105,37 @@ export default function Customers() {
         return [];
       }
 
-      // For each customer, get their associated user and order counts
+      // For each customer, get their order counts and open balance
       const customersWithDetails = [];
       
       for (const customer of customerData) {
         // Get active orders count (status = 'pending')
-        const { data: activeOrdersData, error: activeOrdersError } = await supabase
+        const { count: activeOrdersCount } = await supabase
           .from("orders")
-          .select("id", { count: "exact" })
+          .select("*", { count: "exact", head: true })
           .eq("customer_id", customer.id)
           .eq("status", "pending");
         
         // Get total orders count
-        const { data: totalOrdersData, error: totalOrdersError } = await supabase
+        const { count: totalOrdersCount } = await supabase
           .from("orders")
-          .select("id", { count: "exact" })
+          .select("*", { count: "exact", head: true })
           .eq("customer_id", customer.id);
         
-        // Get associated user
-        let associatedUser = null;
-        if (customer.user_id) {
-          const { data: userData } = await supabase
-            .from("custom_users")
-            .select("id, name, phone, can_order_fresh")
-            .eq("id", customer.user_id)
-            .maybeSingle();
-          
-          associatedUser = userData;
-        }
+        // Calculate open balance (orders that are not completed or cancelled)
+        const { data: openOrders } = await supabase
+          .from("orders")
+          .select("total")
+          .eq("customer_id", customer.id)
+          .in("status", ["pending", "delivered"]);
+        
+        const openBalance = openOrders?.reduce((sum, order) => sum + (Number(order.total) || 0), 0) || 0;
         
         customersWithDetails.push({
           ...customer,
-          active_orders_count: activeOrdersData?.length || 0,
-          total_orders_count: totalOrdersData?.length || 0,
-          can_order_fresh: associatedUser?.can_order_fresh || false,
-          associated_user: associatedUser
+          active_orders_count: activeOrdersCount || 0,
+          total_orders_count: totalOrdersCount || 0,
+          open_balance: openBalance,
         });
       }
       
@@ -156,35 +143,6 @@ export default function Customers() {
     },
   });
 
-  // Fetch users for dropdown
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setIsUsersLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("custom_users")
-          .select("id, name, phone")
-          .order("name");
-
-        if (error) throw error;
-        if (data) {
-          setUsers(data);
-        }
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        toast({
-          title: "שגיאה בטעינת משתמשים",
-          description: errorMessage,
-          variant: "destructive",
-          duration: 3000,
-        });
-      } finally {
-        setIsUsersLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, []);
 
   // Handle refresh
   const handleRefresh = () => {
@@ -204,9 +162,13 @@ export default function Customers() {
     mutationFn: async (customer: Partial<Customer>) => {
       const isNewCustomer = !customer.id;
       
-      // Check if user_id is provided
-      if (!customer.user_id) {
-        throw new Error("חובה לבחור משתמש משויך");
+      // Check if required fields are provided
+      if (!customer.name) {
+        throw new Error("חובה להזין שם לקוח");
+      }
+      
+      if (!customer.phone) {
+        throw new Error("חובה להזין מספר טלפון");
       }
       
       setIsLoading(true);
@@ -214,7 +176,7 @@ export default function Customers() {
       // Parse discount_percentage to ensure it's a number
       const discount = customer.discount_percentage !== undefined 
         ? Number(customer.discount_percentage) 
-        : null;
+        : 0;
       
       if (isNewCustomer) {
         // Create new customer
@@ -224,8 +186,10 @@ export default function Customers() {
             name: customer.name,
             phone: customer.phone,
             address: customer.address,
+            city: customer.city,
             notes: customer.notes,
-            user_id: customer.user_id,
+            business_type: customer.business_type || 'residential',
+            customer_type: customer.customer_type || 'active',
             discount_percentage: discount
           }]);
           
@@ -238,8 +202,10 @@ export default function Customers() {
             name: customer.name,
             phone: customer.phone,
             address: customer.address,
+            city: customer.city,
             notes: customer.notes,
-            user_id: customer.user_id,
+            business_type: customer.business_type,
+            customer_type: customer.customer_type,
             discount_percentage: discount
           })
           .eq("id", customer.id);
@@ -308,7 +274,9 @@ export default function Customers() {
   const filteredCustomers = customers?.filter((customer) =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (customer.phone && customer.phone.includes(searchQuery)) ||
-    (customer.address && customer.address.toLowerCase().includes(searchQuery.toLowerCase()))
+    (customer.address && customer.address.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (customer.city && customer.city.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (customer.notes && customer.notes.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleEditCustomer = (customer: Customer) => {
@@ -340,9 +308,6 @@ export default function Customers() {
     const isOpen = isAdd ? isAddDialogOpen : isEditDialogOpen;
     const setIsOpen = isAdd ? setIsAddDialogOpen : setIsEditDialogOpen;
     
-    // Find the selected user name for display
-    const selectedUser = users.find(user => user.id === currentCustomer.user_id);
-    
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
@@ -354,52 +319,6 @@ export default function Customers() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="user_id" className="flex items-center">
-                משתמש משויך <span className="text-red-500 mr-1">*</span>
-              </Label>
-              <div className="rtl-select">
-                <Select 
-                  value={currentCustomer.user_id || ""}
-                  onValueChange={(value) => setCurrentCustomer({ 
-                    ...currentCustomer, 
-                    user_id: value,
-                    // Auto-fill name and phone if this is a new customer
-                    ...(isAdd && {
-                      name: users.find(user => user.id === value)?.name || "",
-                      phone: users.find(user => user.id === value)?.phone || ""
-                    })
-                  })}
-                >
-                  <SelectTrigger id="user_id" className={!currentCustomer.user_id ? "text-muted-foreground" : ""}>
-                    <SelectValue placeholder="בחר משתמש" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isUsersLoading ? (
-                      <div className="flex items-center justify-center p-2">
-                        <Loader2Icon className="h-4 w-4 animate-spin ml-2" />
-                        טוען משתמשים...
-                      </div>
-                    ) : (
-                      users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          <div className="flex flex-col">
-                            <span>{user.name}</span>
-                            <span className="text-xs text-muted-foreground">{user.phone}</span>
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              {selectedUser && (
-                <div className="text-sm text-muted-foreground">
-                  {selectedUser.phone}
-                </div>
-              )}
-            </div>
-            
-            <div className="grid gap-2">
               <Label htmlFor="name">שם הלקוח <span className="text-red-500 mr-1">*</span></Label>
               <Input
                 id="name"
@@ -409,7 +328,7 @@ export default function Customers() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="phone">טלפון</Label>
+              <Label htmlFor="phone">טלפון <span className="text-red-500 mr-1">*</span></Label>
               <Input
                 id="phone"
                 placeholder="הכנס מספר טלפון"
@@ -427,13 +346,48 @@ export default function Customers() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="notes">הערות</Label>
+              <Label htmlFor="city">עיר</Label>
               <Input
-                id="notes"
-                placeholder="הערות נוספות"
-                value={currentCustomer.notes || ""}
-                onChange={(e) => setCurrentCustomer({ ...currentCustomer, notes: e.target.value })}
+                id="city"
+                placeholder="הכנס עיר"
+                value={currentCustomer.city || ""}
+                onChange={(e) => setCurrentCustomer({ ...currentCustomer, city: e.target.value })}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="business_type">סוג עסק</Label>
+              <Select
+                value={currentCustomer.business_type || "residential"}
+                onValueChange={(value) => setCurrentCustomer({ ...currentCustomer, business_type: value })}
+              >
+                <SelectTrigger id="business_type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="residential">פרטי</SelectItem>
+                  <SelectItem value="commercial">עסקי</SelectItem>
+                  <SelectItem value="industrial">תעשייתי</SelectItem>
+                  <SelectItem value="restaurant">מסעדה</SelectItem>
+                  <SelectItem value="hotel">מלון</SelectItem>
+                  <SelectItem value="other">אחר</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="customer_type">סטטוס לקוח</Label>
+              <Select
+                value={currentCustomer.customer_type || "active"}
+                onValueChange={(value) => setCurrentCustomer({ ...currentCustomer, customer_type: value })}
+              >
+                <SelectTrigger id="customer_type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">פעיל</SelectItem>
+                  <SelectItem value="suspended">מושעה</SelectItem>
+                  <SelectItem value="inactive">לא פעיל</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="discount_percentage">אחוז הנחה</Label>
@@ -455,7 +409,7 @@ export default function Customers() {
             <Button 
               type="submit" 
               onClick={() => saveCustomer.mutate(currentCustomer)}
-              disabled={isLoading || !currentCustomer.name || !currentCustomer.user_id}
+              disabled={isLoading || !currentCustomer.name || !currentCustomer.phone}
             >
               {isLoading && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
               שמור
@@ -493,7 +447,7 @@ export default function Customers() {
       <div className="relative">
         <SearchIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
-          placeholder="חפש לפי שם, טלפון או כתובת..."
+          placeholder="חפש לפי שם, טלפון, עיר או הערות..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-3 pr-10"
@@ -515,12 +469,13 @@ export default function Customers() {
                     <TableRow>
                       <TableHead className="whitespace-nowrap">שם הלקוח</TableHead>
                       <TableHead className="whitespace-nowrap">טלפון</TableHead>
-                      <TableHead className="whitespace-nowrap">כתובת</TableHead>
-                      <TableHead className="whitespace-nowrap">מוצרים טריים</TableHead>
-                      <TableHead className="whitespace-nowrap">אחוז הנחה</TableHead>
+                      <TableHead className="whitespace-nowrap">עיר</TableHead>
+                      <TableHead className="whitespace-nowrap">סוג לקוח</TableHead>
+                      <TableHead className="whitespace-nowrap">סטטוס</TableHead>
+                      <TableHead className="whitespace-nowrap">חוב פתוח</TableHead>
+                      <TableHead className="whitespace-nowrap">הנחה</TableHead>
                       <TableHead className="whitespace-nowrap">הזמנות פעילות</TableHead>
-                      <TableHead className="whitespace-nowrap">סה"כ הזמנות</TableHead>
-                      <TableHead className="whitespace-nowrap">משתמש משויך</TableHead>
+                      <TableHead className="whitespace-nowrap">הערות</TableHead>
                       <TableHead className="whitespace-nowrap">פעולות</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -542,12 +497,34 @@ export default function Customers() {
                           ) : "-"}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {customer.address || "-"}
+                          {customer.city || "-"}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          <Badge variant={customer.can_order_fresh ? "default" : "destructive"}>
-                            {customer.can_order_fresh ? "רשאי" : "אינו רשאי"}
+                          <Badge variant={customer.business_type === "residential" ? "secondary" : "default"}>
+                            {customer.business_type === "residential" ? "פרטי" : 
+                             customer.business_type === "commercial" ? "עסקי" :
+                             customer.business_type === "industrial" ? "תעשייתי" :
+                             customer.business_type === "restaurant" ? "מסעדה" :
+                             customer.business_type === "hotel" ? "מלון" : "אחר"}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Badge 
+                            variant={customer.customer_type === "active" ? "default" : 
+                                   customer.customer_type === "suspended" ? "destructive" : "secondary"}
+                          >
+                            {customer.customer_type === "active" ? "פעיל" :
+                             customer.customer_type === "suspended" ? "מושעה" : "לא פעיל"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {customer.open_balance ? (
+                            <span className="text-red-600 font-medium">
+                              ₪{customer.open_balance.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span className="text-green-600">₪0.00</span>
+                          )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {customer.discount_percentage ? 
@@ -560,22 +537,10 @@ export default function Customers() {
                             {customer.active_orders_count}
                           </Badge>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {customer.total_orders_count}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {customer.associated_user ? (
-                            <div>
-                              <div className="font-medium">{customer.associated_user.name}</div>
-                              {customer.associated_user.phone && (
-                                <div className="text-xs text-muted-foreground">
-                                  {customer.associated_user.phone}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
+                        <TableCell className="max-w-[200px]">
+                          <span className="text-sm text-muted-foreground truncate block" title={customer.notes || ""}>
+                            {customer.notes || "-"}
+                          </span>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           <div className="flex gap-2">
@@ -599,7 +564,7 @@ export default function Customers() {
                     
                     {filteredCustomers?.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} className="h-24 text-center">
+                        <TableCell colSpan={10} className="h-24 text-center">
                           לא נמצאו לקוחות
                         </TableCell>
                       </TableRow>
@@ -620,8 +585,12 @@ export default function Customers() {
                       <BuildingIcon className="h-4 w-4 ml-2 text-muted-foreground" />
                       {customer.name}
                     </CardTitle>
-                    <Badge variant={customer.can_order_fresh ? "default" : "destructive"}>
-                      {customer.can_order_fresh ? "טרי" : "קפוא"}
+                    <Badge 
+                      variant={customer.customer_type === "active" ? "default" : 
+                             customer.customer_type === "suspended" ? "destructive" : "secondary"}
+                    >
+                      {customer.customer_type === "active" ? "פעיל" :
+                       customer.customer_type === "suspended" ? "מושעה" : "לא פעיל"}
                     </Badge>
                   </div>
                   {customer.phone && (
@@ -634,17 +603,30 @@ export default function Customers() {
                 <CardContent className="pb-4 pt-0">
                   <div className="grid grid-cols-2 gap-2 mb-4">
                     <div>
+                      <div className="text-xs text-muted-foreground">סוג לקוח</div>
+                      <div className="text-sm font-medium mt-1">
+                        {customer.business_type === "residential" ? "פרטי" : 
+                         customer.business_type === "commercial" ? "עסקי" :
+                         customer.business_type === "industrial" ? "תעשייתי" :
+                         customer.business_type === "restaurant" ? "מסעדה" :
+                         customer.business_type === "hotel" ? "מלון" : "אחר"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">חוב פתוח</div>
+                      <div className="text-sm font-medium mt-1">
+                        {customer.open_balance ? (
+                          <span className="text-red-600">₪{customer.open_balance.toFixed(2)}</span>
+                        ) : (
+                          <span className="text-green-600">₪0.00</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
                       <div className="text-xs text-muted-foreground">הזמנות פעילות</div>
                       <div className="text-sm font-medium flex items-center mt-1">
                         <ShoppingBagIcon className="h-4 w-4 ml-1 text-blue-500" />
                         {customer.active_orders_count || 0}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">סה"כ הזמנות</div>
-                      <div className="text-sm font-medium flex items-center mt-1">
-                        <PackageIcon className="h-4 w-4 ml-1 text-muted-foreground" />
-                        {customer.total_orders_count || 0}
                       </div>
                     </div>
                     <div>
@@ -657,23 +639,17 @@ export default function Customers() {
                       </div>
                     </div>
                     
-                    {customer.associated_user && (
-                      <div className="col-span-2 mt-2 p-3 bg-muted rounded-md">
-                        <div className="text-xs font-medium mb-1">משתמש משויך:</div>
-                        <div className="text-sm font-bold">{customer.associated_user.name}</div>
-                        {customer.associated_user.phone && (
-                          <div className="text-xs text-muted-foreground flex items-center mt-1">
-                            <PhoneIcon className="h-3 w-3 ml-1" />
-                            {customer.associated_user.phone}
-                          </div>
-                        )}
+                    {customer.city && (
+                      <div className="col-span-2">
+                        <div className="text-xs text-muted-foreground">עיר</div>
+                        <div className="text-sm">{customer.city}</div>
                       </div>
                     )}
                     
-                    {customer.address && (
-                      <div className="col-span-2 mt-1">
-                        <div className="text-xs text-muted-foreground">כתובת</div>
-                        <div className="text-sm">{customer.address}</div>
+                    {customer.notes && (
+                      <div className="col-span-2 mt-2 p-3 bg-muted rounded-md">
+                        <div className="text-xs font-medium mb-1">הערות:</div>
+                        <div className="text-sm">{customer.notes}</div>
                       </div>
                     )}
                   </div>

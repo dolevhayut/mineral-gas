@@ -108,6 +108,16 @@ export const submitOrder = async (
       }
     }
     
+    // Send webhook notification
+    try {
+      await supabase.functions.invoke('send-order-webhook', {
+        body: { orderId }
+      });
+    } catch (webhookError) {
+      console.error("Error sending webhook:", webhookError);
+      // Don't fail the order if webhook fails
+    }
+
     toast({
       title: "הזמנה נשלחה בהצלחה",
       description: "ההזמנה שלך התקבלה ותטופל בהקדם",
