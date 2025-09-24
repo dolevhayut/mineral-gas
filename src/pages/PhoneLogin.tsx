@@ -117,14 +117,15 @@ const PhoneLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-bottle-50 to-white">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-br from-gray-50 to-white">
+      <div className="flex justify-center mb-8">
+        <img src="/assets/logo.png" alt="מינרל גז - אביגל טורג'מן" className="h-24 w-auto" />
+      </div>
       <Card className="w-full max-w-md mx-auto shadow-lg">
         <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <img src="/assets/logo.png" alt="מינרל גז - אביגל טורג'מן" className="h-24 w-auto" />
-          </div>
-          <CardDescription>
-            התחברות למערכת ההזמנות
+          <CardTitle className="text-xl text-black">ברוכים הבאים</CardTitle>
+          <CardDescription className="text-lg text-black">
+            לביצוע הזמנה יש להתחבר למערכת
           </CardDescription>
         </CardHeader>
         
@@ -176,7 +177,7 @@ const PhoneLogin = () => {
                     type="button"
                     variant={selectedMethod === 'sms' ? 'default' : 'outline'}
                     onClick={() => setSelectedMethod('sms')}
-                    className={`flex-1 ${selectedMethod === 'sms' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+                    className={`flex-1 ${selectedMethod === 'sms' ? 'bg-gray-800 hover:bg-gray-900 text-white' : ''}`}
                   >
                     <i className="fas fa-sms mr-2"></i>
                     SMS
@@ -187,7 +188,7 @@ const PhoneLogin = () => {
               <Button
                 onClick={handleSendCode}
                 disabled={isLoading || phone.length !== 10}
-                className="w-full bg-bottle-600 hover:bg-bottle-700 text-white"
+                className="w-full bg-gray-800 hover:bg-gray-900 text-white"
               >
                 {isLoading ? "שולח קוד..." : `שלח קוד אימות ב-${selectedMethod === 'whatsapp' ? 'WhatsApp' : 'SMS'}`}
               </Button>
@@ -218,7 +219,7 @@ const PhoneLogin = () => {
                 <Button
                   onClick={handleVerifyCode}
                   disabled={isLoading || verificationCode.length !== 6}
-                  className="flex-1 bg-bottle-600 hover:bg-bottle-700 text-white"
+                  className="flex-1 bg-gray-800 hover:bg-gray-900 text-white"
                 >
                   {isLoading ? "מאמת..." : "אמת קוד"}
                 </Button>
@@ -234,15 +235,14 @@ const PhoneLogin = () => {
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col space-y-2">
-          <div className="text-center text-sm text-gray-500">
-            לשאלות בנוגע לחשבון, פנה לשירות הלקוחות
-          </div>
-          <div className="text-center text-xs text-gray-400">
-            טלפון: 050-1234567
-          </div>
-        </CardFooter>
       </Card>
+      
+      {/* Footer */}
+      <footer className="mt-8 text-center">
+        <div className="text-sm text-gray-500">
+          נבנה על ידי בולדוג פתרונות מדיה 2025 ©
+        </div>
+      </footer>
     </div>
   );
 };

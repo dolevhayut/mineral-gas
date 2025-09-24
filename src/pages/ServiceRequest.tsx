@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { Send } from "lucide-react";
+import { Send, Upload, X, Image as ImageIcon } from "lucide-react";
 
 const ServiceRequest = () => {
   const { isAuthenticated, user } = useAuth();
@@ -27,6 +27,8 @@ const ServiceRequest = () => {
     address: "",
     customerPhone: user?.phone || ""
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -56,6 +58,31 @@ const ServiceRequest = () => {
 
     fetchCities();
   }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "שגיאה",
+          description: "גודל התמונה חייב להיות פחות מ-5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -87,17 +114,42 @@ const ServiceRequest = () => {
         throw new Error("לא נמצא משתמש");
       }
 
+      let imageUrl = null;
+
+      // Upload image if selected
+      if (selectedImage) {
+        const fileExt = selectedImage.name.split('.').pop();
+        const fileName = `${customerData.id}_${Date.now()}.${fileExt}`;
+        const filePath = `service-requests/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('service-images')
+          .upload(filePath, selectedImage);
+
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          // Continue without image if upload fails
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-images')
+            .getPublicUrl(filePath);
+          imageUrl = publicUrl;
+        }
+      }
+
       const { error } = await supabase
         .from('service_requests')
         .insert({
           customer_id: customerData.id,
-          service_type: formData.serviceType,
+          title: `${formData.serviceType} - ${formData.city || 'לא צוין יישוב'}`,
           description: formData.description,
+          service_type: formData.serviceType,
           preferred_date: formData.preferredDate || null,
           preferred_time_slot: formData.preferredTimeSlot || null,
           city: formData.city || null,
           address: formData.address || null,
           customer_phone: formData.customerPhone,
+          image_url: imageUrl,
           status: 'pending'
         });
 
@@ -253,6 +305,56 @@ const ServiceRequest = () => {
                   className="text-right"
                   dir="ltr"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-right">תמונה מצורפת (אופציונלי)</Label>
+                <div className="flex flex-col items-center space-y-4">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="h-32 w-32 object-cover rounded-lg border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                        onClick={handleRemoveImage}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="h-32 w-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-gray-400" />
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col items-center space-y-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('image-upload')?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 ml-2" />
+                      {imagePreview ? "החלף תמונה" : "בחר תמונה"}
+                    </Button>
+                    <p className="text-xs text-gray-500 text-center">
+                      מקסימום 5MB. פורמטים נתמכים: JPG, PNG, GIF
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {formData.serviceType === "emergency" && (

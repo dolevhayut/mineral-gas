@@ -554,9 +554,9 @@ ${wazeLinks}`;
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">ניהול מסלולים יומיים</h1>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">ניהול מסלולים יומיים</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium">נקודת התחלה:</span>
           <Select 
@@ -722,7 +722,7 @@ ${wazeLinks}`;
         </Card>
 
         {/* Map */}
-        <Card className="lg:col-span-2 h-[600px]" style={{ position: 'relative', zIndex: 1 }}>
+        <Card className="lg:col-span-2 h-[400px] sm:h-[500px] lg:h-[600px]" style={{ position: 'relative', zIndex: 1 }}>
           <CardContent className="p-0 h-full" style={{ position: 'relative', zIndex: 1 }}>
             <MapContainer 
               center={mapCenter} 
@@ -823,7 +823,7 @@ ${wazeLinks}`;
               </div>
 
               {optimizedRoute.map((order, index) => (
-                <div key={order.id} className="flex items-start gap-4 p-4 border rounded-lg">
+                <div key={order.id} className="flex flex-col sm:flex-row items-start gap-4 p-4 border rounded-lg">
                   <Badge variant="outline" className="mt-1">
                     {order.order}
                   </Badge>
@@ -870,7 +870,7 @@ ${wazeLinks}`;
             {/* Navigation Actions */}
             <div className="mt-6 pt-6 border-t">
               <h4 className="text-sm font-medium mb-3">אפשרויות ניווט</h4>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <Button 
                   onClick={exportToGoogleMaps}
                   variant="default" 
@@ -909,7 +909,7 @@ ${wazeLinks}`;
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 שם המקום
               </Label>
@@ -921,7 +921,7 @@ ${wazeLinks}`;
                 placeholder="לדוגמה: מחסן ראשי"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
               <Label htmlFor="lat" className="text-right">
                 קו רוחב
               </Label>
@@ -935,7 +935,7 @@ ${wazeLinks}`;
                 step="0.000001"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
               <Label htmlFor="lng" className="text-right">
                 קו אורך
               </Label>

@@ -175,7 +175,7 @@ const Login = () => {
             <div className="flex justify-center mb-4">
               <img src="/assets/logo.png" alt="מינרל גז - אביגל טורג'מן" className="h-20 w-auto" />
             </div>
-            <h1 className="text-3xl font-bold text-bottle-600 mb-2">מינרל גז</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">מינרל גז</h1>
             <p className="text-lg text-stone-600 mb-1">אביגל טורג'מן</p>
             <p className="text-sm text-stone-500">
               שירות מקצועי למכירת בלוני גז ומוצרי חימום
@@ -255,7 +255,7 @@ const Login = () => {
               <CardFooter className="flex flex-col space-y-4">
                 <Button
                   type="submit"
-                  className="w-full bg-bottle-600 hover:bg-bottle-700"
+                  className="w-full bg-blue-600 hover:bg-blue-700"
                   disabled={isLoading}
                 >
                   {isLoading ? "מתחבר..." : "התחברות"}

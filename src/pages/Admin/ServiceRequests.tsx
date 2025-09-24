@@ -23,7 +23,9 @@ import {
   Loader2,
   Image as ImageIcon,
   Edit,
-  Save
+  Save,
+  Eye,
+  ChevronLeft
 } from "lucide-react";
 
 interface ServiceRequest {
@@ -125,8 +127,8 @@ export default function ServiceRequests() {
     const badge = badges[status];
     const Icon = badge.icon;
     return (
-      <Badge className={`${badge.color} flex items-center gap-1`}>
-        <Icon className="h-3 w-3" />
+      <Badge className={`${badge.color} flex items-center gap-1 text-sm px-3 py-1`}>
+        <Icon className="h-4 w-4" />
         {badge.label}
       </Badge>
     );
@@ -141,7 +143,7 @@ export default function ServiceRequests() {
     };
     const badge = badges[priority];
     return (
-      <Badge className={badge.color}>
+      <Badge className={`${badge.color} text-sm px-3 py-1`}>
         {badge.label}
       </Badge>
     );
@@ -168,112 +170,131 @@ export default function ServiceRequests() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">קריאות שירות</h1>
-        <div className="flex gap-4">
+      {/* Header - Responsive */}
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+        <h1 className="text-2xl font-bold text-center lg:text-right">קריאות שירות</h1>
+        
+        {/* Filters - Responsive */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
           <Input
             placeholder="חיפוש..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
+            className="w-full sm:w-64"
           />
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="סטטוס" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">כל הסטטוסים</SelectItem>
-              <SelectItem value="pending">ממתינות</SelectItem>
-              <SelectItem value="in_progress">בטיפול</SelectItem>
-              <SelectItem value="completed">הושלמו</SelectItem>
-              <SelectItem value="cancelled">בוטלו</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="עדיפות" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">כל העדיפויות</SelectItem>
-              <SelectItem value="low">נמוכה</SelectItem>
-              <SelectItem value="normal">רגילה</SelectItem>
-              <SelectItem value="high">גבוהה</SelectItem>
-              <SelectItem value="urgent">דחופה</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="סטטוס" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">כל הסטטוסים</SelectItem>
+                <SelectItem value="pending">ממתינות</SelectItem>
+                <SelectItem value="in_progress">בטיפול</SelectItem>
+                <SelectItem value="completed">הושלמו</SelectItem>
+                <SelectItem value="cancelled">בוטלו</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="עדיפות" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">כל העדיפויות</SelectItem>
+                <SelectItem value="low">נמוכה</SelectItem>
+                <SelectItem value="normal">רגילה</SelectItem>
+                <SelectItem value="high">גבוהה</SelectItem>
+                <SelectItem value="urgent">דחופה</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
+      {/* Service Requests Grid - Responsive */}
       <div className="grid gap-4">
-        {filteredRequests?.map((request) => (
-          <Card 
-            key={request.id} 
-            className="cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => setSelectedRequest(request)}
-          >
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Wrench className="h-5 w-5 text-bottle-600" />
-                    {request.title}
-                  </CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {request.customers?.name} • {request.customer_phone || request.customers?.phone}
-                  </p>
+        {filteredRequests?.length === 0 ? (
+          <div className="text-center py-12">
+            <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">אין קריאות שירות</h3>
+            <p className="text-gray-500">לא נמצאו קריאות שירות המתאימות לסינון הנוכחי</p>
+          </div>
+        ) : (
+          filteredRequests?.map((request) => (
+            <Card 
+              key={request.id} 
+              className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group"
+              onClick={() => setSelectedRequest(request)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg flex items-center gap-2 mb-2">
+                      <Wrench className="h-5 w-5 text-bottle-600 flex-shrink-0" />
+                      <span className="truncate">{request.title}</span>
+                      <div className="flex items-center gap-1 text-gray-400 group-hover:text-bottle-600 transition-colors">
+                        <Eye className="h-4 w-4" />
+                        <ChevronLeft className="h-3 w-3" />
+                      </div>
+                    </CardTitle>
+                    <p className="text-sm text-gray-600 truncate">
+                      {request.customers?.name} • {request.customer_phone || request.customers?.phone}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-end sm:justify-start items-center">
+                    {getPriorityBadge(request.priority)}
+                    {getStatusBadge(request.status)}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {getPriorityBadge(request.priority)}
-                  {getStatusBadge(request.status)}
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-sm text-gray-700 mb-3 line-clamp-2">{request.description}</p>
+                <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-3">
+                  {request.preferred_date && (
+                    <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                      <Calendar className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-xs">{format(new Date(request.preferred_date), "dd/MM/yyyy", { locale: he })}</span>
+                    </div>
+                  )}
+                  {request.preferred_time_slot && (
+                    <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                      <Clock className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-xs">{request.preferred_time_slot}</span>
+                    </div>
+                  )}
+                  {request.location && (
+                    <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                      <MapPin className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-xs truncate max-w-32">{request.location}</span>
+                    </div>
+                  )}
+                  {request.image_url && (
+                    <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                      <ImageIcon className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-xs">תמונה מצורפת</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-700 mb-3">{request.description}</p>
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                {request.preferred_date && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {format(new Date(request.preferred_date), "dd/MM/yyyy", { locale: he })}
-                  </div>
-                )}
-                {request.preferred_time_slot && (
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {request.preferred_time_slot}
-                  </div>
-                )}
-                {request.location && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {request.location}
-                  </div>
-                )}
-                {request.image_url && (
-                  <div className="flex items-center gap-1">
-                    <ImageIcon className="h-4 w-4" />
-                    תמונה מצורפת
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
-      {/* Request Details Dialog */}
+      {/* Request Details Dialog - Responsive */}
       <Dialog open={!!selectedRequest} onOpenChange={() => {
         setSelectedRequest(null);
         setEditMode(false);
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
-            <DialogTitle className="flex justify-between items-center">
-              <span>פרטי קריאת שירות</span>
+            <DialogTitle className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+              <span className="text-lg font-semibold">פרטי קריאת שירות</span>
               <Button
                 onClick={() => setEditMode(!editMode)}
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto"
               >
                 {editMode ? <Save className="h-4 w-4 ml-1" /> : <Edit className="h-4 w-4 ml-1" />}
                 {editMode ? "שמור" : "ערוך"}
@@ -284,39 +305,41 @@ export default function ServiceRequests() {
           {selectedRequest && (
             <div className="space-y-4 mt-4">
               <div>
-                <label className="font-medium">כותרת:</label>
+                <label className="font-medium text-sm text-gray-600">כותרת:</label>
                 {editMode ? (
                   <Input
                     value={selectedRequest.title}
                     onChange={(e) => setSelectedRequest({...selectedRequest, title: e.target.value})}
+                    className="mt-1"
                   />
                 ) : (
-                  <p>{selectedRequest.title}</p>
+                  <p className="text-base font-medium mt-1">{selectedRequest.title}</p>
                 )}
               </div>
 
               <div>
-                <label className="font-medium">תיאור:</label>
+                <label className="font-medium text-sm text-gray-600">תיאור:</label>
                 {editMode ? (
                   <Textarea
                     value={selectedRequest.description}
                     onChange={(e) => setSelectedRequest({...selectedRequest, description: e.target.value})}
                     rows={3}
+                    className="mt-1"
                   />
                 ) : (
-                  <p>{selectedRequest.description}</p>
+                  <p className="text-base mt-1">{selectedRequest.description}</p>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="font-medium">סטטוס:</label>
+                  <label className="font-medium text-sm text-gray-600">סטטוס:</label>
                   {editMode ? (
                     <Select 
                       value={selectedRequest.status}
                       onValueChange={(value) => setSelectedRequest({...selectedRequest, status: value as ServiceRequest['status']})}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -332,13 +355,13 @@ export default function ServiceRequests() {
                 </div>
 
                 <div>
-                  <label className="font-medium">עדיפות:</label>
+                  <label className="font-medium text-sm text-gray-600">עדיפות:</label>
                   {editMode ? (
                     <Select 
                       value={selectedRequest.priority}
                       onValueChange={(value) => setSelectedRequest({...selectedRequest, priority: value as ServiceRequest['priority']})}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -355,33 +378,34 @@ export default function ServiceRequests() {
               </div>
 
               <div>
-                <label className="font-medium">הערות טכנאי:</label>
+                <label className="font-medium text-sm text-gray-600">הערות טכנאי:</label>
                 {editMode ? (
                   <Textarea
                     value={selectedRequest.technician_notes || ""}
                     onChange={(e) => setSelectedRequest({...selectedRequest, technician_notes: e.target.value})}
                     placeholder="הוסף הערות לטכנאי..."
                     rows={3}
+                    className="mt-1"
                   />
                 ) : (
-                  <p>{selectedRequest.technician_notes || "אין הערות"}</p>
+                  <p className="text-base mt-1">{selectedRequest.technician_notes || "אין הערות"}</p>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="font-medium">לקוח:</label>
-                  <p>{selectedRequest.customers?.name}</p>
+                  <label className="font-medium text-sm text-gray-600">לקוח:</label>
+                  <p className="text-base font-medium mt-1">{selectedRequest.customers?.name}</p>
                 </div>
                 <div>
-                  <label className="font-medium">טלפון:</label>
-                  <p>{selectedRequest.customer_phone || selectedRequest.customers?.phone}</p>
+                  <label className="font-medium text-sm text-gray-600">טלפון:</label>
+                  <p className="text-base font-medium mt-1">{selectedRequest.customer_phone || selectedRequest.customers?.phone}</p>
                 </div>
               </div>
 
               {selectedRequest.image_url && (
                 <div>
-                  <label className="font-medium">תמונה מצורפת:</label>
+                  <label className="font-medium text-sm text-gray-600">תמונה מצורפת:</label>
                   <img 
                     src={selectedRequest.image_url} 
                     alt="תמונת בקשה" 

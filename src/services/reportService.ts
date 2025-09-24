@@ -44,6 +44,7 @@ interface ReportData {
     totalRevenue: number;
     averageOrderValue: number;
     totalServiceRequests: number;
+    totalCustomers: number;
   };
   productStats?: Array<{
     itemCode: string;
@@ -147,7 +148,7 @@ export const getOpenOrders = async (
 };
 
 /**
- * Get comprehensive report data for a specific customer/user
+ * Get comprehensive report data for a specific customer/user or admin (all customers)
  */
 export const getReports = async (
   startDate: Date,
@@ -156,32 +157,41 @@ export const getReports = async (
   reportType: string = 'all'
 ): Promise<ReportData | null> => {
   try {
-    console.log(`Fetching customer reports for user ${userId} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    console.log(`Fetching reports for ${userId} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
     
-    // Get customer ID for this user by phone
-    const { data: customer, error: customerError } = await supabase
-      .from('customers')
-      .select('id, name')
-      .eq('phone', userId) // Assuming userId is actually the phone number
-      .single();
+    // Check if this is an admin request
+    const isAdmin = userId === 'admin';
+    
+    let customerId: string | null = null;
+    
+    if (!isAdmin) {
+      // Get customer ID for this user by phone
+      const { data: customer, error: customerError } = await supabase
+        .from('customers')
+        .select('id, name')
+        .eq('phone', userId) // Assuming userId is actually the phone number
+        .single();
 
-    if (customerError || !customer) {
-      console.error('Customer not found for user:', userId);
-      return {
-        summary: {
-          totalOrders: 0,
-          totalRevenue: 0,
-          averageOrderValue: 0,
-          totalServiceRequests: 0
-        },
-        productStats: [],
-        customerStats: [],
-        dailySales: []
-      };
+      if (customerError || !customer) {
+        console.error('Customer not found for user:', userId);
+        return {
+          summary: {
+            totalOrders: 0,
+            totalRevenue: 0,
+            averageOrderValue: 0,
+            totalServiceRequests: 0
+          },
+          productStats: [],
+          customerStats: [],
+          dailySales: []
+        };
+      }
+      
+      customerId = customer.id;
     }
 
-    // Get orders for this specific customer in the date range
-    const { data: orders, error: ordersError } = await supabase
+    // Get orders for this specific customer or all customers (admin) in the date range
+    let ordersQuery = supabase
       .from('orders')
       .select(`
         id,
@@ -189,6 +199,7 @@ export const getReports = async (
         total,
         created_at,
         target_date,
+        customer_id,
         order_items(
           id,
           product_id,
@@ -197,24 +208,36 @@ export const getReports = async (
           products(id, name, description, price)
         )
       `)
-      .eq('customer_id', customer.id)
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
       .order('created_at', { ascending: false });
+
+    // Add customer filter only if not admin
+    if (!isAdmin && customerId) {
+      ordersQuery = ordersQuery.eq('customer_id', customerId);
+    }
+
+    const { data: orders, error: ordersError } = await ordersQuery;
 
     if (ordersError) {
       console.error('Error fetching orders:', ordersError);
       throw ordersError;
     }
 
-    // Get service requests for this customer in the date range
-    const { data: serviceRequests, error: serviceError } = await supabase
+    // Get service requests for this customer or all customers (admin) in the date range
+    let serviceQuery = supabase
       .from('service_requests')
-      .select('id, status, priority, created_at, title')
-      .eq('customer_id', customer.id)
+      .select('id, status, priority, created_at, title, customer_id')
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
       .order('created_at', { ascending: false });
+
+    // Add customer filter only if not admin
+    if (!isAdmin && customerId) {
+      serviceQuery = serviceQuery.eq('customer_id', customerId);
+    }
+
+    const { data: serviceRequests, error: serviceError } = await serviceQuery;
 
     if (serviceError) {
       console.error('Error fetching service requests:', serviceError);
@@ -228,12 +251,22 @@ export const getReports = async (
     const totalRevenue = orders?.reduce((sum, order) => sum + (order.total || 0), 0) || 0;
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     const totalServiceRequests = serviceRequests?.length || 0;
+    
+    // For admin reports, get total customers count
+    let totalCustomers = 0;
+    if (isAdmin) {
+      const uniqueCustomerIds = new Set(orders?.map(order => order.customer_id) || []);
+      totalCustomers = uniqueCustomerIds.size;
+    } else {
+      totalCustomers = 1; // For individual customer reports
+    }
 
     const summary = {
       totalOrders: totalOrders,
       totalRevenue: totalRevenue,
       averageOrderValue: averageOrderValue,
-      totalServiceRequests: totalServiceRequests
+      totalServiceRequests: totalServiceRequests,
+      totalCustomers: totalCustomers
     };
 
     // Process product statistics from orders
@@ -264,8 +297,53 @@ export const getReports = async (
     const productStats = Array.from(productMap.values())
       .sort((a, b) => b.quantity - a.quantity);
 
-    // For customer reports, we don't need customer stats (it's just this customer)
-    const customerStats: any[] = [];
+    // Process customer statistics (only for admin reports)
+    let customerStats: any[] = [];
+    
+    if (isAdmin) {
+      // Get customer statistics for admin reports
+      const customerMap = new Map<string, { cardCode: string; cardName: string; orderCount: number; totalAmount: number }>();
+      
+      orders?.forEach(order => {
+        const customerId = order.customer_id;
+        const amount = order.total || 0;
+        
+        if (customerMap.has(customerId)) {
+          const existing = customerMap.get(customerId)!;
+          existing.orderCount += 1;
+          existing.totalAmount += amount;
+        } else {
+          customerMap.set(customerId, {
+            cardCode: customerId,
+            cardName: `לקוח ${customerId}`, // Will be updated with actual names below
+            orderCount: 1,
+            totalAmount: amount
+          });
+        }
+      });
+      
+      // Get customer names for the customer IDs we found
+      if (customerMap.size > 0) {
+        const customerIds = Array.from(customerMap.keys());
+        const { data: customers, error: customersError } = await supabase
+          .from('customers')
+          .select('id, name')
+          .in('id', customerIds);
+        
+        if (!customersError && customers) {
+          // Update customer names
+          customers.forEach(customer => {
+            if (customerMap.has(customer.id)) {
+              const existing = customerMap.get(customer.id)!;
+              existing.cardName = customer.name || `לקוח ${customer.id}`;
+            }
+          });
+        }
+      }
+      
+      customerStats = Array.from(customerMap.values())
+        .sort((a, b) => b.totalAmount - a.totalAmount);
+    }
 
     // Process daily activity (orders and service requests)
     const dailyMap = new Map<string, { date: string; orderCount: number; totalAmount: number; serviceRequestCount: number }>();

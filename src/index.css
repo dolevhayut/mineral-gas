@@ -381,3 +381,17 @@ label {
   direction: rtl !important;
   justify-content: flex-end !important;
 }
+
+/* Stronger overrides for Radix Select item text alignment */
+[dir="rtl"] [data-radix-select-item] [data-radix-select-item-text],
+[data-radix-select-item] [data-radix-select-item-text] {
+  display: block;
+  width: 100%;
+  text-align: right !important;
+}
+
+/* Ensure the viewport inherits RTL/right alignment */
+[dir="rtl"] [data-radix-select-viewport] {
+  text-align: right !important;
+  direction: rtl !important;
+}

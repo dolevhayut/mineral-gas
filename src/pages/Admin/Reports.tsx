@@ -11,6 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
+import { getReports } from "@/services/reportService";
 
 interface TopCustomer {
   customer_id: string;
@@ -80,8 +81,9 @@ const AdminReports = () => {
       try {
         setLoading(true);
 
-        // Fetch report data
-        const reportData = await getReports(date.from, date.to, 'all');
+        // Fetch report data - for admin reports, we need to get all data, not user-specific
+        // We'll need to modify the getReports function to handle admin case
+        const reportData = await getReports(date.from, date.to, 'admin');
         
         if (!reportData) {
           setLoading(false);
@@ -183,7 +185,7 @@ const AdminReports = () => {
   };
 
   return (
-    <div className="p-6" dir="rtl">
+    <div className="space-y-6" dir="rtl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <h1 className="text-2xl font-bold mb-4 md:mb-0">דוחות ניהוליים</h1>
         <div className="w-full md:w-auto">
@@ -197,7 +199,7 @@ const AdminReports = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 justify-center">
           <TabsTrigger value="summary">סיכום</TabsTrigger>
           <TabsTrigger value="products">מוצרים</TabsTrigger>
           <TabsTrigger value="categories">קטגוריות</TabsTrigger>
@@ -214,7 +216,7 @@ const AdminReports = () => {
                 {loading ? (
                   <Skeleton className="h-9 w-full" />
                 ) : (
-                  <div className="text-3xl font-bold">{summaryStats.total_customers}</div>
+                  <div className="text-2xl font-bold">{summaryStats.total_customers}</div>
                 )}
               </CardContent>
             </Card>
@@ -227,7 +229,7 @@ const AdminReports = () => {
                 {loading ? (
                   <Skeleton className="h-9 w-full" />
                 ) : (
-                  <div className="text-3xl font-bold">{summaryStats.total_orders}</div>
+                  <div className="text-2xl font-bold">{summaryStats.total_orders}</div>
                 )}
               </CardContent>
             </Card>
@@ -240,7 +242,7 @@ const AdminReports = () => {
                 {loading ? (
                   <Skeleton className="h-9 w-full" />
                 ) : (
-                  <div className="text-3xl font-bold">{formatCurrency(summaryStats.total_revenue)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(summaryStats.total_revenue)}</div>
                 )}
               </CardContent>
             </Card>
@@ -262,7 +264,7 @@ const AdminReports = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>לקוח מוביל</CardTitle>
+                <CardTitle className="text-right text-lg">לקוח מוביל</CardTitle>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -270,15 +272,15 @@ const AdminReports = () => {
                 ) : topCustomers.length > 0 ? (
                   <div className="space-y-4">
                     <div className="p-6 bg-muted rounded-lg text-center">
-                      <div className="mb-2 text-lg font-bold">{topCustomers[0].customer_name}</div>
+                      <div className="mb-2 text-base font-bold">{topCustomers[0].customer_name}</div>
                       <div className="flex justify-around">
                         <div className="text-center">
                           <div className="text-sm text-muted-foreground">סך הזמנות</div>
-                          <div className="text-3xl font-bold mt-1">{formatCurrency(topCustomers[0].total_amount)}</div>
+                          <div className="text-2xl font-bold mt-1">{formatCurrency(topCustomers[0].total_amount)}</div>
                         </div>
                         <div className="text-center">
                           <div className="text-sm text-muted-foreground">כמות הזמנות</div>
-                          <div className="text-3xl font-bold mt-1">{topCustomers[0].order_count}</div>
+                          <div className="text-2xl font-bold mt-1">{topCustomers[0].order_count}</div>
                         </div>
                       </div>
                     </div>
@@ -293,7 +295,7 @@ const AdminReports = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>מוצר מוביל</CardTitle>
+                <CardTitle className="text-right text-lg">מוצר מוביל</CardTitle>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -301,15 +303,15 @@ const AdminReports = () => {
                 ) : productStats.length > 0 ? (
                   <div className="space-y-4">
                     <div className="p-6 bg-muted rounded-lg text-center">
-                      <div className="mb-2 text-lg font-bold">{productStats[0].product_name}</div>
+                      <div className="mb-2 text-base font-bold">{productStats[0].product_name}</div>
                       <div className="flex justify-around">
                         <div className="text-center">
                           <div className="text-sm text-muted-foreground">סך הכנסות</div>
-                          <div className="text-3xl font-bold mt-1">{formatCurrency(productStats[0].revenue)}</div>
+                          <div className="text-2xl font-bold mt-1">{formatCurrency(productStats[0].revenue)}</div>
                         </div>
                         <div className="text-center">
                           <div className="text-sm text-muted-foreground">יחידות שנמכרו</div>
-                          <div className="text-3xl font-bold mt-1">{productStats[0].quantity_sold}</div>
+                          <div className="text-2xl font-bold mt-1">{productStats[0].quantity_sold}</div>
                         </div>
                       </div>
                     </div>
@@ -327,7 +329,7 @@ const AdminReports = () => {
         <TabsContent value="products">
           <Card>
             <CardHeader>
-              <CardTitle>מוצרים מובילים לפי הכנסות</CardTitle>
+              <CardTitle className="text-right text-lg">מוצרים מובילים לפי הכנסות</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -342,14 +344,14 @@ const AdminReports = () => {
                     {productStats.map((product, index) => (
                       <div key={product.product_id} className="flex justify-between items-center p-4 rounded-md hover:bg-muted border-b">
                         <div className="flex items-center gap-4 w-full">
-                          <div className="flex-shrink-0 font-bold text-lg w-6 text-center">{index + 1}</div>
-                          <div className="flex-grow">
-                            <div className="font-medium text-base">{product.product_name}</div>
-                            <div className="text-sm text-muted-foreground">{product.quantity_sold} יחידות</div>
-                          </div>
                           <div className="text-right font-bold text-lg">
                             {formatCurrency(product.revenue)}
                           </div>
+                          <div className="flex-grow text-right">
+                            <div className="font-medium text-base">{product.product_name}</div>
+                            <div className="text-sm text-muted-foreground">{product.quantity_sold} יחידות</div>
+                          </div>
+                          <div className="flex-shrink-0 font-bold text-lg w-6 text-center">{index + 1}</div>
                         </div>
                       </div>
                     ))}
@@ -367,7 +369,7 @@ const AdminReports = () => {
         <TabsContent value="categories">
           <Card>
             <CardHeader>
-              <CardTitle>מכירות לפי קטגוריות</CardTitle>
+              <CardTitle className="text-right text-lg">מכירות לפי קטגוריות</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -382,17 +384,17 @@ const AdminReports = () => {
                     {categoryStats.map((category, index) => (
                       <div key={index} className="flex justify-between items-center p-4 rounded-md hover:bg-muted border-b">
                         <div className="flex items-center gap-4 w-full">
+                          <div className="text-right font-bold text-lg">
+                            {formatCurrency(category.revenue)}
+                          </div>
+                          <div className="flex-grow text-right">
+                            <div className="font-medium text-base">{category.category}</div>
+                            <div className="text-sm text-muted-foreground">{category.quantity_sold} יחידות</div>
+                          </div>
                           <div 
                             className="flex-shrink-0 w-5 h-5 rounded-full" 
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                           />
-                          <div className="flex-grow">
-                            <div className="font-medium text-base">{category.category}</div>
-                            <div className="text-sm text-muted-foreground">{category.quantity_sold} יחידות</div>
-                          </div>
-                          <div className="text-right font-bold text-lg">
-                            {formatCurrency(category.revenue)}
-                          </div>
                         </div>
                       </div>
                     ))}
@@ -410,7 +412,7 @@ const AdminReports = () => {
         <TabsContent value="customers">
           <Card>
             <CardHeader>
-              <CardTitle>לקוחות מובילים</CardTitle>
+              <CardTitle className="text-right text-lg">לקוחות מובילים</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -425,14 +427,14 @@ const AdminReports = () => {
                     {topCustomers.map((customer, index) => (
                       <div key={customer.customer_id} className="flex justify-between items-center p-4 rounded-md hover:bg-muted border-b">
                         <div className="flex items-center gap-4 w-full">
-                          <div className="flex-shrink-0 font-bold text-lg w-6 text-center">{index + 1}</div>
-                          <div className="flex-grow">
-                            <div className="font-medium text-base">{customer.customer_name}</div>
-                            <div className="text-sm text-muted-foreground">{customer.order_count} הזמנות</div>
-                          </div>
                           <div className="text-right font-bold text-lg">
                             {formatCurrency(customer.total_amount)}
                           </div>
+                          <div className="flex-grow text-right">
+                            <div className="font-medium text-base">{customer.customer_name}</div>
+                            <div className="text-sm text-muted-foreground">{customer.order_count} הזמנות</div>
+                          </div>
+                          <div className="flex-shrink-0 font-bold text-lg w-6 text-center">{index + 1}</div>
                         </div>
                       </div>
                     ))}

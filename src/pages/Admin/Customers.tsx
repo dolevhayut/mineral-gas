@@ -56,7 +56,7 @@ interface Customer {
   name: string;
   phone?: string;
   address?: string;
-  notes?: string;
+  special_requirements?: string;
   active_orders_count?: number;
   total_orders_count?: number;
   discount_percentage?: number;
@@ -85,10 +85,17 @@ export default function Customers() {
   const { data: customers, isLoading: isCustomersLoading } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
-      // First, get all customers
+      // Get customers with aggregated order data in a single query
       const { data: customerData, error: customerError } = await supabase
         .from("customers")
-        .select(`*`)
+        .select(`
+          *,
+          orders(
+            id,
+            status,
+            total
+          )
+        `)
         .order("name", { ascending: true });
 
       if (customerError) {
@@ -105,39 +112,31 @@ export default function Customers() {
         return [];
       }
 
-      // For each customer, get their order counts and open balance
-      const customersWithDetails = [];
-      
-      for (const customer of customerData) {
-        // Get active orders count (status = 'pending')
-        const { count: activeOrdersCount } = await supabase
-          .from("orders")
-          .select("*", { count: "exact", head: true })
-          .eq("customer_id", customer.id)
-          .eq("status", "pending");
+      // Process the data to calculate aggregated values
+      const customersWithDetails = customerData.map((customer) => {
+        const orders = customer.orders || [];
         
-        // Get total orders count
-        const { count: totalOrdersCount } = await supabase
-          .from("orders")
-          .select("*", { count: "exact", head: true })
-          .eq("customer_id", customer.id);
+        // Calculate active orders count (status = 'pending')
+        const activeOrdersCount = orders.filter(order => order.status === 'pending').length;
+        
+        // Calculate total orders count
+        const totalOrdersCount = orders.length;
         
         // Calculate open balance (orders that are not completed or cancelled)
-        const { data: openOrders } = await supabase
-          .from("orders")
-          .select("total")
-          .eq("customer_id", customer.id)
-          .in("status", ["pending", "delivered"]);
+        const openBalance = orders
+          .filter(order => ['pending', 'delivered'].includes(order.status))
+          .reduce((sum, order) => sum + (Number(order.total) || 0), 0);
         
-        const openBalance = openOrders?.reduce((sum, order) => sum + (Number(order.total) || 0), 0) || 0;
+        // Remove the orders array from the customer object
+        const { orders: _, ...customerWithoutOrders } = customer;
         
-        customersWithDetails.push({
-          ...customer,
-          active_orders_count: activeOrdersCount || 0,
-          total_orders_count: totalOrdersCount || 0,
+        return {
+          ...customerWithoutOrders,
+          active_orders_count: activeOrdersCount,
+          total_orders_count: totalOrdersCount,
           open_balance: openBalance,
-        });
-      }
+        };
+      });
       
       return customersWithDetails;
     },
@@ -187,7 +186,7 @@ export default function Customers() {
             phone: customer.phone,
             address: customer.address,
             city: customer.city,
-            notes: customer.notes,
+            special_requirements: customer.special_requirements,
             business_type: customer.business_type || 'residential',
             customer_type: customer.customer_type || 'active',
             discount_percentage: discount
@@ -203,7 +202,7 @@ export default function Customers() {
             phone: customer.phone,
             address: customer.address,
             city: customer.city,
-            notes: customer.notes,
+            special_requirements: customer.special_requirements,
             business_type: customer.business_type,
             customer_type: customer.customer_type,
             discount_percentage: discount
@@ -276,7 +275,7 @@ export default function Customers() {
     (customer.phone && customer.phone.includes(searchQuery)) ||
     (customer.address && customer.address.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (customer.city && customer.city.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (customer.notes && customer.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+    (customer.special_requirements && customer.special_requirements.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleEditCustomer = (customer: Customer) => {
@@ -404,6 +403,15 @@ export default function Customers() {
                 }}
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="special_requirements">דרישות מיוחדות</Label>
+              <Input
+                id="special_requirements"
+                placeholder="הכנס דרישות מיוחדות"
+                value={currentCustomer.special_requirements || ""}
+                onChange={(e) => setCurrentCustomer({ ...currentCustomer, special_requirements: e.target.value })}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button 
@@ -475,7 +483,7 @@ export default function Customers() {
                       <TableHead className="whitespace-nowrap">חוב פתוח</TableHead>
                       <TableHead className="whitespace-nowrap">הנחה</TableHead>
                       <TableHead className="whitespace-nowrap">הזמנות פעילות</TableHead>
-                      <TableHead className="whitespace-nowrap">הערות</TableHead>
+                      <TableHead className="whitespace-nowrap">דרישות מיוחדות</TableHead>
                       <TableHead className="whitespace-nowrap">פעולות</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -538,8 +546,8 @@ export default function Customers() {
                           </Badge>
                         </TableCell>
                         <TableCell className="max-w-[200px]">
-                          <span className="text-sm text-muted-foreground truncate block" title={customer.notes || ""}>
-                            {customer.notes || "-"}
+                          <span className="text-sm text-muted-foreground truncate block" title={customer.special_requirements || ""}>
+                            {customer.special_requirements || "-"}
                           </span>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -646,10 +654,10 @@ export default function Customers() {
                       </div>
                     )}
                     
-                    {customer.notes && (
+                    {customer.special_requirements && (
                       <div className="col-span-2 mt-2 p-3 bg-muted rounded-md">
-                        <div className="text-xs font-medium mb-1">הערות:</div>
-                        <div className="text-sm">{customer.notes}</div>
+                        <div className="text-xs font-medium mb-1">דרישות מיוחדות:</div>
+                        <div className="text-sm">{customer.special_requirements}</div>
                       </div>
                     )}
                   </div>
