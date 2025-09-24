@@ -75,13 +75,17 @@ export default function OrderSuccessModal({ isOpen, orderId, orderNumber, onClos
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="w-56 h-56 mx-auto -mb-8"
+                className="mx-auto -mb-8"
               >
-                <DotLottieReact
-                  src="/animations/success.lottie"
-                  loop={false}
-                  autoplay
-                />
+                <div className="w-48 h-48 mx-auto flex items-center justify-center">
+                  <div className="w-full h-full">
+                    <DotLottieReact
+                      src="/animations/success.lottie"
+                      loop={false}
+                      autoplay
+                    />
+                  </div>
+                </div>
               </motion.div>
 
               {/* Text Content */}

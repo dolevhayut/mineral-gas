@@ -261,7 +261,7 @@ const CurrentOrders = () => {
           </div>
           <div className="me-auto">
             <Button 
-              variant="default" 
+              className="bg-bottle-600 hover:bg-bottle-700 text-white"
               onClick={() => navigate('/orders/new')}
             >
               הזמנה חדשה

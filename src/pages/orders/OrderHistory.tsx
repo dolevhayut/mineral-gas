@@ -253,7 +253,7 @@ const OrderHistory = () => {
           >
             <Button 
               onClick={() => navigate('/orders/new')} 
-              className="bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105"
+              className="bg-bottle-600 hover:bg-bottle-700 transition-all hover:scale-105"
             >
               <PlusCircle className="h-4 w-4 ml-1" />
               הזמנה חדשה
@@ -421,7 +421,10 @@ const OrderHistory = () => {
             <p className="text-muted-foreground mb-4">
               לא נמצאו הזמנות במערכת
             </p>
-            <Button onClick={() => navigate('/orders/new')}>
+            <Button 
+              onClick={() => navigate('/orders/new')}
+              className="bg-bottle-600 hover:bg-bottle-700"
+            >
               ליצירת הזמנה חדשה
             </Button>
           </motion.div>

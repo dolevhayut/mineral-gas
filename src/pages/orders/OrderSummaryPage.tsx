@@ -36,6 +36,7 @@ const OrderSummaryPage = () => {
     name: string;
     phone: string;
     address?: string;
+    city?: string;
   } | null>(null);
   const [deliveryPreferences, setDeliveryPreferences] = useState<Record<string, {
     type: 'asap' | 'specific';
@@ -70,7 +71,7 @@ const OrderSummaryPage = () => {
         try {
           const { data, error } = await supabase
             .from('customers')
-            .select('name, phone, address')
+            .select('name, phone, address, city')
             .eq('id', user.id)
             .single();
           
@@ -78,7 +79,8 @@ const OrderSummaryPage = () => {
             setCustomerInfo({
               name: data.name || '',
               phone: data.phone || '',
-              address: data.address || ''
+              address: data.address || '',
+              city: data.city || ''
             });
           }
         } catch (error) {
@@ -207,6 +209,9 @@ const OrderSummaryPage = () => {
                     {customerInfo.address && (
                       <p><span className="font-medium">כתובת:</span> {customerInfo.address}</p>
                     )}
+                    {customerInfo.city && (
+                      <p><span className="font-medium">עיר:</span> {customerInfo.city}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -274,7 +279,7 @@ const OrderSummaryPage = () => {
               size="lg" 
               disabled={isSubmitting || !hasItems}
               onClick={handleSubmitOrder}
-              className="min-w-[200px] bg-green-600 hover:bg-green-700 text-white font-medium transition-all"
+              className="min-w-[200px] bg-bottle-600 hover:bg-bottle-700 text-white font-medium transition-all"
             >
               {isSubmitting ? (
                 <motion.div 

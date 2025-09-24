@@ -399,7 +399,7 @@ const Orders = () => {
               אין לך הזמנות במערכת
             </p>
             <Button 
-              variant="outline"
+              className="bg-bottle-600 hover:bg-bottle-700 text-white"
               onClick={() => navigate('/orders/new')}
             >
               צור הזמנה חדשה
