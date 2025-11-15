@@ -122,18 +122,30 @@ const ServiceRequest = () => {
         const fileName = `${customerData.id}_${Date.now()}.${fileExt}`;
         const filePath = `service-requests/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        console.log('Attempting to upload image:', { fileName, filePath, fileSize: selectedImage.size });
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('service-images')
-          .upload(filePath, selectedImage);
+          .upload(filePath, selectedImage, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
         if (uploadError) {
           console.error('Error uploading image:', uploadError);
+          toast({
+            title: "שגיאה בהעלאת תמונה",
+            description: `${uploadError.message}`,
+            variant: "destructive"
+          });
           // Continue without image if upload fails
         } else {
+          console.log('Image uploaded successfully:', uploadData);
           const { data: { publicUrl } } = supabase.storage
             .from('service-images')
             .getPublicUrl(filePath);
           imageUrl = publicUrl;
+          console.log('Public URL:', publicUrl);
         }
       }
 

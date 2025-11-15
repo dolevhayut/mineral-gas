@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,11 @@ import {
   Image as ImageIcon,
   SearchIcon,
   FilterIcon,
-  Eye
+  Eye,
+  X,
+  ArrowRight,
+  Plus,
+  Upload
 } from "lucide-react";
 
 interface ServiceRequest {
@@ -62,9 +66,71 @@ export default function ServiceRequests() {
   const queryClient = useQueryClient();
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  
+  // New service request form state
+  const [newRequest, setNewRequest] = useState({
+    customer_id: "",
+    title: "",
+    description: "",
+    service_type: "maintenance",
+    priority: "normal" as ServiceRequest['priority'],
+    preferred_date: "",
+    preferred_time_slot: "",
+    city: "",
+    address: "",
+    customer_phone: "",
+    technician_notes: ""
+  });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [cities, setCities] = useState<string[]>([]);
+
+  // Fetch cities from government API
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await fetch('https://data.gov.il/api/3/action/datastore_search?resource_id=5c78e9fa-c2e2-4771-93ff-7f400a12f7ba&limit=2000');
+        const data = await response.json();
+        if (data.success) {
+          const records: { "שם_ישוב": string; "שם_נפה": string }[] = data.result.records;
+          const northernDistricts = ["עכו", "יזרעאל", "צפת", "כנרת", "גולן", "חיפה"];
+
+          const northernCities = records
+            .filter(record => 
+              record['שם_נפה'] && 
+              northernDistricts.includes(record['שם_נפה'].trim()) &&
+              record['שם_ישוב'] &&
+              record['שם_ישוב'].trim() !== ''
+            )
+            .map(record => record['שם_ישוב'].trim());
+
+          const cityNames: string[] = [...new Set(northernCities)].sort();
+          setCities(cityNames);
+        }
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+      }
+    };
+
+    fetchCities();
+  }, []);
+
+  // Fetch customers for dropdown
+  const { data: customersData } = useQuery({
+    queryKey: ["customers-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name, phone, city, address")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // Fetch service requests
   const { data: requests, isLoading } = useQuery({
@@ -88,6 +154,78 @@ export default function ServiceRequests() {
       const { data, error } = await query;
       if (error) throw error;
       return data as ServiceRequest[];
+    },
+  });
+
+  // Create new service request
+  const createRequest = useMutation({
+    mutationFn: async () => {
+      if (!newRequest.customer_id || !newRequest.description) {
+        throw new Error("יש למלא לקוח ותיאור");
+      }
+
+      let imageUrl = null;
+
+      // Upload image if selected
+      if (selectedImage) {
+        const fileExt = selectedImage.name.split('.').pop();
+        const fileName = `${newRequest.customer_id}_${Date.now()}.${fileExt}`;
+        const filePath = `service-requests/${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('service-images')
+          .upload(filePath, selectedImage, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          toast({
+            title: "שגיאה בהעלאת תמונה",
+            description: uploadError.message,
+            variant: "destructive"
+          });
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-images')
+            .getPublicUrl(filePath);
+          imageUrl = publicUrl;
+        }
+      }
+
+      const { error } = await supabase
+        .from("service_requests")
+        .insert({
+          customer_id: newRequest.customer_id,
+          title: newRequest.title || `${newRequest.service_type} - ${newRequest.city || 'לא צוין'}`,
+          description: newRequest.description,
+          service_type: newRequest.service_type,
+          priority: newRequest.priority,
+          preferred_date: newRequest.preferred_date || null,
+          preferred_time_slot: newRequest.preferred_time_slot || null,
+          city: newRequest.city || null,
+          address: newRequest.address || null,
+          customer_phone: newRequest.customer_phone || null,
+          technician_notes: newRequest.technician_notes || null,
+          image_url: imageUrl,
+          status: 'pending'
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-requests"] });
+      toast({ title: "קריאת השירות נוצרה בהצלחה" });
+      setIsCreateDialogOpen(false);
+      resetNewRequestForm();
+    },
+    onError: (error) => {
+      toast({ 
+        title: "שגיאה ביצירת קריאת שירות", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -184,6 +322,81 @@ export default function ServiceRequests() {
     }
   };
 
+  const handleMarkAsCompleted = () => {
+    if (selectedRequest) {
+      updateRequest.mutate({
+        ...selectedRequest,
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      });
+    }
+  };
+
+  const handleClose = () => {
+    setIsDialogOpen(false);
+    setSelectedRequest(null);
+  };
+
+  const resetNewRequestForm = () => {
+    setNewRequest({
+      customer_id: "",
+      title: "",
+      description: "",
+      service_type: "maintenance",
+      priority: "normal",
+      preferred_date: "",
+      preferred_time_slot: "",
+      city: "",
+      address: "",
+      customer_phone: "",
+      technician_notes: ""
+    });
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "שגיאה",
+          description: "גודל התמונה חייב להיות פחות מ-5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
+  const handleCustomerSelect = (customerId: string) => {
+    const customer = customersData?.find(c => c.id === customerId);
+    if (customer) {
+      setNewRequest({
+        ...newRequest,
+        customer_id: customerId,
+        customer_phone: customer.phone,
+        city: customer.city || "",
+        address: customer.address || ""
+      });
+    }
+  };
+
+  const handleCreateRequest = () => {
+    createRequest.mutate();
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -192,6 +405,13 @@ export default function ServiceRequests() {
           <h1 className="text-3xl font-bold tracking-tight">קריאות שירות</h1>
           <p className="text-muted-foreground">נהל קריאות שירות מלקוחות</p>
         </div>
+        <Button 
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="bg-bottle-600 hover:bg-bottle-700"
+        >
+          <Plus className="h-4 w-4 ml-2" />
+          קריאת שירות חדשה
+        </Button>
       </div>
 
       {/* Filters */}
@@ -342,6 +562,33 @@ export default function ServiceRequests() {
             </DialogDescription>
           </DialogHeader>
           
+          {/* Quick Actions */}
+          {selectedRequest && (
+            <div className="flex flex-wrap gap-2 pb-4 border-b">
+              <Button
+                onClick={handleMarkAsCompleted}
+                disabled={updateRequest.isPending || selectedRequest.status === 'completed'}
+                className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700 text-white"
+                variant="default"
+              >
+                {updateRequest.isPending ? (
+                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 ml-2" />
+                )}
+                קריאה הסתיימה
+              </Button>
+              <Button
+                onClick={handleClose}
+                variant="outline"
+                className="flex-1 sm:flex-initial"
+              >
+                <X className="h-4 w-4 ml-2" />
+                סגירה וחזרה
+              </Button>
+            </div>
+          )}
+          
           {selectedRequest && (
             <div className="space-y-4 py-4">
               <div className="grid gap-2">
@@ -454,32 +701,328 @@ export default function ServiceRequests() {
               {selectedRequest.image_url && (
                 <div className="grid gap-2">
                   <Label>תמונה מצורפת</Label>
-                  <img 
-                    src={selectedRequest.image_url} 
-                    alt="תמונת בקשה" 
-                    className="max-w-full rounded-lg shadow-md border"
-                  />
+                  <a 
+                    href={selectedRequest.image_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <img 
+                      src={selectedRequest.image_url} 
+                      alt="תמונת בקשה" 
+                      className="max-w-full rounded-lg shadow-md border hover:opacity-90 transition-opacity cursor-pointer"
+                      onError={(e) => {
+                        console.error('Failed to load image:', selectedRequest.image_url);
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                      }}
+                    />
+                  </a>
+                  <p className="text-xs text-muted-foreground">לחץ על התמונה לצפייה בגודל מלא</p>
                 </div>
               )}
             </div>
           )}
           
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+            <Button 
+              onClick={handleSaveRequest}
+              disabled={updateRequest.isPending}
+              className="w-full bg-bottle-600 hover:bg-bottle-700"
+            >
+              {updateRequest.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              שמור שינויים
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Service Request Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+        setIsCreateDialogOpen(open);
+        if (!open) resetNewRequestForm();
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>יצירת קריאת שירות חדשה</DialogTitle>
+            <DialogDescription>
+              צור קריאת שירות עבור לקוח
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Customer Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="customer">לקוח *</Label>
+              {customersData && customersData.length > 0 ? (
+                <Select value={newRequest.customer_id} onValueChange={handleCustomerSelect}>
+                  <SelectTrigger id="customer" className="text-right">
+                    <SelectValue placeholder="בחר לקוח מהרשימה" />
+                  </SelectTrigger>
+                  <SelectContent align="end" className="text-right">
+                    <div className="p-2">
+                      <Input
+                        placeholder="חפש לקוח..."
+                        className="h-8 mb-2 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          const search = e.target.value.toLowerCase();
+                          const items = document.querySelectorAll('[role="option"]');
+                          items.forEach((item) => {
+                            const text = item.textContent?.toLowerCase() || '';
+                            (item as HTMLElement).style.display = text.includes(search) ? '' : 'none';
+                          });
+                        }}
+                      />
+                    </div>
+                    {customersData.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id} className="text-right">
+                        <div>
+                          <span className="font-medium block">{customer.name}</span>
+                          <span className="text-xs text-gray-500 block">
+                            {customer.phone} {customer.city && `• ${customer.city}`}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="text-center text-sm text-gray-500 py-4">
+                  טוען לקוחות...
+                </div>
+              )}
+            </div>
+
+            {/* Service Type */}
+            <div className="grid gap-2">
+              <Label htmlFor="service-type">סוג השירות *</Label>
+              <Select
+                value={newRequest.service_type}
+                onValueChange={(value) => setNewRequest({ ...newRequest, service_type: value })}
+              >
+                <SelectTrigger id="service-type" className="text-right">
+                  <SelectValue placeholder="בחר סוג שירות" />
+                </SelectTrigger>
+                <SelectContent align="end" className="text-right">
+                  <SelectItem value="installation" className="text-right">התקנת מערכת גז</SelectItem>
+                  <SelectItem value="repair" className="text-right">תיקון תקלה</SelectItem>
+                  <SelectItem value="maintenance" className="text-right">בדיקה תקופתית</SelectItem>
+                  <SelectItem value="emergency" className="text-right">חירום - דליפת גז</SelectItem>
+                  <SelectItem value="consultation" className="text-right">ייעוץ</SelectItem>
+                  <SelectItem value="other" className="text-right">אחר</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Description */}
+            <div className="grid gap-2">
+              <Label htmlFor="new-description">תיאור הבעיה *</Label>
+              <Textarea
+                id="new-description"
+                value={newRequest.description}
+                onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })}
+                placeholder="תאר את הבעיה או את השירות הנדרש"
+                rows={3}
+                className="text-right"
+              />
+            </div>
+
+            {/* Priority and Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="new-priority">עדיפות</Label>
+                <Select 
+                  value={newRequest.priority}
+                  onValueChange={(value) => setNewRequest({ ...newRequest, priority: value as ServiceRequest['priority'] })}
+                >
+                  <SelectTrigger id="new-priority" className="text-right">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end" className="text-right">
+                    <SelectItem value="low" className="text-right">נמוכה</SelectItem>
+                    <SelectItem value="normal" className="text-right">רגילה</SelectItem>
+                    <SelectItem value="high" className="text-right">גבוהה</SelectItem>
+                    <SelectItem value="urgent" className="text-right">דחופה</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="new-preferred-date">תאריך מועדף</Label>
+                <Input
+                  id="new-preferred-date"
+                  type="date"
+                  value={newRequest.preferred_date}
+                  onChange={(e) => setNewRequest({ ...newRequest, preferred_date: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="text-right"
+                />
+              </div>
+            </div>
+
+            {/* Time Slot */}
+            <div className="grid gap-2">
+              <Label htmlFor="new-time-slot">שעה מועדפת</Label>
+              <Select
+                value={newRequest.preferred_time_slot}
+                onValueChange={(value) => setNewRequest({ ...newRequest, preferred_time_slot: value })}
+              >
+                <SelectTrigger id="new-time-slot" className="text-right">
+                  <SelectValue placeholder="בחר שעה" />
+                </SelectTrigger>
+                <SelectContent align="end" className="text-right">
+                  <SelectItem value="morning" className="text-right">בוקר (8:00-12:00)</SelectItem>
+                  <SelectItem value="afternoon" className="text-right">צהריים (12:00-16:00)</SelectItem>
+                  <SelectItem value="evening" className="text-right">ערב (16:00-20:00)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* City and Address */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="new-city">יישוב</Label>
+                {cities.length > 0 ? (
+                  <Select value={newRequest.city} onValueChange={(value) => setNewRequest({ ...newRequest, city: value })}>
+                    <SelectTrigger id="new-city" className="text-right">
+                      <SelectValue placeholder="בחר יישוב" />
+                    </SelectTrigger>
+                    <SelectContent align="end" className="text-right">
+                      <div className="p-2">
+                        <Input
+                          placeholder="חפש יישוב..."
+                          className="h-8 mb-2 text-right"
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const search = e.target.value.toLowerCase();
+                            const items = document.querySelectorAll('[role="option"]');
+                            items.forEach((item) => {
+                              const text = item.textContent?.toLowerCase() || '';
+                              (item as HTMLElement).style.display = text.includes(search) ? '' : 'none';
+                            });
+                          }}
+                        />
+                      </div>
+                      {cities.map(city => (
+                        <SelectItem key={city} value={city} className="text-right">{city}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input disabled placeholder="טוען יישובים..." className="text-right" />
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="new-address">כתובת</Label>
+                <Input
+                  id="new-address"
+                  value={newRequest.address}
+                  onChange={(e) => setNewRequest({ ...newRequest, address: e.target.value })}
+                  placeholder="רחוב ומספר בית"
+                  className="text-right"
+                />
+              </div>
+            </div>
+
+            {/* Phone */}
+            <div className="grid gap-2">
+              <Label htmlFor="new-phone">טלפון ליצירת קשר</Label>
+              <Input
+                id="new-phone"
+                type="tel"
+                value={newRequest.customer_phone}
+                onChange={(e) => setNewRequest({ ...newRequest, customer_phone: e.target.value })}
+                placeholder="050-1234567"
+                className="text-right"
+                dir="ltr"
+              />
+            </div>
+
+            {/* Technician Notes */}
+            <div className="grid gap-2">
+              <Label htmlFor="new-tech-notes">הערות טכנאי</Label>
+              <Textarea
+                id="new-tech-notes"
+                value={newRequest.technician_notes}
+                onChange={(e) => setNewRequest({ ...newRequest, technician_notes: e.target.value })}
+                placeholder="הערות נוספות..."
+                rows={2}
+                className="text-right"
+              />
+            </div>
+
+            {/* Image Upload */}
+            <div className="grid gap-2">
+              <Label>תמונה מצורפת (אופציונלי)</Label>
+              <div className="flex flex-col items-center space-y-4">
+                {imagePreview ? (
+                  <div className="relative">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="h-32 w-32 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="h-32 w-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                    <ImageIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                )}
+                
+                <div className="flex flex-col items-center space-y-2 w-full">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="new-image-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('new-image-upload')?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 ml-2" />
+                    {imagePreview ? "החלף תמונה" : "בחר תמונה"}
+                  </Button>
+                  <p className="text-xs text-gray-500 text-center">
+                    מקסימום 5MB. פורמטים נתמכים: JPG, PNG, GIF, WEBP
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => setIsDialogOpen(false)}
-              className="w-full sm:w-auto order-2 sm:order-1"
+              onClick={() => {
+                setIsCreateDialogOpen(false);
+                resetNewRequestForm();
+              }}
+              className="w-full sm:w-auto"
             >
               ביטול
             </Button>
             <Button 
-              onClick={handleSaveRequest}
-              disabled={updateRequest.isPending}
-              className="w-full sm:w-auto order-1 sm:order-2 bg-bottle-600 hover:bg-bottle-700"
+              onClick={handleCreateRequest}
+              disabled={createRequest.isPending || !newRequest.customer_id || !newRequest.description}
+              className="w-full sm:w-auto bg-bottle-600 hover:bg-bottle-700"
             >
-              {updateRequest.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-              שמור שינויים
+              {createRequest.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              צור קריאת שירות
             </Button>
           </DialogFooter>
         </DialogContent>
