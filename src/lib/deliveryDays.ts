@@ -1,4 +1,16 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
+
+// Helper function to get the appropriate supabase client
+// Uses admin client if available and admin is authenticated, otherwise uses regular client
+const getSupabaseClient = () => {
+  const isAdminAuthenticated = typeof window !== 'undefined' && 
+    sessionStorage.getItem("adminAuthenticated") === "true";
+  
+  if (isAdminAuthenticated && supabaseAdmin) {
+    return supabaseAdmin;
+  }
+  return supabase;
+};
 
 /**
  * Hebrew day names for display
@@ -56,10 +68,11 @@ export const getNextWeekdayDate = (dayOfWeek: number): Date => {
   tomorrow.setDate(today.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
   
-  const currentDay = tomorrow.getDay();
-  let daysUntilTarget = dayOfWeek - currentDay;
+  const tomorrowDayOfWeek = tomorrow.getDay();
+  let daysUntilTarget = dayOfWeek - tomorrowDayOfWeek;
   
-  // If the target day is today or before, add 7 days to get next week
+  // If the target day is before tomorrow, add 7 days to get next week
+  // If daysUntilTarget is 0, it means tomorrow is the target day - return tomorrow
   if (daysUntilTarget < 0) {
     daysUntilTarget += 7;
   }
@@ -94,10 +107,11 @@ export const getAvailableDaysForCity = async (city: string | null | undefined): 
   }
 
   try {
-    const { data, error } = await supabase
+    // Fetch all delivery days and filter in JavaScript to ensure we get all matches
+    const client = getSupabaseClient();
+    const { data, error } = await client
       .from('delivery_days')
-      .select('day_of_week, cities')
-      .contains('cities', [city]);
+      .select('day_of_week, cities');
 
     if (error) {
       console.error("Error fetching delivery days:", error);
@@ -105,19 +119,29 @@ export const getAvailableDaysForCity = async (city: string | null | undefined): 
     }
 
     if (!data || data.length === 0) {
+      console.warn(`No delivery days configured in system`);
+      return [];
+    }
+
+    // Filter rows where the city is in the cities array
+    const matchingDays = data.filter(row => 
+      row.cities && Array.isArray(row.cities) && row.cities.includes(city)
+    );
+
+    if (matchingDays.length === 0) {
       console.warn(`No delivery days configured for city: ${city}`);
       return [];
     }
 
-    // Extract day_of_week values and filter out today's day
-    const today = new Date();
-    const todayDayOfWeek = today.getDay();
-    
-    const availableDays = data
+    // Extract day_of_week values
+    // Note: We don't filter out today's day here because getNextWeekdayDate
+    // already handles calculating the next occurrence (always from tomorrow)
+    // If today is Saturday and customer selects Sunday (tomorrow), it will return tomorrow
+    const availableDays = matchingDays
       .map(row => row.day_of_week)
-      .filter(day => day !== todayDayOfWeek) // Cannot select today
       .sort((a, b) => a - b);
 
+    console.log(`Found ${availableDays.length} delivery days for city ${city}:`, availableDays);
     return availableDays;
   } catch (error) {
     console.error("Unexpected error in getAvailableDaysForCity:", error);
@@ -131,7 +155,8 @@ export const getAvailableDaysForCity = async (city: string | null | undefined): 
  */
 export const getAllDeliveryDays = async () => {
   try {
-    const { data, error } = await supabase
+    const client = getSupabaseClient();
+    const { data, error } = await client
       .from('delivery_days')
       .select('*')
       .order('day_of_week');
@@ -156,8 +181,10 @@ export const getAllDeliveryDays = async () => {
  */
 export const saveDeliveryDay = async (dayOfWeek: number, cities: string[]): Promise<boolean> => {
   try {
+    const client = getSupabaseClient();
+    
     // Try to update first
-    const { data: existing } = await supabase
+    const { data: existing } = await client
       .from('delivery_days')
       .select('id')
       .eq('day_of_week', dayOfWeek)
@@ -165,7 +192,7 @@ export const saveDeliveryDay = async (dayOfWeek: number, cities: string[]): Prom
 
     if (existing) {
       // Update existing record
-      const { error } = await supabase
+      const { error } = await client
         .from('delivery_days')
         .update({ cities, updated_at: new Date().toISOString() })
         .eq('day_of_week', dayOfWeek);
@@ -176,7 +203,7 @@ export const saveDeliveryDay = async (dayOfWeek: number, cities: string[]): Prom
       }
     } else {
       // Insert new record
-      const { error } = await supabase
+      const { error } = await client
         .from('delivery_days')
         .insert({ day_of_week: dayOfWeek, cities });
 
@@ -200,7 +227,8 @@ export const saveDeliveryDay = async (dayOfWeek: number, cities: string[]): Prom
  */
 export const deleteDeliveryDay = async (dayOfWeek: number): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    const client = getSupabaseClient();
+    const { error } = await client
       .from('delivery_days')
       .delete()
       .eq('day_of_week', dayOfWeek);

@@ -54,12 +54,37 @@ const AdminOrderSummaryPage = () => {
         quantities: stateQuantities, 
         products: stateProducts,
         deliveryPreferences: stateDeliveryPreferences,
-        adminSelectedCustomer: stateAdminCustomer
+        adminSelectedCustomer: stateAdminCustomer,
+        selectedDay: stateSelectedDay,
+        targetDate: stateTargetDate
       } = location.state;
       if (stateQuantities) setQuantities(stateQuantities);
       if (stateProducts) setProducts(stateProducts);
-      if (stateDeliveryPreferences) setDeliveryPreferences(stateDeliveryPreferences);
+      if (stateDeliveryPreferences) {
+        setDeliveryPreferences(stateDeliveryPreferences);
+        // If there's a delivery preference with a date, use it as the default target date
+        const firstPreference = Object.values(stateDeliveryPreferences).find(pref => pref.date);
+        if (firstPreference?.date && !stateTargetDate) {
+          // Convert to Date if it's not already a Date object
+          const date = firstPreference.date instanceof Date 
+            ? firstPreference.date 
+            : new Date(firstPreference.date);
+          setTargetDate(date);
+          if (firstPreference.dayOfWeek !== undefined) {
+            setSelectedDay(firstPreference.dayOfWeek);
+          }
+        }
+      }
       if (stateAdminCustomer) setAdminSelectedCustomer(stateAdminCustomer);
+      // If selectedDay and targetDate are passed from previous page, use them
+      if (stateSelectedDay !== undefined) setSelectedDay(stateSelectedDay);
+      if (stateTargetDate) {
+        // Convert to Date if it's not already a Date object
+        const date = stateTargetDate instanceof Date 
+          ? stateTargetDate 
+          : new Date(stateTargetDate);
+        setTargetDate(date);
+      }
     } else {
       // If no state, redirect back to the admin orders page
       navigate("/admin/orders");

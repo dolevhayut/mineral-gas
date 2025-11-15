@@ -3,8 +3,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://dttonqyqzmxcsitijwuf.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0dG9ucXlxem14Y3NpdGlqd3VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MTc1NzUsImV4cCI6MjA3NDE5MzU3NX0.qtr-vMIfiwu-sf7BieXZgX2MWYmmZxVB8wwebzEkWVE";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://dttonqyqzmxcsitijwuf.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0dG9ucXlxem14Y3NpdGlqd3VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MTc1NzUsImV4cCI6MjA3NDE5MzU3NX0.qtr-vMIfiwu-sf7BieXZgX2MWYmmZxVB8wwebzEkWVE";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -43,3 +43,20 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Admin client with service_role key (bypasses RLS)
+// Use this for admin operations that need elevated permissions
+const SUPABASE_SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+
+export const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
+  ? createClient<Database>(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      }
+    )
+  : null;

@@ -132,8 +132,6 @@ export default function ProductCard({ product, onSelect, isSelected, quantity = 
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
     >
     <Card 
       key={product.id}
@@ -261,7 +259,7 @@ export default function ProductCard({ product, onSelect, isSelected, quantity = 
             <Button
               onClick={(e) => {
                 e.stopPropagation();
-                handleAddRemove(false);
+                handleAddRemove(!isSelected || quantity === 0);
               }}
               size="icon"
               variant="outline"
