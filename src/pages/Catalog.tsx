@@ -222,13 +222,13 @@ const Catalog = () => {
                 value={selectedCategory || ""} 
                 onValueChange={(value) => setSelectedCategory(value || null)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right">
                   <SelectValue placeholder="כל הקטגוריות" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">כל הקטגוריות</SelectItem>
+                <SelectContent align="end" className="text-right">
+                  <SelectItem value="" className="text-right">כל הקטגוריות</SelectItem>
                   {sampleCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.name}>
+                    <SelectItem key={category.id} value={category.name} className="text-right">
                       {category.name}
                     </SelectItem>
                   ))}
@@ -238,15 +238,15 @@ const Catalog = () => {
 
             <div className="md:col-span-3">
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
+                <SelectTrigger className="text-right">
                   <SelectValue placeholder="מיון לפי" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">מומלצים</SelectItem>
-                  <SelectItem value="price-asc">מחיר: נמוך לגבוה</SelectItem>
-                  <SelectItem value="price-desc">מחיר: גבוה לנמוך</SelectItem>
-                  <SelectItem value="name-asc">שם: א-ת</SelectItem>
-                  <SelectItem value="name-desc">שם: ת-א</SelectItem>
+                <SelectContent align="end" className="text-right">
+                  <SelectItem value="default" className="text-right">מומלצים</SelectItem>
+                  <SelectItem value="price-asc" className="text-right">מחיר: נמוך לגבוה</SelectItem>
+                  <SelectItem value="price-desc" className="text-right">מחיר: גבוה לנמוך</SelectItem>
+                  <SelectItem value="name-asc" className="text-right">שם: א-ת</SelectItem>
+                  <SelectItem value="name-desc" className="text-right">שם: ת-א</SelectItem>
                 </SelectContent>
               </Select>
             </div>

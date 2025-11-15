@@ -444,11 +444,11 @@ export default function Customers() {
                   <SelectTrigger className="text-right">
                     <SelectValue placeholder="בחר יישוב" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent align="end" className="text-right">
                     <div className="p-2">
                       <Input
                         placeholder="חפש יישוב..."
-                        className="h-8 mb-2"
+                        className="h-8 mb-2 text-right"
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => {
                           const search = e.target.value.toLowerCase();
@@ -478,7 +478,7 @@ export default function Customers() {
                 <SelectTrigger id="business_type" className="text-right">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent align="end" className="text-right">
                   <SelectItem value="residential" className="text-right">פרטי</SelectItem>
                   <SelectItem value="commercial" className="text-right">עסקי</SelectItem>
                 </SelectContent>
@@ -490,13 +490,13 @@ export default function Customers() {
                 value={currentCustomer.customer_type || "active"}
                 onValueChange={(value) => setCurrentCustomer({ ...currentCustomer, customer_type: value })}
               >
-                <SelectTrigger id="customer_type">
+                <SelectTrigger id="customer_type" className="text-right">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">פעיל</SelectItem>
-                  <SelectItem value="suspended">מושעה</SelectItem>
-                  <SelectItem value="inactive">לא פעיל</SelectItem>
+                <SelectContent align="end" className="text-right">
+                  <SelectItem value="active" className="text-right">פעיל</SelectItem>
+                  <SelectItem value="suspended" className="text-right">מושעה</SelectItem>
+                  <SelectItem value="inactive" className="text-right">לא פעיל</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -521,13 +521,13 @@ export default function Customers() {
                 value={currentCustomer.price_list_id || "none"}
                 onValueChange={(value) => setCurrentCustomer({ ...currentCustomer, price_list_id: value === "none" ? null : value })}
               >
-                <SelectTrigger id="price_list">
+                <SelectTrigger id="price_list" className="text-right">
                   <SelectValue placeholder="בחר מחירון" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">ללא מחירון (ברירת מחדל)</SelectItem>
+                <SelectContent align="end" className="text-right">
+                  <SelectItem value="none" className="text-right">ללא מחירון (ברירת מחדל)</SelectItem>
                   {priceLists?.map((priceList) => (
-                    <SelectItem key={priceList.id} value={priceList.id}>
+                    <SelectItem key={priceList.id} value={priceList.id} className="text-right">
                       {priceList.name}
                       {priceList.description && ` - ${priceList.description}`}
                     </SelectItem>

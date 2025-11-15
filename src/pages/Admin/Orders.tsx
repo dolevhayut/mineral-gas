@@ -273,8 +273,8 @@ export default function Orders() {
       return;
     }
 
-    // Navigate to new order page with customer context
-    navigate("/orders/new", {
+    // Navigate to admin new order page with customer context
+    navigate("/admin/orders/new", {
       state: {
         adminSelectedCustomerId: selectedCustomer
       }
@@ -327,9 +327,9 @@ export default function Orders() {
               <SelectValue placeholder="סנן לפי סטטוס" />
             </SelectTrigger>
             <SelectContent align="end" className="text-right">
-              <SelectItem value="all" className="flex justify-end">כל הסטטוסים</SelectItem>
+              <SelectItem value="all" className="text-right">כל הסטטוסים</SelectItem>
               {Object.entries(statusMap).map(([key, { label }]) => (
-                <SelectItem key={key} value={key} className="flex justify-end">{label}</SelectItem>
+                <SelectItem key={key} value={key} className="text-right">{label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -814,12 +814,12 @@ export default function Orders() {
                     </div>
                     {customers.map((customer) => (
                       <SelectItem key={customer.id} value={customer.id} className="text-right">
-                        <div className="flex flex-col items-end w-full">
-                          <span className="font-medium">{customer.name}</span>
-                          <span className="text-xs text-gray-500">
+                        <>
+                          <span className="font-medium block">{customer.name}</span>
+                          <span className="text-xs text-gray-500 block">
                             {customer.phone} {customer.city && `• ${customer.city}`}
                           </span>
-                        </div>
+                        </>
                       </SelectItem>
                     ))}
                   </SelectContent>

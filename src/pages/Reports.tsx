@@ -333,12 +333,12 @@ const Reports = () => {
         {isMobile ? (
           <div className="mb-4">
             <Select value={activeTab} onValueChange={setActiveTab}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full text-right">
                 <SelectValue placeholder="בחר דוח" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent align="end" className="text-right">
                 {tabOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="text-right">
                     {option.label}
                   </SelectItem>
                 ))}

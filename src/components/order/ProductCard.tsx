@@ -1,15 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { OrderProduct } from "./orderConstants";
-import { CheckCircle, Clock, Calendar, ShoppingCart, Plus, Minus } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Minus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { he } from "date-fns/locale";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -18,28 +12,55 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import DaySelector from "./DaySelector";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductCardProps {
   product: OrderProduct;
   onSelect: (productId: string, deliveryPreference?: {
-    type: 'asap' | 'specific';
+    dayOfWeek?: number;
     date?: Date;
-    time?: string;
   } | 'increment' | 'decrement') => void;
   isSelected: boolean;
   quantity?: number;
+  adminSelectedCustomer?: {id: string, name: string, phone: string, city?: string} | null;
 }
 
-export default function ProductCard({ product, onSelect, isSelected, quantity = 0 }: ProductCardProps) {
-  const [deliveryType, setDeliveryType] = useState<'asap' | 'specific'>('asap');
-  const [specificDate, setSpecificDate] = useState<Date>();
-  const [specificTime, setSpecificTime] = useState<string>('');
+export default function ProductCard({ product, onSelect, isSelected, quantity = 0, adminSelectedCustomer }: ProductCardProps) {
+  const { user } = useAuth();
+  const [selectedDay, setSelectedDay] = useState<number | undefined>();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [showDeliveryOptions, setShowDeliveryOptions] = useState(false);
   const [isAddAnimating, setIsAddAnimating] = useState(false);
   const [isRemoveAnimating, setIsRemoveAnimating] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [customerCity, setCustomerCity] = useState<string | null>(null);
   
+  // Fetch customer city (for admin creating order for customer or regular user)
+  useEffect(() => {
+    const fetchCustomerCity = async () => {
+      const customerId = adminSelectedCustomer?.id || user?.id;
+      if (!customerId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('city')
+          .eq('id', customerId)
+          .single();
+
+        if (!error && data) {
+          setCustomerCity(data.city || adminSelectedCustomer?.city || null);
+        }
+      } catch (error) {
+        console.error("Error fetching customer city:", error);
+        setCustomerCity(adminSelectedCustomer?.city || null);
+      }
+    };
+
+    fetchCustomerCity();
+  }, [user, adminSelectedCustomer]);
+
   // Reset animation states when quantity changes to 0
   useEffect(() => {
     if (quantity === 0) {
@@ -85,18 +106,25 @@ export default function ProductCard({ product, onSelect, isSelected, quantity = 
     }
   };
   
+  const handleDaySelect = (dayOfWeek: number, date: Date) => {
+    setSelectedDay(dayOfWeek);
+    setSelectedDate(date);
+  };
+
   const handleConfirmDelivery = () => {
-    const deliveryPreference = {
-      type: deliveryType,
-      ...(deliveryType === 'specific' && {
-        date: specificDate,
-        time: specificTime
-      })
-    } as const;
-    onSelect(product.id, deliveryPreference);
-    setShowDeliveryOptions(false);
-    setIsAddAnimating(true);
-    setTimeout(() => setIsAddAnimating(false), 1000);
+    if (selectedDay !== undefined && selectedDate) {
+      const deliveryPreference = {
+        dayOfWeek: selectedDay,
+        date: selectedDate
+      };
+      onSelect(product.id, deliveryPreference);
+      setShowDeliveryOptions(false);
+      setIsAddAnimating(true);
+      setTimeout(() => setIsAddAnimating(false), 1000);
+      // Reset selection
+      setSelectedDay(undefined);
+      setSelectedDate(undefined);
+    }
   };
   
   return (
@@ -301,78 +329,29 @@ export default function ProductCard({ product, onSelect, isSelected, quantity = 
           </motion.div>
         </motion.div>
       
-      {/* Delivery Options Dialog for Gas Cylinders */}
+      {/* Delivery Day Selection Dialog for Gas Cylinders */}
       <Dialog open={showDeliveryOptions} onOpenChange={(open) => {
         setShowDeliveryOptions(open);
         if (!open) {
           // Reset states when dialog closes
-          setDeliveryType('asap');
-          setSpecificDate(undefined);
-          setSpecificTime('');
-          setIsCalendarOpen(false);
+          setSelectedDay(undefined);
+          setSelectedDate(undefined);
         }
       }}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>בחר זמן אספקה עבור {product.name}</DialogTitle>
+            <DialogTitle>בחר יום אספקה עבור {product.name}</DialogTitle>
             <DialogDescription>
-              אנא בחר מתי ברצונך לקבל את המוצר
+              אנא בחר יום אספקה מהימים הזמינים
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
-          <Select value={deliveryType} onValueChange={(value: 'asap' | 'specific') => setDeliveryType(value)}>
-            <SelectTrigger className="w-full mb-3">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="asap">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  כמה שיותר מוקדם
-                </div>
-              </SelectItem>
-              <SelectItem value="specific">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  תאריך ושעה ספציפיים
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          
-            {deliveryType === 'specific' && (
-              <div className="space-y-3">
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-right">
-                      <Calendar className="ml-2 h-4 w-4" />
-                      {specificDate ? format(specificDate, "dd/MM/yyyy", { locale: he }) : "בחר תאריך"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={specificDate}
-                      onSelect={(date) => {
-                        setSpecificDate(date);
-                        setIsCalendarOpen(false);
-                      }}
-                      locale={he}
-                      disabled={(date) => date < new Date()}
-                    />
-                  </PopoverContent>
-                </Popover>
-              
-              <Input
-                type="time"
-                value={specificTime}
-                onChange={(e) => setSpecificTime(e.target.value)}
-                placeholder="בחר שעה"
-                className="w-full"
-              />
-            </div>
-          )}
+            <DaySelector 
+              selectedDay={selectedDay} 
+              onDaySelect={handleDaySelect}
+              adminSelectedCustomer={adminSelectedCustomer}
+            />
           </div>
           
           <DialogFooter>
@@ -382,12 +361,12 @@ export default function ProductCard({ product, onSelect, isSelected, quantity = 
             >
               ביטול
             </Button>
-          <Button 
-            onClick={handleConfirmDelivery}
-            disabled={deliveryType === 'specific' && (!specificDate || !specificTime)}
-          >
-            הוסף לסל
-          </Button>
+            <Button 
+              onClick={handleConfirmDelivery}
+              disabled={selectedDay === undefined || !selectedDate}
+            >
+              הוסף לסל
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

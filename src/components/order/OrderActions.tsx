@@ -10,11 +10,11 @@ interface OrderActionsProps {
   isFromOrderEdit?: boolean;
   onReturnToEdit?: () => void;
   deliveryPreferences?: Record<string, {
-    type: 'asap' | 'specific';
+    dayOfWeek?: number;
     date?: Date;
-    time?: string;
   }>;
-  adminSelectedCustomer?: {id: string, name: string, phone: string} | null;
+  adminSelectedCustomer?: {id: string, name: string, phone: string, city?: string} | null;
+  isAdmin?: boolean;
 }
 
 export default function OrderActions({ 
@@ -23,7 +23,8 @@ export default function OrderActions({
   isFromOrderEdit = false,
   onReturnToEdit,
   deliveryPreferences = {},
-  adminSelectedCustomer = null
+  adminSelectedCustomer = null,
+  isAdmin = false
 }: OrderActionsProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -40,8 +41,9 @@ export default function OrderActions({
       return;
     }
     
-    // Navigate to summary page with state
-    navigate("/orders/summary", {
+    // Navigate to summary page with state - use admin route if isAdmin is true
+    const summaryRoute = isAdmin ? "/admin/orders/summary" : "/orders/summary";
+    navigate(summaryRoute, {
       state: {
         quantities,
         products,

@@ -40,16 +40,15 @@ const OrderSummaryPage = () => {
     city?: string;
   } | null>(null);
   const [deliveryPreferences, setDeliveryPreferences] = useState<Record<string, {
-    type: 'asap' | 'specific';
+    dayOfWeek?: number;
     date?: Date;
-    time?: string;
   }>>({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [submittedOrderId, setSubmittedOrderId] = useState<string>("");
   const [submittedOrderNumber, setSubmittedOrderNumber] = useState<number>(0);
   const [selectedDay, setSelectedDay] = useState<number | undefined>(undefined);
   const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
-  const [adminSelectedCustomer, setAdminSelectedCustomer] = useState<{id: string, name: string, phone: string} | null>(null);
+  const [adminSelectedCustomer, setAdminSelectedCustomer] = useState<{id: string, name: string, phone: string, city?: string} | null>(null);
 
   useEffect(() => {
     // Get quantities and products from location state
@@ -171,7 +170,7 @@ const OrderSummaryPage = () => {
       // Create a user object for the order submission
       // If admin is creating the order, use admin-selected customer's data
       const orderUser = adminSelectedCustomer 
-        ? { id: adminSelectedCustomer.id, phone: adminSelectedCustomer.phone } 
+        ? { id: adminSelectedCustomer.id, name: adminSelectedCustomer.name, phone: adminSelectedCustomer.phone } 
         : user;
       
       // Submit the order
@@ -264,13 +263,12 @@ const OrderSummaryPage = () => {
                       return (
                         <div key={productId} className="border-b pb-2 last:border-b-0">
                           <p className="font-medium">{product.name}:</p>
-                          {preference.type === 'asap' ? (
-                            <p className="text-sm text-gray-600">כמה שיותר מוקדם</p>
-                          ) : (
+                          {preference.date ? (
                             <p className="text-sm text-gray-600">
-                              {preference.date && format(preference.date, "dd/MM/yyyy", { locale: he })}
-                              {preference.time && ` בשעה ${preference.time}`}
+                              {format(preference.date, "dd/MM/yyyy", { locale: he })}
                             </p>
+                          ) : (
+                            <p className="text-sm text-gray-600">לא נבחר יום אספקה</p>
                           )}
                         </div>
                       );
@@ -285,6 +283,7 @@ const OrderSummaryPage = () => {
                 <DaySelector 
                   selectedDay={selectedDay}
                   onDaySelect={handleDaySelect}
+                  adminSelectedCustomer={adminSelectedCustomer}
                 />
               </div>
 

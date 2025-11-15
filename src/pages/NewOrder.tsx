@@ -32,11 +32,16 @@ const NewOrder = () => {
   const [isFromOrderEdit, setIsFromOrderEdit] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [deliveryPreferences, setDeliveryPreferences] = useState<Record<string, {
-    type: 'asap' | 'specific';
+    dayOfWeek?: number;
     date?: Date;
-    time?: string;
   }>>({});
-  const [adminSelectedCustomer, setAdminSelectedCustomer] = useState<{id: string, name: string, phone: string} | null>(null);
+  const [adminSelectedCustomer, setAdminSelectedCustomer] = useState<{id: string, name: string, phone: string, city?: string} | null>(null);
+  const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
+  
+  // Check if admin is authenticated via sessionStorage
+  const isAdminAuthenticated = () => {
+    return sessionStorage.getItem("adminAuthenticated") === "true";
+  };
   
   useEffect(() => {
     // Check if we're coming from the EditOrder page or Admin
@@ -49,17 +54,26 @@ const NewOrder = () => {
         if (orderId) setOrderId(orderId);
       }
 
-      // If admin selected a customer, fetch their details
+      // If admin selected a customer, fetch their details including city
       if (adminSelectedCustomerId) {
+        setIsLoadingCustomer(true);
         const fetchCustomerDetails = async () => {
-          const { data, error } = await supabase
-            .from('customers')
-            .select('id, name, phone')
-            .eq('id', adminSelectedCustomerId)
-            .single();
+          try {
+            const { data, error } = await supabase
+              .from('customers')
+              .select('id, name, phone, city')
+              .eq('id', adminSelectedCustomerId)
+              .single();
 
-          if (!error && data) {
-            setAdminSelectedCustomer(data);
+            if (!error && data) {
+              setAdminSelectedCustomer(data);
+            } else {
+              console.error("Error fetching customer:", error);
+            }
+          } catch (error) {
+            console.error("Error fetching customer:", error);
+          } finally {
+            setIsLoadingCustomer(false);
           }
         };
         fetchCustomerDetails();
@@ -72,15 +86,18 @@ const NewOrder = () => {
       setIsLoading(true);
       
       try {
+        // Determine which customer ID to use: admin selected customer or authenticated user
+        const customerId = adminSelectedCustomer?.id || user?.id;
+        
         // For mineral gas app, all authenticated users can order all products
-        if (user && user.id) {
+        if (customerId) {
           setCanOrderFresh(true); // All customers can order all products
           
           // First, fetch the customer's price list
           const { data: customerData, error: customerError } = await supabase
             .from('customers')
             .select('price_list_id')
-            .eq('id', user.id)
+            .eq('id', customerId)
             .single();
           
           if (customerError) {
@@ -181,18 +198,29 @@ const NewOrder = () => {
       }
     };
     
-    fetchUserPermissionsAndProducts();
-  }, [user, isFromOrderEdit]);
+    // Only fetch if we have a customer ID (either from user or admin selected customer)
+    if (user?.id || adminSelectedCustomer?.id) {
+      fetchUserPermissionsAndProducts();
+    } else if (!isLoadingCustomer) {
+      // If we're not loading customer and don't have a customer ID, stop loading
+      setIsLoading(false);
+    }
+  }, [user, isFromOrderEdit, adminSelectedCustomer]);
   
-  // Allow access if authenticated OR if admin selected a customer
-  if (!isAuthenticated && !adminSelectedCustomer) {
+  // Allow access if:
+  // 1. User is authenticated via AuthContext (regular customer)
+  // 2. Admin is authenticated via sessionStorage AND has adminSelectedCustomerId in location.state
+  //    (meaning they're creating an order for a customer)
+  const hasAdminSelectedCustomerId = location.state?.adminSelectedCustomerId;
+  const hasAccess = isAuthenticated || (isAdminAuthenticated() && (hasAdminSelectedCustomerId || adminSelectedCustomer !== null));
+  
+  if (!hasAccess) {
     return <Navigate to="/login" />;
   }
 
   const handleProductClick = (productId: string, deliveryPreference?: {
-    type: 'asap' | 'specific';
+    dayOfWeek?: number;
     date?: Date;
-    time?: string;
   } | 'increment' | 'decrement') => {
     setQuantities(prev => {
       const currentQty = prev[productId] || 0;
@@ -385,6 +413,7 @@ const NewOrder = () => {
                 products={products} 
                 onSelectProduct={handleProductClick}
                 quantities={quantities}
+                adminSelectedCustomer={adminSelectedCustomer}
               />
             </motion.div>
           </>

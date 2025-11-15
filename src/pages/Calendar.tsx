@@ -332,26 +332,26 @@ const Calendar = () => {
               {/* View Type Selection */}
               <div className="flex justify-center gap-4 mb-4">
                 <Select value={viewType} onValueChange={(value: ViewType) => setViewType(value)}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-48 text-right">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">תצוגה יומית</SelectItem>
-                    <SelectItem value="weekly">תצוגה שבועית</SelectItem>
-                    <SelectItem value="monthly">תצוגה חודשית</SelectItem>
+                  <SelectContent align="end" className="text-right">
+                    <SelectItem value="daily" className="text-right">תצוגה יומית</SelectItem>
+                    <SelectItem value="weekly" className="text-right">תצוגה שבועית</SelectItem>
+                    <SelectItem value="monthly" className="text-right">תצוגה חודשית</SelectItem>
                   </SelectContent>
                 </Select>
                 
                 {/* Status Filter */}
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-48 text-right">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">כל הסטטוסים</SelectItem>
-                    <SelectItem value="Open">פתוחות</SelectItem>
-                    <SelectItem value="Closed">סגורות</SelectItem>
-                    <SelectItem value="Canceled">מבוטלות</SelectItem>
+                  <SelectContent align="end" className="text-right">
+                    <SelectItem value="all" className="text-right">כל הסטטוסים</SelectItem>
+                    <SelectItem value="Open" className="text-right">פתוחות</SelectItem>
+                    <SelectItem value="Closed" className="text-right">סגורות</SelectItem>
+                    <SelectItem value="Canceled" className="text-right">מבוטלות</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

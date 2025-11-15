@@ -196,13 +196,13 @@ const ServiceRequest = () => {
                   <SelectTrigger id="serviceType" className="text-right">
                     <SelectValue placeholder="בחר סוג שירות" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="installation">התקנת מערכת גז</SelectItem>
-                    <SelectItem value="repair">תיקון תקלה</SelectItem>
-                    <SelectItem value="maintenance">בדיקה תקופתית</SelectItem>
-                    <SelectItem value="emergency">חירום - דליפת גז</SelectItem>
-                    <SelectItem value="consultation">ייעוץ</SelectItem>
-                    <SelectItem value="other">אחר</SelectItem>
+                  <SelectContent align="end" className="text-right">
+                    <SelectItem value="installation" className="text-right">התקנת מערכת גז</SelectItem>
+                    <SelectItem value="repair" className="text-right">תיקון תקלה</SelectItem>
+                    <SelectItem value="maintenance" className="text-right">בדיקה תקופתית</SelectItem>
+                    <SelectItem value="emergency" className="text-right">חירום - דליפת גז</SelectItem>
+                    <SelectItem value="consultation" className="text-right">ייעוץ</SelectItem>
+                    <SelectItem value="other" className="text-right">אחר</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -241,10 +241,10 @@ const ServiceRequest = () => {
                     <SelectTrigger id="preferredTimeSlot" className="text-right">
                       <SelectValue placeholder="בחר שעה" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="morning">בוקר (8:00-12:00)</SelectItem>
-                      <SelectItem value="afternoon">צהריים (12:00-16:00)</SelectItem>
-                      <SelectItem value="evening">ערב (16:00-20:00)</SelectItem>
+                    <SelectContent align="end" className="text-right">
+                      <SelectItem value="morning" className="text-right">בוקר (8:00-12:00)</SelectItem>
+                      <SelectItem value="afternoon" className="text-right">צהריים (12:00-16:00)</SelectItem>
+                      <SelectItem value="evening" className="text-right">ערב (16:00-20:00)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -257,11 +257,12 @@ const ServiceRequest = () => {
                     <SelectTrigger className="text-right">
                       <SelectValue placeholder="בחר יישוב" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent align="end" className="text-right">
                       <div className="p-2">
                         <Input
                           placeholder="חפש יישוב..."
-                          className="h-8 mb-2"
+                          className="h-8 mb-2 text-right"
+                          onClick={(e) => e.stopPropagation()}
                           onChange={(e) => {
                             const search = e.target.value.toLowerCase();
                             const items = document.querySelectorAll('[role="option"]');

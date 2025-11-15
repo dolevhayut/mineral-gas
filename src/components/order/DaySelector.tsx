@@ -16,9 +16,10 @@ import { toast } from "sonner";
 interface DaySelectorProps {
   selectedDay?: number; // Day of week (0-6)
   onDaySelect: (dayOfWeek: number, date: Date) => void;
+  adminSelectedCustomer?: {id: string, name: string, phone: string, city?: string} | null;
 }
 
-export default function DaySelector({ selectedDay, onDaySelect }: DaySelectorProps) {
+export default function DaySelector({ selectedDay, onDaySelect, adminSelectedCustomer }: DaySelectorProps) {
   const { user } = useAuth();
   const [availableDays, setAvailableDays] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,36 +27,48 @@ export default function DaySelector({ selectedDay, onDaySelect }: DaySelectorPro
 
   useEffect(() => {
     const fetchUserCityAndAvailableDays = async () => {
-      if (!user?.id) {
+      // Determine customer ID: admin selected customer or authenticated user
+      const customerId = adminSelectedCustomer?.id || user?.id;
+      
+      if (!customerId) {
         setIsLoading(false);
         return;
       }
 
       try {
-        // Fetch user's city from customer profile
+        // Fetch customer's city from customer profile
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
           .select('city')
-          .eq('id', user.id)
+          .eq('id', customerId)
           .single();
 
         if (customerError) {
           console.error("Error fetching customer city:", customerError);
+          // Try to use city from adminSelectedCustomer if available
+          const city = adminSelectedCustomer?.city;
+          if (city) {
+            setUserCity(city);
+            const days = await getAvailableDaysForCity(city);
+            setAvailableDays(days);
+            setIsLoading(false);
+            return;
+          }
           toast.error("שגיאה בטעינת פרטי המשתמש");
           setIsLoading(false);
           return;
         }
 
-        const city = customerData?.city;
+        const city = customerData?.city || adminSelectedCustomer?.city;
         setUserCity(city);
 
         if (!city) {
-          toast.error("לא הוגדר עיר בפרופיל שלך. אנא עדכן את הפרופיל");
+          toast.error("לא הוגדר עיר בפרופיל. אנא עדכן את הפרופיל");
           setIsLoading(false);
           return;
         }
 
-        // Fetch available delivery days for the user's city
+        // Fetch available delivery days for the customer's city
         const days = await getAvailableDaysForCity(city);
         
         if (days.length === 0) {
@@ -72,7 +85,7 @@ export default function DaySelector({ selectedDay, onDaySelect }: DaySelectorPro
     };
 
     fetchUserCityAndAvailableDays();
-  }, [user]);
+  }, [user, adminSelectedCustomer]);
 
   const handleDayClick = (dayOfWeek: number) => {
     const calculatedDate = getNextWeekdayDate(dayOfWeek);

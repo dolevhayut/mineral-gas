@@ -208,30 +208,30 @@ export default function ServiceRequests() {
         
         <div className="flex gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] text-right">
               <FilterIcon className="h-4 w-4 ml-2" />
               <SelectValue placeholder="סטטוס" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">כל הסטטוסים</SelectItem>
-              <SelectItem value="pending">ממתינות</SelectItem>
-              <SelectItem value="in_progress">בטיפול</SelectItem>
-              <SelectItem value="completed">הושלמו</SelectItem>
-              <SelectItem value="cancelled">בוטלו</SelectItem>
+            <SelectContent align="end" className="text-right">
+              <SelectItem value="all" className="text-right">כל הסטטוסים</SelectItem>
+              <SelectItem value="pending" className="text-right">ממתינות</SelectItem>
+              <SelectItem value="in_progress" className="text-right">בטיפול</SelectItem>
+              <SelectItem value="completed" className="text-right">הושלמו</SelectItem>
+              <SelectItem value="cancelled" className="text-right">בוטלו</SelectItem>
             </SelectContent>
           </Select>
           
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] text-right">
               <FilterIcon className="h-4 w-4 ml-2" />
               <SelectValue placeholder="עדיפות" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">כל העדיפויות</SelectItem>
-              <SelectItem value="low">נמוכה</SelectItem>
-              <SelectItem value="normal">רגילה</SelectItem>
-              <SelectItem value="high">גבוהה</SelectItem>
-              <SelectItem value="urgent">דחופה</SelectItem>
+            <SelectContent align="end" className="text-right">
+              <SelectItem value="all" className="text-right">כל העדיפויות</SelectItem>
+              <SelectItem value="low" className="text-right">נמוכה</SelectItem>
+              <SelectItem value="normal" className="text-right">רגילה</SelectItem>
+              <SelectItem value="high" className="text-right">גבוהה</SelectItem>
+              <SelectItem value="urgent" className="text-right">דחופה</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -370,14 +370,14 @@ export default function ServiceRequests() {
                     value={selectedRequest.status || "pending"}
                     onValueChange={(value) => setSelectedRequest({...selectedRequest, status: value as ServiceRequest['status']})}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-right">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">ממתינה</SelectItem>
-                      <SelectItem value="in_progress">בטיפול</SelectItem>
-                      <SelectItem value="completed">הושלמה</SelectItem>
-                      <SelectItem value="cancelled">בוטלה</SelectItem>
+                    <SelectContent align="end" className="text-right">
+                      <SelectItem value="pending" className="text-right">ממתינה</SelectItem>
+                      <SelectItem value="in_progress" className="text-right">בטיפול</SelectItem>
+                      <SelectItem value="completed" className="text-right">הושלמה</SelectItem>
+                      <SelectItem value="cancelled" className="text-right">בוטלה</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -388,14 +388,14 @@ export default function ServiceRequests() {
                     value={selectedRequest.priority || "normal"}
                     onValueChange={(value) => setSelectedRequest({...selectedRequest, priority: value as ServiceRequest['priority']})}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-right">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">נמוכה</SelectItem>
-                      <SelectItem value="normal">רגילה</SelectItem>
-                      <SelectItem value="high">גבוהה</SelectItem>
-                      <SelectItem value="urgent">דחופה</SelectItem>
+                    <SelectContent align="end" className="text-right">
+                      <SelectItem value="low" className="text-right">נמוכה</SelectItem>
+                      <SelectItem value="normal" className="text-right">רגילה</SelectItem>
+                      <SelectItem value="high" className="text-right">גבוהה</SelectItem>
+                      <SelectItem value="urgent" className="text-right">דחופה</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

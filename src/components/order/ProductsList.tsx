@@ -6,14 +6,14 @@ import { sortProductsByName } from "./utils/orderUtils";
 interface ProductsListProps {
   products: OrderProduct[];
   onSelectProduct: (productId: string, deliveryPreference?: {
-    type: 'asap' | 'specific';
+    dayOfWeek?: number;
     date?: Date;
-    time?: string;
-  }) => void;
+  } | 'increment' | 'decrement') => void;
   quantities: Record<string, number>;
+  adminSelectedCustomer?: {id: string, name: string, phone: string, city?: string} | null;
 }
 
-export default function ProductsList({ products, onSelectProduct, quantities }: ProductsListProps) {
+export default function ProductsList({ products, onSelectProduct, quantities, adminSelectedCustomer }: ProductsListProps) {
   // Sort products by name
   const sortedProducts = sortProductsByName(products);
 
@@ -53,6 +53,7 @@ export default function ProductsList({ products, onSelectProduct, quantities }: 
             onSelect={onSelectProduct}
             isSelected={(quantities[product.id] || 0) > 0}
             quantity={quantities[product.id] || 0}
+            adminSelectedCustomer={adminSelectedCustomer}
           />
         </motion.div>
       ))}

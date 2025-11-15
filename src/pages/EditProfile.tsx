@@ -244,14 +244,15 @@ const EditProfile = () => {
                   </Label>
                   {cities.length > 0 ? (
                     <Select value={profileData.city} onValueChange={(value) => handleInputChange('city', value)}>
-                      <SelectTrigger className="h-10">
+                      <SelectTrigger className="h-10 text-right">
                         <SelectValue placeholder="בחר יישוב" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent align="end" className="text-right">
                         <div className="p-2">
                           <Input
                             placeholder="חפש יישוב..."
-                            className="h-8 mb-2"
+                            className="h-8 mb-2 text-right"
+                            onClick={(e) => e.stopPropagation()}
                             onChange={(e) => {
                               const search = e.target.value.toLowerCase();
                               const items = document.querySelectorAll('[role="option"]');

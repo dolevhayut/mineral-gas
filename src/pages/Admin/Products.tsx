@@ -394,14 +394,14 @@ export default function Products() {
             value={filterCategory}
             onValueChange={setFilterCategory}
           >
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] text-right">
               <FilterIcon className="h-4 w-4 ml-2" />
               <SelectValue placeholder="סנן לפי קטגוריה" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">כל הקטגוריות</SelectItem>
+            <SelectContent align="end" className="text-right">
+              <SelectItem value="all" className="text-right">כל הקטגוריות</SelectItem>
               {categories.map((category) => (
-                <SelectItem key={category} value={category}>
+                <SelectItem key={category} value={category} className="text-right">
                   {category}
                 </SelectItem>
               ))}
@@ -599,12 +599,12 @@ export default function Products() {
                   available: value === "true" 
                 })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right">
                   <SelectValue placeholder="בחר זמינות" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="true">זמין</SelectItem>
-                  <SelectItem value="false">לא זמין</SelectItem>
+                <SelectContent align="end" className="text-right">
+                  <SelectItem value="true" className="text-right">זמין</SelectItem>
+                  <SelectItem value="false" className="text-right">לא זמין</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -618,12 +618,12 @@ export default function Products() {
                   is_frozen: value === "true" 
                 })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right">
                   <SelectValue placeholder="בחר סוג מוצר" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="false">בלון קטן</SelectItem>
-                  <SelectItem value="true">בלון גדול</SelectItem>
+                <SelectContent align="end" className="text-right">
+                  <SelectItem value="false" className="text-right">בלון קטן</SelectItem>
+                  <SelectItem value="true" className="text-right">בלון גדול</SelectItem>
                 </SelectContent>
               </Select>
             </div>
