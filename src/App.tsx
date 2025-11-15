@@ -47,6 +47,8 @@ import DeliveryDays from "@/pages/Admin/DeliveryDays";
 import PriceLists from "@/pages/Admin/PriceLists";
 import AdminNewOrder from "@/pages/Admin/AdminNewOrder";
 import AdminOrderSummaryPage from "@/pages/Admin/AdminOrderSummaryPage";
+import Payment from "@/pages/Payment";
+import AdminPayment from "@/pages/Admin/AdminPayment";
 
 
 // HomePage component - now shows login page directly
@@ -79,6 +81,7 @@ function AppContent() {
           <Route path="/orders/current" element={<CurrentOrders />} />
           <Route path="/orders/edit/:orderId" element={<EditOrder />} />
           <Route path="/orders/summary" element={<OrderSummaryPage />} />
+          <Route path="/orders/payment" element={<Payment />} />
           <Route path="/orders" element={<OrderHistory />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/reports" element={<Reports />} />
@@ -100,6 +103,7 @@ function AppContent() {
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="orders/new" element={<AdminNewOrder />} />
                   <Route path="orders/summary" element={<AdminOrderSummaryPage />} />
+                  <Route path="orders/payment" element={<AdminPayment />} />
                   <Route path="orders/manage" element={<OrdersManagement />} />
                   <Route path="customers" element={<Customers />} />
                   <Route path="price-lists" element={<PriceLists />} />

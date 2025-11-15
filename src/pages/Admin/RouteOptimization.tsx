@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, MapPin, Navigation, Package, Clock, Phone, User, Map as MapIcon, ExternalLink, Plus } from "lucide-react";
+import { CalendarIcon, MapPin, Navigation, Package, Clock, Phone, User, Map as MapIcon, ExternalLink, Plus, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { supabase } from '@/integrations/supabase/client';
+import { getAllDeliveryDays } from '@/lib/deliveryDays';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -148,6 +150,7 @@ interface OrderWithLocation {
 }
 
 export default function RouteOptimization() {
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [orders, setOrders] = useState<OrderWithLocation[]>([]);
   const [optimizedRoute, setOptimizedRoute] = useState<OrderWithLocation[]>([]);
@@ -160,6 +163,7 @@ export default function RouteOptimization() {
   const [customLocationName, setCustomLocationName] = useState('');
   const [customLocationLat, setCustomLocationLat] = useState('');
   const [customLocationLng, setCustomLocationLng] = useState('');
+  const [deliveryDaysConfig, setDeliveryDaysConfig] = useState<Array<{ day_of_week: number; cities: string[] }>>([]);
   
   // Get starting point based on selection
   const getStartingPoint = () => {
@@ -176,13 +180,47 @@ export default function RouteOptimization() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // First, get orders with customer info
+      // Get the day of week for the selected date
+      const dayOfWeek = selectedDate.getDay();
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      
+      console.log('=== Route Optimization Debug ===');
+      console.log(`Selected date: ${formattedDate} (day of week: ${dayOfWeek})`);
+      
+      // Get delivery days configuration
+      const deliveryDays = await getAllDeliveryDays();
+      console.log('All delivery days config:', deliveryDays);
+      
+      const dayConfig = deliveryDays.find(d => d.day_of_week === dayOfWeek);
+      console.log('Day config for selected day:', dayConfig);
+      
+      // Get cities that have delivery on this day
+      const allowedCities = dayConfig?.cities || [];
+      console.log(`Allowed cities for this day:`, allowedCities);
+      
+      if (allowedCities.length === 0) {
+        console.warn('⚠️ No cities configured for delivery on this day');
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+      
+      // First, get ALL orders to debug
+      console.log('Fetching orders with target_date =', formattedDate);
+      const { data: allOrdersDebug, error: debugError } = await supabase
+        .from('orders')
+        .select('id, target_date, delivery_date, status, customer_id')
+        .not('target_date', 'is', null);
+      
+      console.log('All orders in DB with target_date:', allOrdersDebug);
+      
+      // Now get orders with customer info for the selected date
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select(`
           id,
           delivery_address,
-          delivery_date,
+          target_date,
           total,
           customer_id,
           status,
@@ -193,13 +231,24 @@ export default function RouteOptimization() {
             )
           )
         `)
-        .eq('delivery_date', format(selectedDate, 'yyyy-MM-dd'))
+        .eq('target_date', formattedDate)
         .in('status', ['pending', 'confirmed']);
 
-      if (ordersError) throw ordersError;
+      console.log('Orders matching date and status:', ordersData);
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
+        throw ordersError;
+      }
 
       // Get unique customer IDs
       const customerIds = [...new Set(ordersData?.map(order => order.customer_id).filter(Boolean) || [])];
+
+      if (customerIds.length === 0) {
+        console.log('No orders found for this date');
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
 
       // Fetch customer details
       const { data: customersData, error: customersError } = await supabase
@@ -212,7 +261,7 @@ export default function RouteOptimization() {
       // Create customer lookup map
       const customerMap = new Map(customersData?.map(c => [c.id, c]) || []);
 
-      // Transform the data
+      // Transform the data and filter by allowed cities
       const ordersWithLocation = ordersData?.map(order => {
         const customer = customerMap.get(order.customer_id || '');
         return {
@@ -226,7 +275,16 @@ export default function RouteOptimization() {
           ) || [],
           total: order.total || 0,
         };
+      }).filter(order => {
+        // Only include orders from cities that have delivery on this day
+        const isAllowed = allowedCities.includes(order.city);
+        if (!isAllowed) {
+          console.log(`Filtering out order from ${order.city} - not configured for this day`);
+        }
+        return isAllowed;
       }) || [];
+
+      console.log(`Found ${ordersWithLocation.length} orders after filtering by delivery days`);
 
       // Geocode addresses
       const geocodedOrders = await geocodeOrders(ordersWithLocation);
@@ -448,6 +506,15 @@ export default function RouteOptimization() {
     setEstimatedTime(totalTime);
   };
 
+  // Load delivery days configuration on mount
+  useEffect(() => {
+    const loadDeliveryDays = async () => {
+      const days = await getAllDeliveryDays();
+      setDeliveryDaysConfig(days);
+    };
+    loadDeliveryDays();
+  }, []);
+
   useEffect(() => {
     fetchOrders();
   }, [selectedDate]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -630,6 +697,49 @@ ${wazeLinks}`;
               <p className="text-sm text-muted-foreground">
                 {loading ? 'טוען הזמנות...' : `נמצאו ${orders.length} הזמנות לתאריך זה`}
               </p>
+              
+              {/* Show which cities have delivery on this day */}
+              {(() => {
+                const dayOfWeek = selectedDate.getDay();
+                const dayConfig = deliveryDaysConfig.find(d => d.day_of_week === dayOfWeek);
+                const allowedCities = dayConfig?.cities || [];
+                
+                if (allowedCities.length > 0) {
+                  return (
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs font-medium text-blue-900 mb-1">
+                        ערים מוגדרות ליום זה:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {allowedCities.map(city => (
+                          <Badge key={city} variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                            {city}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                } else if (!loading) {
+                  return (
+                    <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <p className="text-xs text-amber-900 mb-2">
+                        ⚠️ אין ערים מוגדרות ליום זה
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => navigate('/admin/delivery-days')}
+                      >
+                        <Settings className="w-3 h-3 ml-1" />
+                        הגדר ימי חלוקה
+                      </Button>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              
               
               <div>
                 <label className="text-sm font-medium">אלגוריתם אופטימיזציה</label>

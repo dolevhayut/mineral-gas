@@ -46,6 +46,7 @@ const AdminOrderSummaryPage = () => {
   const [selectedDay, setSelectedDay] = useState<number | undefined>(undefined);
   const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   const [adminSelectedCustomer, setAdminSelectedCustomer] = useState<{id: string, name: string, phone: string, city?: string} | null>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   useEffect(() => {
     // Get quantities and products from location state
@@ -56,22 +57,23 @@ const AdminOrderSummaryPage = () => {
         deliveryPreferences: stateDeliveryPreferences,
         adminSelectedCustomer: stateAdminCustomer,
         selectedDay: stateSelectedDay,
-        targetDate: stateTargetDate
+        targetDate: stateTargetDate,
+        paymentConfirmed: statePaymentConfirmed
       } = location.state;
       if (stateQuantities) setQuantities(stateQuantities);
       if (stateProducts) setProducts(stateProducts);
       if (stateDeliveryPreferences) {
         setDeliveryPreferences(stateDeliveryPreferences);
         // If there's a delivery preference with a date, use it as the default target date
-        const firstPreference = Object.values(stateDeliveryPreferences).find(pref => pref.date);
-        if (firstPreference?.date && !stateTargetDate) {
+        const firstPreference = Object.values(stateDeliveryPreferences).find((pref: any) => pref.date);
+        if (firstPreference && (firstPreference as any).date && !stateTargetDate) {
           // Convert to Date if it's not already a Date object
-          const date = firstPreference.date instanceof Date 
-            ? firstPreference.date 
-            : new Date(firstPreference.date);
+          const date = (firstPreference as any).date instanceof Date 
+            ? (firstPreference as any).date 
+            : new Date((firstPreference as any).date);
           setTargetDate(date);
-          if (firstPreference.dayOfWeek !== undefined) {
-            setSelectedDay(firstPreference.dayOfWeek);
+          if ((firstPreference as any).dayOfWeek !== undefined) {
+            setSelectedDay((firstPreference as any).dayOfWeek);
           }
         }
       }
@@ -85,6 +87,7 @@ const AdminOrderSummaryPage = () => {
           : new Date(stateTargetDate);
         setTargetDate(date);
       }
+      if (statePaymentConfirmed) setPaymentConfirmed(statePaymentConfirmed);
     } else {
       // If no state, redirect back to the admin orders page
       navigate("/admin/orders");
@@ -185,6 +188,19 @@ const AdminOrderSummaryPage = () => {
         title: "לא נבחר יום אספקה",
         description: "יש לבחור יום אספקה לפני שליחת ההזמנה",
         variant: "destructive",
+      });
+      return;
+    }
+
+    // If payment is not confirmed, navigate to payment page
+    if (!paymentConfirmed) {
+      navigate("/admin/orders/payment", {
+        state: {
+          quantities,
+          products,
+          targetDate,
+          adminSelectedCustomer
+        }
       });
       return;
     }

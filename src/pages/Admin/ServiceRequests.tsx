@@ -292,6 +292,15 @@ export default function ServiceRequests() {
     );
   };
 
+  const getTimeSlotLabel = (timeSlot: string) => {
+    const labels: Record<string, string> = {
+      'morning': 'בוקר (8:00-12:00)',
+      'afternoon': 'צהריים (12:00-16:00)',
+      'evening': 'ערב (16:00-20:00)'
+    };
+    return labels[timeSlot] || timeSlot;
+  };
+
   const filteredRequests = requests?.filter(request => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
@@ -506,7 +515,7 @@ export default function ServiceRequests() {
                     {request.preferred_time_slot ? (
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{request.preferred_time_slot}</span>
+                        <span className="text-sm">{getTimeSlotLabel(request.preferred_time_slot)}</span>
                       </div>
                     ) : "-"}
                   </TableCell>
@@ -684,7 +693,7 @@ export default function ServiceRequests() {
               {selectedRequest.preferred_time_slot && (
                 <div className="grid gap-2">
                   <Label>שעה מועדפת</Label>
-                  <p className="text-sm font-medium p-2 bg-muted rounded">{selectedRequest.preferred_time_slot}</p>
+                  <p className="text-sm font-medium p-2 bg-muted rounded">{getTimeSlotLabel(selectedRequest.preferred_time_slot)}</p>
                 </div>
               )}
 

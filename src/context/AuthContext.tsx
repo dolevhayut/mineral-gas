@@ -47,18 +47,65 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Check if there's a saved auth state in localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem("mineral_gas_customer");
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser) as User;
-        console.log("Loaded saved user from localStorage:", parsedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error("Error parsing saved user:", error);
-        localStorage.removeItem("mineral_gas_customer");
+    const loadSavedSession = async () => {
+      const savedUser = localStorage.getItem("mineral_gas_customer");
+      const sessionExpiry = localStorage.getItem("mineral_gas_session_expiry");
+      
+      if (savedUser && sessionExpiry) {
+        try {
+          const parsedUser = JSON.parse(savedUser) as User;
+          const expiryTime = parseInt(sessionExpiry);
+          const now = Date.now();
+          
+          // Check if session is still valid (30 days)
+          if (now < expiryTime) {
+            console.log("Loaded saved user from localStorage:", parsedUser);
+            
+            // Verify user still exists in database
+            const { data: customerData, error } = await supabase
+              .from('customers')
+              .select('id, name, phone, role, is_verified')
+              .eq('id', parsedUser.id)
+              .single();
+            
+            if (!error && customerData) {
+              // Update user with fresh data from DB
+              const refreshedUser: User = {
+                id: customerData.id,
+                phone: customerData.phone,
+                name: customerData.name || "לקוח",
+                role: customerData.role as "admin" | "customer",
+                isVerified: customerData.is_verified || false,
+                sapCustomerId: parsedUser.sapCustomerId,
+              };
+              
+              setUser(refreshedUser);
+              setIsAuthenticated(true);
+              
+              // Update localStorage with fresh data
+              localStorage.setItem("mineral_gas_customer", JSON.stringify(refreshedUser));
+              console.log("Session restored and refreshed from database");
+            } else {
+              // User no longer exists in database
+              console.log("User not found in database, clearing session");
+              localStorage.removeItem("mineral_gas_customer");
+              localStorage.removeItem("mineral_gas_session_expiry");
+            }
+          } else {
+            // Session expired
+            console.log("Session expired, clearing localStorage");
+            localStorage.removeItem("mineral_gas_customer");
+            localStorage.removeItem("mineral_gas_session_expiry");
+          }
+        } catch (error) {
+          console.error("Error parsing saved user:", error);
+          localStorage.removeItem("mineral_gas_customer");
+          localStorage.removeItem("mineral_gas_session_expiry");
+        }
       }
-    }
+    };
+    
+    loadSavedSession();
   }, []);
 
   const login = async (sapCustomerId: string, password: string): Promise<boolean> => {
@@ -148,6 +195,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem("mineral_gas_customer");
+    localStorage.removeItem("mineral_gas_session_expiry");
+    
+    toast({
+      title: "התנתקת בהצלחה",
+      description: "להתראות!",
+    });
   };
 
   const sendVerificationCode = async (phone: string, method: 'whatsapp' | 'sms' = 'whatsapp'): Promise<boolean> => {
@@ -264,7 +317,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         setUser(authenticatedUser);
         setIsAuthenticated(true);
+        
+        // Save user data and session expiry (30 days from now)
+        const expiryTime = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
         localStorage.setItem("mineral_gas_customer", JSON.stringify(authenticatedUser));
+        localStorage.setItem("mineral_gas_session_expiry", expiryTime.toString());
         
         toast({
           title: "ברוכים הבאים",

@@ -190,30 +190,30 @@ const Login = () => {
                   : "הזן את מספר הטלפון שלך"}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {errorMessage && (
-                <Alert variant="destructive">
+              <CardContent className="space-y-4">
+                {errorMessage && (
+                  <Alert variant="destructive">
                   <AlertTitle>שגיאה</AlertTitle>
-                  <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-              )}
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                  </Alert>
+                )}
               
               {!showCodeInput ? (
                 <form onSubmit={handleSendCode}>
                   <div className="space-y-4">
-                    <div className="space-y-2">
+                <div className="space-y-2">
                       <Label htmlFor="phone" className="flex items-center gap-2 justify-end">
                         <span>מספר טלפון</span>
                         <KeyIcon className="h-4 w-4" />
-                      </Label>
-                      <Input
+                    </Label>
+                  <Input
                         id="phone"
                         type="tel"
                         value={phone}
                         onChange={handlePhoneChange}
-                        required
-                        className="text-right"
-                        dir="ltr"
+                    required
+                    className="text-right"
+                    dir="ltr"
                         placeholder="05XXXXXXXX"
                         inputMode="tel"
                         maxLength={10}
@@ -229,11 +229,11 @@ const Login = () => {
                     >
                       {isLoading ? "שולח קוד..." : "שלח קוד אימות"}
                     </Button>
-                  </div>
+                </div>
                 </form>
               ) : (
                 <div className="space-y-4">
-                  <div className="space-y-2">
+                <div className="space-y-2">
                     <Label htmlFor="code" className="flex items-center gap-2 justify-end">
                       <span>קוד אימות</span>
                       <KeyIcon className="h-4 w-4" />
@@ -252,7 +252,7 @@ const Login = () => {
                     />
                     <div className="text-xs text-center text-muted-foreground">
                       קוד בן 6 ספרות נשלח ל-{phone}
-                    </div>
+                  </div>
                   </div>
                   <Button
                     onClick={handleVerifyCode}
@@ -261,7 +261,7 @@ const Login = () => {
                   >
                     {isLoading ? "מאמת..." : "אמת והתחבר"}
                   </Button>
-                  <Button
+                <Button
                     variant="ghost"
                     onClick={() => {
                       setShowCodeInput(false);
@@ -271,7 +271,7 @@ const Login = () => {
                     className="w-full"
                   >
                     חזור לשינוי מספר טלפון
-                  </Button>
+                </Button>
                 </div>
               )}
             </CardContent>
