@@ -81,6 +81,11 @@ L.Icon.Default.mergeOptions({
 
 // Define starting points
 const STARTING_POINTS: { [key: string]: { name: string; lat: number; lng: number } } = {
+  'חורפיש': {
+    name: "חורפיש",
+    lat: 33.017083,
+    lng: 35.348421
+  },
   'אילון': {
     name: "אילון",
     lat: 33.062496363441625,
@@ -122,9 +127,9 @@ const STARTING_POINTS: { [key: string]: { name: string; lat: number; lng: number
     lng: 35.5697
   },
   default: {
-    name: "אילון",
-    lat: 33.062496363441625,
-    lng: 35.21917304766881
+    name: "חורפיש",
+    lat: 33.017083,
+    lng: 35.348421
   }
 };
 
@@ -560,7 +565,7 @@ ${wazeLinks}`;
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium">נקודת התחלה:</span>
           <Select 
-            value={customStartPoint || 'אילון'} 
+            value={customStartPoint || 'חורפיש'} 
             onValueChange={setCustomStartPoint}
           >
             <SelectTrigger className="w-[180px]">
