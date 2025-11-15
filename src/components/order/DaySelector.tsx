@@ -127,12 +127,21 @@ export default function DaySelector({ selectedDay, onDaySelect, adminSelectedCus
     return formatDateWithHebrewDay(date);
   };
 
+  const getDeliveryDaysText = () => {
+    if (availableDays.length === 0) return "";
+    const dayNames = availableDays.map(day => getHebrewDayName(day));
+    if (dayNames.length === 1) return dayNames[0];
+    if (dayNames.length === 2) return `${dayNames[0]} ו${dayNames[1]}`;
+    const lastDay = dayNames.pop();
+    return `${dayNames.join(", ")} ו${lastDay}`;
+  };
+
   return (
     <div className="w-full space-y-3">
       <div className="text-sm text-gray-600 text-right space-y-1">
         <p className="font-medium">בחר יום משלוח מהימים הזמינים לעיר {userCity}:</p>
         <p className="text-xs text-gray-500">
-          ⏰ אספקות מתבצעות בימים ראשון-שישי בין השעות 08:00-16:00
+          ⏰ אספקות מתבצעות בימים {getDeliveryDaysText()} בין השעות 08:00-16:00
         </p>
       </div>
 

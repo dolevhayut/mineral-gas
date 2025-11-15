@@ -54,8 +54,23 @@ export const submitOrder = async (
     };
     
     // Add target date if provided
+    // Use local date to avoid timezone issues (e.g., Sunday in Israel becoming Saturday in UTC)
+    // IMPORTANT: Use local date methods to ensure we get the correct day regardless of timezone
     if (targetDate) {
-      orderData.target_date = targetDate.toISOString().split('T')[0];
+      // Create a new date object in local timezone to avoid any timezone conversion issues
+      const localDate = new Date(targetDate.getTime() - (targetDate.getTimezoneOffset() * 60000));
+      const year = localDate.getFullYear();
+      const month = String(localDate.getMonth() + 1).padStart(2, '0');
+      const day = String(localDate.getDate()).padStart(2, '0');
+      orderData.target_date = `${year}-${month}-${day}`;
+      
+      // Debug logging
+      console.log("Saving target_date:", {
+        originalDate: targetDate,
+        localDate: localDate,
+        dateString: orderData.target_date,
+        dayOfWeek: localDate.getDay()
+      });
     }
     
     // Submit the order to Supabase

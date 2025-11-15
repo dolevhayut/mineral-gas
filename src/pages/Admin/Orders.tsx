@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getHebrewDayName } from "@/lib/deliveryDays";
 import {
   Dialog,
   DialogContent,
@@ -201,14 +202,29 @@ export default function Orders() {
     return matchesSearch && matchesStatus;
   });
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("he-IL", {
+  const formatDate = (dateString: string, includeTime: boolean = true) => {
+    // Check if dateString is in YYYY-MM-DD format (date only, no time)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      // Parse as local date to avoid timezone issues
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      return date.toLocaleDateString("he-IL", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }
+    // For datetime strings, include time only if requested
+    const options: Intl.DateTimeFormatOptions = {
       year: "numeric",
       month: "long",
       day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    };
+    if (includeTime) {
+      options.hour = "2-digit";
+      options.minute = "2-digit";
+    }
+    return new Date(dateString).toLocaleDateString("he-IL", options);
   };
 
   const viewOrderDetails = (order: Order) => {
@@ -356,6 +372,7 @@ export default function Orders() {
                       <TableHead className="text-center">סטטוס</TableHead>
                       <TableHead className="text-right">תאריך הזמנה</TableHead>
                       <TableHead className="text-right">תאריך אספקה</TableHead>
+                      <TableHead className="text-right">יום אספקה</TableHead>
                       <TableHead className="text-right">הערות</TableHead>
                       <TableHead className="text-center w-16">פריטים</TableHead>
                       <TableHead className="text-right">סה"כ</TableHead>
@@ -422,7 +439,13 @@ export default function Orders() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="cursor-help">
-                                {new Date(order.created_at).toLocaleDateString("he-IL")}
+                                {new Date(order.created_at).toLocaleString("he-IL", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit"
+                                })}
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -437,13 +460,36 @@ export default function Orders() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className="cursor-help font-medium">
-                                  {new Date(order.delivery_date || order.target_date!).toLocaleDateString("he-IL")}
+                                  {(() => {
+                                    // Parse date string as local date to avoid timezone issues
+                                    const dateStr = order.delivery_date || order.target_date!;
+                                    const [year, month, day] = dateStr.split('-').map(Number);
+                                    const date = new Date(year, month - 1, day);
+                                    return date.toLocaleDateString("he-IL");
+                                  })()}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{formatDate(order.delivery_date || order.target_date!)}</p>
+                                <p>{formatDate(order.delivery_date || order.target_date!, false)}</p>
                               </TooltipContent>
                             </Tooltip>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        
+                        {/* יום אספקה */}
+                        <TableCell>
+                          {order.delivery_date || order.target_date ? (
+                            <span className="font-medium text-blue-600">
+                              {(() => {
+                                // Parse date string as local date to avoid timezone issues
+                                const dateStr = order.delivery_date || order.target_date!;
+                                const [year, month, day] = dateStr.split('-').map(Number);
+                                const date = new Date(year, month - 1, day);
+                                return getHebrewDayName(date.getDay());
+                              })()}
+                            </span>
                           ) : (
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
@@ -575,6 +621,29 @@ export default function Orders() {
                       <span>{formatDate(order.created_at)}</span>
                     </div>
                     
+                    {(order.delivery_date || order.target_date) && (
+                      <div className="flex items-center text-sm gap-1">
+                        <CalendarIcon className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium text-blue-600">
+                          {(() => {
+                            // Parse date string as local date to avoid timezone issues
+                            const dateStr = order.delivery_date || order.target_date!;
+                            const [year, month, day] = dateStr.split('-').map(Number);
+                            const date = new Date(year, month - 1, day);
+                            return getHebrewDayName(date.getDay());
+                          })()}
+                        </span>
+                        <span className="text-muted-foreground">
+                          ({(() => {
+                            const dateStr = order.delivery_date || order.target_date!;
+                            const [year, month, day] = dateStr.split('-').map(Number);
+                            const date = new Date(year, month - 1, day);
+                            return date.toLocaleDateString("he-IL");
+                          })()})
+                        </span>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center text-sm text-muted-foreground gap-1">
                       <PackageIcon className="h-4 w-4" />
                       <span>מוצרים: {order.order_items.length} פריטים</span>
@@ -688,7 +757,16 @@ export default function Orders() {
                     <div>
                       <p className="text-sm font-medium mb-1">תאריך אספקה:</p>
                       <p className="text-sm text-muted-foreground">
-                        {formatDate(selectedOrder.delivery_date || selectedOrder.target_date!)}
+                        {formatDate(selectedOrder.delivery_date || selectedOrder.target_date!, false)}
+                      </p>
+                      <p className="text-sm font-medium text-blue-600 mt-1">
+                        {(() => {
+                          // Parse date string as local date to avoid timezone issues
+                          const dateStr = selectedOrder.delivery_date || selectedOrder.target_date!;
+                          const [year, month, day] = dateStr.split('-').map(Number);
+                          const date = new Date(year, month - 1, day);
+                          return getHebrewDayName(date.getDay());
+                        })()}
                       </p>
                     </div>
                   )}
