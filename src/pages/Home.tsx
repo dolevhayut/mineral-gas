@@ -131,9 +131,9 @@ const Home = () => {
                 <Button
                   size="lg"
                   className="bg-bottle-600 hover:bg-bottle-700 text-white"
-                  onClick={() => navigate("/catalog")}
+                  onClick={() => navigate("/orders/new")}
                 >
-                  צפה במוצרים
+                  הזמנה חדשה
                 </Button>
                 <Button
                   size="lg"
@@ -222,12 +222,12 @@ const Home = () => {
           </div>
           <div className="mt-12 text-center">
             <Button
-              onClick={() => navigate("/catalog")}
+              onClick={() => navigate("/orders/new")}
               variant="outline"
               size="lg"
               className="border-bottle-600 text-bottle-600 hover:bg-bottle-50"
             >
-              צפה בכל המוצרים
+              הזמנה חדשה
             </Button>
           </div>
         </div>
@@ -327,9 +327,9 @@ const Home = () => {
               size="lg"
               variant="secondary"
               className="bg-white text-bottle-600 hover:bg-stone-100"
-              onClick={() => navigate("/catalog")}
+              onClick={() => navigate("/orders/new")}
             >
-              צפה בקטלוג
+              הזמנה חדשה
             </Button>
             <Button
               size="lg"

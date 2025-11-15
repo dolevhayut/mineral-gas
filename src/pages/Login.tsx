@@ -12,7 +12,7 @@ import {
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
-import { KeyIcon, IdCardIcon, EyeIcon, EyeOffIcon } from "lucide-react";
+import { KeyIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -105,25 +105,27 @@ const Login = () => {
       
       if (error) throw error;
       
-      if (data?.success) {
+      const result = data as { success?: boolean; customer?: any; message?: string } | null;
+      
+      if (result?.success) {
         // Login successful
-        const customer = data.customer;
+        const customer = result.customer;
         
         // Store customer data in local storage
         localStorage.setItem('mineral_gas_customer', JSON.stringify(customer));
         
         // Navigate based on role
-        navigate(customer.role === 'admin' ? '/admin/dashboard' : '/catalog');
+        navigate(customer.role === 'admin' ? '/admin/dashboard' : '/dashboard');
         
         toast({
           title: "התחברות הצליחה",
           description: `ברוך הבא ${customer.name || 'לקוח יקר'}!`,
         });
       } else {
-        setErrorMessage(data?.message || "קוד אימות שגוי");
+        setErrorMessage(result?.message || "קוד אימות שגוי");
         toast({
           title: "שגיאה",
-          description: data?.message || "קוד אימות שגוי",
+          description: result?.message || "קוד אימות שגוי",
           variant: "destructive"
         });
       }
@@ -140,9 +142,6 @@ const Login = () => {
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
 
   // Update document title and meta description for SEO
   useEffect(() => {
@@ -157,7 +156,7 @@ const Login = () => {
   if (isAuthenticated) {
     return user?.role === "admin" 
       ? <Navigate to="/admin/dashboard" /> 
-      : <Navigate to="/catalog" />;
+      : <Navigate to="/dashboard" />;
   }
 
   return (
@@ -186,85 +185,96 @@ const Login = () => {
             <CardHeader className="space-y-1 text-center">
               <CardTitle className="text-xl">התחברות למערכת</CardTitle>
               <CardDescription>
-                הזן את פרטי ההתחברות שלך
+                {showCodeInput 
+                  ? "הזן את קוד האימות שנשלח אליך" 
+                  : "הזן את מספר הטלפון שלך"}
               </CardDescription>
             </CardHeader>
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-4">
-                {errorMessage && (
-                  <Alert variant="destructive">
-                    <AlertTitle>התחברות נכשלה</AlertTitle>
-                    <AlertDescription>{errorMessage}</AlertDescription>
-                  </Alert>
-                )}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-muted-foreground">
-                      מספר הזיהוי שקיבלת ממינרל גז
+            <CardContent className="space-y-4">
+              {errorMessage && (
+                <Alert variant="destructive">
+                  <AlertTitle>שגיאה</AlertTitle>
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
+              
+              {!showCodeInput ? (
+                <form onSubmit={handleSendCode}>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="flex items-center gap-2 justify-end">
+                        <span>מספר טלפון</span>
+                        <KeyIcon className="h-4 w-4" />
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={phone}
+                        onChange={handlePhoneChange}
+                        required
+                        className="text-right"
+                        dir="ltr"
+                        placeholder="05XXXXXXXX"
+                        inputMode="tel"
+                        maxLength={10}
+                      />
+                      <div className="text-xs text-right text-muted-foreground">
+                        הזן מספר טלפון ישראלי (10 ספרות)
+                      </div>
                     </div>
-                    <Label htmlFor="sapCustomerId" className="flex items-center gap-2">
-                      <IdCardIcon className="h-4 w-4" />
-                      <span>מזהה לקוח</span>
-                    </Label>
-                  </div>
-                  <Input
-                    id="sapCustomerId"
-                    placeholder="הזן את מזהה הלקוח שלך"
-                    value={sapCustomerId}
-                    onChange={(e) => setSapCustomerId(e.target.value)}
-                    required
-                    className="text-right"
-                    dir="ltr"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <a className="text-sm text-bottle-600 hover:underline">
-                      שכחת את מספר הטלפון?
-                    </a>
-                    <Label htmlFor="password" className="flex items-center gap-2">
-                      <KeyIcon className="h-4 w-4" />
-                      <span>מספר טלפון</span>
-                    </Label>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={handlePhoneChange}
-                      required
-                      className="text-right pr-10"
-                      dir="ltr"
-                      placeholder="הזן את מספר הטלפון שלך"
-                      inputMode="tel"
-                    />
-                    <button
-                      type="button"
-                      onClick={togglePasswordVisibility}
-                      className="absolute inset-y-0 left-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
+                    <Button
+                      type="submit"
+                      className="w-full bg-bottle-600 hover:bg-bottle-700"
+                      disabled={isLoading || phone.length !== 10}
                     >
-                      {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                    </button>
+                      {isLoading ? "שולח קוד..." : "שלח קוד אימות"}
+                    </Button>
                   </div>
-                  <div className="text-xs text-right text-muted-foreground">
-                    פנה למנהל המערכת אם שכחת את מספר הטלפון שלך
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="code" className="flex items-center gap-2 justify-end">
+                      <span>קוד אימות</span>
+                      <KeyIcon className="h-4 w-4" />
+                    </Label>
+                    <Input
+                      id="code"
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      required
+                      className="text-center text-2xl tracking-widest"
+                      dir="ltr"
+                      placeholder="------"
+                      inputMode="numeric"
+                      maxLength={6}
+                    />
+                    <div className="text-xs text-center text-muted-foreground">
+                      קוד בן 6 ספרות נשלח ל-{phone}
+                    </div>
                   </div>
+                  <Button
+                    onClick={handleVerifyCode}
+                    className="w-full bg-bottle-600 hover:bg-bottle-700"
+                    disabled={isLoading || verificationCode.length !== 6}
+                  >
+                    {isLoading ? "מאמת..." : "אמת והתחבר"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setShowCodeInput(false);
+                      setVerificationCode("");
+                      setErrorMessage(null);
+                    }}
+                    className="w-full"
+                  >
+                    חזור לשינוי מספר טלפון
+                  </Button>
                 </div>
-              </CardContent>
-              <CardFooter className="flex flex-col space-y-4">
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "מתחבר..." : "התחברות"}
-                </Button>
-                <div className="text-center text-sm text-stone-500">
-                  לשאלות בנוגע לחשבון, פנה למנהל המערכת
-                </div>
-              </CardFooter>
-            </form>
+              )}
+            </CardContent>
           </Card>
           
           {/* Footer Section */}

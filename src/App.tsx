@@ -12,7 +12,6 @@ export const APP_VERSION = "1.0.0"; // מינרל גז - אביגל טורג'מ�
 
 // Pages
 import PhoneLogin from "@/pages/PhoneLogin";
-import Catalog from "@/pages/Catalog";
 import ProductDetail from "@/pages/ProductDetail";
 import Cart from "@/pages/Cart";
 import NotFound from "@/pages/NotFound";
@@ -53,7 +52,7 @@ import AdminOrderSummaryPage from "@/pages/Admin/AdminOrderSummaryPage";
 // HomePage component - now shows login page directly
 function HomePage() {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/catalog" replace /> : <PhoneLogin />;
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <PhoneLogin />;
 }
 
 const queryClient = new QueryClient();
@@ -73,7 +72,6 @@ function AppContent() {
 
           {/* Public Routes */}
           <Route path="/login" element={<PhoneLogin />} />
-          <Route path="/catalog" element={<Catalog />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/dashboard" element={<UserDashboard />} />

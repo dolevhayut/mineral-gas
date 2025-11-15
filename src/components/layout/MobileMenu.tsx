@@ -36,7 +36,7 @@ export default function MobileMenu({ isAuthenticated, user, logout, dashboardLin
             to={dashboardLink}
             className="px-4 py-2 rounded-md hover:bg-accent text-right"
           >
-            לוח בקרה
+            עמוד הבית
           </Link>
 
           {isAdmin ? (

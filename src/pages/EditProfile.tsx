@@ -20,6 +20,7 @@ import {
   PhoneIcon,
   BuildingIcon,
   ShieldIcon,
+  MailIcon,
 } from "lucide-react";
 import MainLayoutWithFooter from "@/components/MainLayoutWithFooter";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +37,8 @@ const EditProfile = () => {
     name: "",
     address: "",
     delivery_instructions: "",
-    city: ""
+    city: "",
+    email: ""
   });
 
   useEffect(() => {
@@ -74,18 +76,20 @@ const EditProfile = () => {
       // Load directly from Supabase
       const { data: customer, error } = await supabase 
         .from('customers')
-        .select('name, address, delivery_instructions, city')
+        .select('name, address, delivery_instructions, city, email')
         .eq('id', user?.id)
         .single();
 
       if (error) throw error;
 
       if (customer) {
+        const customerData = customer as any;
         setProfileData({
-          name: customer.name || "",
-          address: customer.address || "",
-          delivery_instructions: customer.delivery_instructions || "",
-          city: customer.city || ""
+          name: customerData.name || "",
+          address: customerData.address || "",
+          delivery_instructions: customerData.delivery_instructions || "",
+          city: customerData.city || "",
+          email: customerData.email || ""
         });
       }
     } catch (error) {
@@ -132,7 +136,8 @@ const EditProfile = () => {
           name: profileData.name,
           address: profileData.address,
           delivery_instructions: profileData.delivery_instructions,
-          city: profileData.city
+          city: profileData.city,
+          email: profileData.email
         })
         .eq('id', user.id);
 
@@ -227,6 +232,23 @@ const EditProfile = () => {
                       className="h-10 bg-gray-100"
                     />
                     <p className="text-xs text-gray-500">מספר הטלפון לא ניתן לשינוי</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="font-medium flex items-center gap-2">
+                      <MailIcon className="h-4 w-4" />
+                      אימייל לקבלת חשבוניות
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profileData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      placeholder="example@email.com"
+                      className="h-10"
+                      dir="ltr"
+                    />
+                    <p className="text-xs text-gray-500">חשבוניות ישלחו לכתובת זו</p>
                   </div>
                 </div>
               </div>

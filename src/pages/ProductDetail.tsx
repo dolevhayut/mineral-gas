@@ -33,7 +33,7 @@ const ProductDetail = () => {
       setRelatedProducts(related);
     } else {
       // Redirect if product not found
-      navigate("/catalog");
+      navigate("/dashboard");
     }
   }, [id, navigate]);
 

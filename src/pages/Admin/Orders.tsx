@@ -61,6 +61,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  order_number: number;
   customer_id: string;
   status: string;
   total: number;
@@ -713,70 +714,62 @@ export default function Orders() {
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           {selectedOrder && (
             <>
-              <DialogHeader>
-                <DialogTitle>פרטי הזמנה</DialogTitle>
-                <DialogDescription>פרטי הזמנה מספר {selectedOrder.id.slice(-8)}</DialogDescription>
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={statusMap[selectedOrder.status as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
-                      {statusMap[selectedOrder.status as keyof typeof statusMap].label}
-                    </Badge>
-                    <span className="text-muted-foreground">
-                      {formatDate(selectedOrder.created_at)}
-                    </span>
+              <DialogHeader className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <DialogTitle className="text-2xl">הזמנה #{selectedOrder.order_number}</DialogTitle>
+                    <DialogDescription className="text-base">
+                      {selectedOrder.customers.name} • {selectedOrder.customers.phone}
+                    </DialogDescription>
                   </div>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    #{selectedOrder.id.slice(-8)}
-                  </span>
+                  <Badge variant={statusMap[selectedOrder.status as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
+                    {statusMap[selectedOrder.status as keyof typeof statusMap].label}
+                  </Badge>
                 </div>
               </DialogHeader>
               
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 bg-primary/10">
-                    <AvatarFallback>{getCustomerInitials(selectedOrder.customers.name)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-medium">{selectedOrder.customers.name}</h3>
-                    <p className="text-sm text-muted-foreground" dir="ltr">{selectedOrder.customers.phone}</p>
-                  </div>
-                </div>
-                
                 <Separator />
                 
                 {/* Order Details */}
-                <div className="grid grid-cols-2 gap-4">
-                  {selectedOrder.delivery_address && (
-                    <div className="col-span-2">
-                      <p className="text-sm font-medium mb-1">כתובת משלוח:</p>
-                      <p className="text-sm text-muted-foreground">{selectedOrder.delivery_address}</p>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="text-muted-foreground">תאריך הזמנה:</span>
+                    <span className="font-medium">{formatDate(selectedOrder.created_at)}</span>
+                  </div>
+                  
+                  {(selectedOrder.delivery_date || selectedOrder.target_date) && (
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <span className="text-muted-foreground">תאריך אספקה:</span>
+                      <div className="text-left">
+                        <p className="font-medium">
+                          {(() => {
+                            const dateStr = selectedOrder.delivery_date || selectedOrder.target_date!;
+                            const [year, month, day] = dateStr.split('-').map(Number);
+                            const date = new Date(year, month - 1, day);
+                            return getHebrewDayName(date.getDay());
+                          })()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(selectedOrder.delivery_date || selectedOrder.target_date!, false)}
+                        </p>
+                      </div>
                     </div>
                   )}
                   
-                  {(selectedOrder.delivery_date || selectedOrder.target_date) && (
-                    <div>
-                      <p className="text-sm font-medium mb-1">תאריך אספקה:</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(selectedOrder.delivery_date || selectedOrder.target_date!, false)}
-                      </p>
-                      <p className="text-sm font-medium text-blue-600 mt-1">
-                        {(() => {
-                          // Parse date string as local date to avoid timezone issues
-                          const dateStr = selectedOrder.delivery_date || selectedOrder.target_date!;
-                          const [year, month, day] = dateStr.split('-').map(Number);
-                          const date = new Date(year, month - 1, day);
-                          return getHebrewDayName(date.getDay());
-                        })()}
-                      </p>
+                  {selectedOrder.delivery_address && (
+                    <div className="flex items-start justify-between py-2 border-b">
+                      <span className="text-muted-foreground">כתובת משלוח:</span>
+                      <span className="font-medium text-left">{selectedOrder.delivery_address}</span>
                     </div>
                   )}
                   
                   {selectedOrder.special_instructions && (
-                    <div className="col-span-2">
-                      <p className="text-sm font-medium mb-1">הערות מיוחדות:</p>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    <div className="flex items-start justify-between py-2 border-b">
+                      <span className="text-muted-foreground">הערות:</span>
+                      <span className="font-medium text-left max-w-[60%] whitespace-pre-wrap">
                         {selectedOrder.special_instructions}
-                      </p>
+                      </span>
                     </div>
                   )}
                 </div>

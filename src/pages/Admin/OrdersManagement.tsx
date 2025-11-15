@@ -115,14 +115,14 @@ const OrdersManagement = () => {
           </div>
           <div className="w-full sm:w-auto">
             <Select
-              value={statusFilter || ""}
-              onValueChange={(value) => setStatusFilter(value || null)}
+              value={statusFilter || "all"}
+              onValueChange={(value) => setStatusFilter(value === "all" ? null : value)}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>

@@ -59,7 +59,7 @@ export default function DesktopNav({ userRole }: DesktopNavProps) {
                     to="/admin/dashboard"
                     className={navigationMenuTriggerStyle()}
                   >
-                    לוח בקרה
+                    עמוד הבית
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -101,7 +101,7 @@ export default function DesktopNav({ userRole }: DesktopNavProps) {
                     to="/dashboard"
                     className={navigationMenuTriggerStyle()}
                   >
-                    לוח בקרה
+                    עמוד הבית
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>

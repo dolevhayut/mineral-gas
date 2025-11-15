@@ -39,10 +39,10 @@ const Cart = () => {
               Looks like you haven't added any items to your cart yet.
             </p>
             <Button 
-              onClick={() => navigate("/catalog")} 
+              onClick={() => navigate("/orders/new")} 
               className="bg-bottle-600 hover:bg-bottle-700"
             >
-              Browse Products
+              הזמנה חדשה
             </Button>
           </div>
         </div>
@@ -152,9 +152,9 @@ const Cart = () => {
               <div className="p-4 border-t flex justify-between">
                 <Button
                   variant="ghost"
-                  onClick={() => navigate("/catalog")}
+                  onClick={() => navigate("/orders/new")}
                 >
-                  Continue Shopping
+                  המשך הזמנה
                 </Button>
                 <Button
                   variant="ghost"

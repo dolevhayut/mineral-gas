@@ -17,6 +17,7 @@ const ServiceRequest = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cities, setCities] = useState<string[]>([]);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   
   const [formData, setFormData] = useState({
     serviceType: "",
@@ -29,6 +30,41 @@ const ServiceRequest = () => {
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Load profile data to auto-populate address and phone
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (!user?.id) {
+        setIsLoadingProfile(false);
+        return;
+      }
+
+      try {
+        const { data: customer, error } = await supabase
+          .from('customers')
+          .select('address, city, phone')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error("Error loading profile:", error);
+        } else if (customer) {
+          setFormData(prev => ({
+            ...prev,
+            address: customer.address || "",
+            city: customer.city || "",
+            customerPhone: customer.phone || user?.phone || ""
+          }));
+        }
+      } catch (error) {
+        console.error("Error loading profile:", error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadProfileData();
+  }, [user?.id, user?.phone]);
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -213,6 +249,7 @@ const ServiceRequest = () => {
                     <SelectItem value="repair" className="text-right">תיקון תקלה</SelectItem>
                     <SelectItem value="maintenance" className="text-right">בדיקה תקופתית</SelectItem>
                     <SelectItem value="emergency" className="text-right">חירום - דליפת גז</SelectItem>
+                    <SelectItem value="quote" className="text-right">הצעת מחיר</SelectItem>
                     <SelectItem value="consultation" className="text-right">ייעוץ</SelectItem>
                     <SelectItem value="other" className="text-right">אחר</SelectItem>
                   </SelectContent>
