@@ -27,7 +27,8 @@ import {
   AlertTriangleIcon,
   RefreshCwIcon,
   ShoppingBagIcon,
-  PackageIcon
+  PackageIcon,
+  AlertCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
@@ -63,9 +64,18 @@ interface Customer {
   city?: string;
   business_type?: string;
   customer_type?: string;
+  price_list_id?: string | null;
+  last_safety_inspection_date?: string | null;
   created_at?: string;
   updated_at?: string;
   open_balance?: number;
+}
+
+interface PriceList {
+  id: string;
+  name: string;
+  description?: string;
+  is_default?: boolean;
 }
 
 export default function Customers() {
@@ -77,9 +87,58 @@ export default function Customers() {
   const [currentCustomer, setCurrentCustomer] = useState<Partial<Customer>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [cities, setCities] = useState<string[]>([]);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch cities from government API
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await fetch('https://data.gov.il/api/3/action/datastore_search?resource_id=5c78e9fa-c2e2-4771-93ff-7f400a12f7ba&limit=2000');
+        const data = await response.json();
+        if (data.success) {
+          const records: { "שם_ישוב": string; "שם_נפה": string }[] = data.result.records;
+          const northernDistricts = ["עכו", "יזרעאל", "צפת", "כנרת", "גולן", "חיפה"];
+
+          const northernCities = records
+            .filter(record => 
+              record['שם_נפה'] && 
+              northernDistricts.includes(record['שם_נפה'].trim()) &&
+              record['שם_ישוב'] &&
+              record['שם_ישוב'].trim() !== ''
+            )
+            .map(record => record['שם_ישוב'].trim());
+
+          const cityNames: string[] = [...new Set(northernCities)].sort();
+          setCities(cityNames);
+        }
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+      }
+    };
+
+    fetchCities();
+  }, []);
+
+  // Fetch price lists
+  const { data: priceLists } = useQuery({
+    queryKey: ["price_lists"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("price_lists")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching price lists:", error);
+        return [];
+      }
+
+      return data as PriceList[];
+    },
+  });
 
   // Fetch customers
   const { data: customers, isLoading: isCustomersLoading } = useQuery({
@@ -299,6 +358,35 @@ export default function Customers() {
     }
   };
 
+  // Check if safety inspection is overdue (4.5 years)
+  const checkSafetyInspectionStatus = (date?: string | null) => {
+    if (!date) return null;
+    
+    const inspectionDate = new Date(date);
+    const now = new Date();
+    const yearsDiff = (now.getTime() - inspectionDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+    
+    if (yearsDiff >= 4.5) {
+      return {
+        isOverdue: true,
+        message: `⚠️ דחוף! עברו ${yearsDiff.toFixed(1)} שנים מהבדיקה האחרונה`,
+        color: "text-red-600",
+        bgColor: "bg-red-50",
+        borderColor: "border-red-300"
+      };
+    } else if (yearsDiff >= 4) {
+      return {
+        isOverdue: false,
+        message: `⚡ התקרב מועד הבדיקה - עברו ${yearsDiff.toFixed(1)} שנים`,
+        color: "text-orange-600",
+        bgColor: "bg-orange-50",
+        borderColor: "border-orange-300"
+      };
+    }
+    
+    return null;
+  };
+
   const renderCustomerDialog = (isAdd: boolean) => {
     const dialogTitle = isAdd ? "הוספת לקוח חדש" : "עריכת פרטי לקוח";
     const dialogDescription = isAdd 
@@ -306,6 +394,8 @@ export default function Customers() {
       : "ערוך את פרטי הלקוח ולחץ שמור כדי לעדכן";
     const isOpen = isAdd ? isAddDialogOpen : isEditDialogOpen;
     const setIsOpen = isAdd ? setIsAddDialogOpen : setIsEditDialogOpen;
+    
+    const safetyStatus = checkSafetyInspectionStatus(currentCustomer.last_safety_inspection_date);
     
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -345,30 +435,52 @@ export default function Customers() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="city">עיר</Label>
-              <Input
-                id="city"
-                placeholder="הכנס עיר"
-                value={currentCustomer.city || ""}
-                onChange={(e) => setCurrentCustomer({ ...currentCustomer, city: e.target.value })}
-              />
+              <Label htmlFor="city">יישוב</Label>
+              {cities.length > 0 ? (
+                <Select 
+                  value={currentCustomer.city || ""} 
+                  onValueChange={(value) => setCurrentCustomer({ ...currentCustomer, city: value })}
+                >
+                  <SelectTrigger className="text-right">
+                    <SelectValue placeholder="בחר יישוב" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="p-2">
+                      <Input
+                        placeholder="חפש יישוב..."
+                        className="h-8 mb-2"
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          const search = e.target.value.toLowerCase();
+                          const items = document.querySelectorAll('[role="option"]');
+                          items.forEach((item) => {
+                            const text = item.textContent?.toLowerCase() || '';
+                            (item as HTMLElement).style.display = text.includes(search) ? '' : 'none';
+                          });
+                        }}
+                      />
+                    </div>
+                    {cities.map(city => (
+                      <SelectItem key={city} value={city} className="text-right">{city}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input disabled placeholder="טוען יישובים..." />
+              )}
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="business_type">סוג עסק</Label>
+              <Label htmlFor="business_type">סוג לקוח</Label>
               <Select
                 value={currentCustomer.business_type || "residential"}
                 onValueChange={(value) => setCurrentCustomer({ ...currentCustomer, business_type: value })}
               >
-                <SelectTrigger id="business_type">
+                <SelectTrigger id="business_type" className="text-right">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="residential">פרטי</SelectItem>
-                  <SelectItem value="commercial">עסקי</SelectItem>
-                  <SelectItem value="industrial">תעשייתי</SelectItem>
-                  <SelectItem value="restaurant">מסעדה</SelectItem>
-                  <SelectItem value="hotel">מלון</SelectItem>
-                  <SelectItem value="other">אחר</SelectItem>
+                  <SelectItem value="residential" className="text-right">פרטי</SelectItem>
+                  <SelectItem value="commercial" className="text-right">עסקי</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -402,6 +514,43 @@ export default function Customers() {
                   setCurrentCustomer({ ...currentCustomer, discount_percentage: value });
                 }}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="price_list">מחירון</Label>
+              <Select
+                value={currentCustomer.price_list_id || "none"}
+                onValueChange={(value) => setCurrentCustomer({ ...currentCustomer, price_list_id: value === "none" ? null : value })}
+              >
+                <SelectTrigger id="price_list">
+                  <SelectValue placeholder="בחר מחירון" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">ללא מחירון (ברירת מחדל)</SelectItem>
+                  {priceLists?.map((priceList) => (
+                    <SelectItem key={priceList.id} value={priceList.id}>
+                      {priceList.name}
+                      {priceList.description && ` - ${priceList.description}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="last_safety_inspection_date">תאריך בדיקה תקנית אחרונה</Label>
+              <Input
+                id="last_safety_inspection_date"
+                type="date"
+                value={currentCustomer.last_safety_inspection_date || ""}
+                onChange={(e) => setCurrentCustomer({ ...currentCustomer, last_safety_inspection_date: e.target.value })}
+              />
+              {safetyStatus && (
+                <div className={`flex items-center gap-2 p-3 rounded-md border ${safetyStatus.bgColor} ${safetyStatus.borderColor}`}>
+                  <AlertCircle className={`h-5 w-5 ${safetyStatus.color}`} />
+                  <span className={`text-sm font-medium ${safetyStatus.color}`}>
+                    {safetyStatus.message}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="special_requirements">דרישות מיוחדות</Label>
@@ -480,6 +629,7 @@ export default function Customers() {
                       <TableHead className="whitespace-nowrap">עיר</TableHead>
                       <TableHead className="whitespace-nowrap">סוג לקוח</TableHead>
                       <TableHead className="whitespace-nowrap">סטטוס</TableHead>
+                      <TableHead className="whitespace-nowrap">בדיקה תקנית</TableHead>
                       <TableHead className="whitespace-nowrap">חוב פתוח</TableHead>
                       <TableHead className="whitespace-nowrap">הנחה</TableHead>
                       <TableHead className="whitespace-nowrap">הזמנות פעילות</TableHead>
@@ -509,11 +659,7 @@ export default function Customers() {
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           <Badge variant={customer.business_type === "residential" ? "secondary" : "default"}>
-                            {customer.business_type === "residential" ? "פרטי" : 
-                             customer.business_type === "commercial" ? "עסקי" :
-                             customer.business_type === "industrial" ? "תעשייתי" :
-                             customer.business_type === "restaurant" ? "מסעדה" :
-                             customer.business_type === "hotel" ? "מלון" : "אחר"}
+                            {customer.business_type === "residential" ? "פרטי" : "עסקי"}
                           </Badge>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -524,6 +670,35 @@ export default function Customers() {
                             {customer.customer_type === "active" ? "פעיל" :
                              customer.customer_type === "suspended" ? "מושעה" : "לא פעיל"}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {(() => {
+                            const safetyStatus = checkSafetyInspectionStatus(customer.last_safety_inspection_date);
+                            if (!customer.last_safety_inspection_date) {
+                              return <span className="text-muted-foreground">לא נרשם</span>;
+                            }
+                            if (safetyStatus?.isOverdue) {
+                              return (
+                                <Badge variant="destructive" className="bg-red-600">
+                                  <AlertCircle className="h-3 w-3 ml-1" />
+                                  דחוף!
+                                </Badge>
+                              );
+                            }
+                            if (safetyStatus) {
+                              return (
+                                <Badge variant="outline" className="border-orange-400 text-orange-600">
+                                  <AlertCircle className="h-3 w-3 ml-1" />
+                                  התקרב
+                                </Badge>
+                              );
+                            }
+                            return (
+                              <Badge variant="outline" className="border-green-400 text-green-600">
+                                תקין
+                              </Badge>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {customer.open_balance ? (
@@ -572,7 +747,7 @@ export default function Customers() {
                     
                     {filteredCustomers?.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={10} className="h-24 text-center">
+                        <TableCell colSpan={11} className="h-24 text-center">
                           לא נמצאו לקוחות
                         </TableCell>
                       </TableRow>
@@ -613,11 +788,39 @@ export default function Customers() {
                     <div>
                       <div className="text-xs text-muted-foreground">סוג לקוח</div>
                       <div className="text-sm font-medium mt-1">
-                        {customer.business_type === "residential" ? "פרטי" : 
-                         customer.business_type === "commercial" ? "עסקי" :
-                         customer.business_type === "industrial" ? "תעשייתי" :
-                         customer.business_type === "restaurant" ? "מסעדה" :
-                         customer.business_type === "hotel" ? "מלון" : "אחר"}
+                        {customer.business_type === "residential" ? "פרטי" : "עסקי"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">בדיקה תקנית</div>
+                      <div className="text-sm font-medium mt-1">
+                        {(() => {
+                          const safetyStatus = checkSafetyInspectionStatus(customer.last_safety_inspection_date);
+                          if (!customer.last_safety_inspection_date) {
+                            return <span className="text-muted-foreground">לא נרשם</span>;
+                          }
+                          if (safetyStatus?.isOverdue) {
+                            return (
+                              <Badge variant="destructive" className="bg-red-600">
+                                <AlertCircle className="h-3 w-3 ml-1" />
+                                דחוף!
+                              </Badge>
+                            );
+                          }
+                          if (safetyStatus) {
+                            return (
+                              <Badge variant="outline" className="border-orange-400 text-orange-600">
+                                <AlertCircle className="h-3 w-3 ml-1" />
+                                התקרב
+                              </Badge>
+                            );
+                          }
+                          return (
+                            <Badge variant="outline" className="border-green-400 text-green-600">
+                              תקין
+                            </Badge>
+                          );
+                        })()}
                       </div>
                     </div>
                     <div>

@@ -16,16 +16,93 @@ import {
 } from "@/components/ui/select";
 import { Product } from "@/types";
 import SEOHead from "@/components/SEOHead";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 
 const Catalog = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const categoryParam = queryParams.get("category");
+  const { user } = useAuth();
 
-  const [products, setProducts] = useState(sampleProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
   const [sortBy, setSortBy] = useState("default");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch products from database with custom pricing
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        let priceListId: string | null = null;
+        
+        // If user is authenticated, get their price list
+        if (user && user.id) {
+          const { data: customerData } = await supabase
+            .from('customers')
+            .select('price_list_id')
+            .eq('id', user.id)
+            .single();
+          
+          priceListId = customerData?.price_list_id || null;
+        }
+        
+        // Fetch all products
+        const { data: productsData, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('available', true);
+        
+        if (productsError) {
+          console.error("Error fetching products:", productsError);
+          setAllProducts(sampleProducts);
+          return;
+        }
+        
+        // Fetch custom prices if user has a price list
+        let customPrices: Record<string, number> = {};
+        
+        if (priceListId) {
+          const { data: priceListItems } = await supabase
+            .from('price_list_items')
+            .select('product_id, price')
+            .eq('price_list_id', priceListId);
+          
+          if (priceListItems) {
+            customPrices = priceListItems.reduce((acc, item) => {
+              acc[item.product_id] = item.price;
+              return acc;
+            }, {} as Record<string, number>);
+          }
+        }
+        
+        // Format products with custom prices
+        const formattedProducts: Product[] = (productsData || []).map((product) => ({
+          id: product.id,
+          name: product.name,
+          description: product.description || '',
+          price: customPrices[product.id] !== undefined ? customPrices[product.id] : product.price,
+          image: product.image || '/placeholder.png',
+          category: product.category || '',
+          available: product.available !== false,
+          featured: product.featured || false,
+          createdAt: product.created_at || new Date().toISOString(),
+        }));
+        
+        setAllProducts(formattedProducts);
+      } catch (error) {
+        console.error("Error:", error);
+        setAllProducts(sampleProducts);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProducts();
+  }, [user]);
 
   // Product catalog structured data for SEO
   const catalogStructuredData = {
@@ -37,7 +114,7 @@ const Catalog = () => {
     "mainEntity": {
       "@type": "ItemList",
       "name": "מוצרי גז וחימום",
-      "itemListElement": sampleProducts.map((product, index) => ({
+      "itemListElement": allProducts.map((product, index) => ({
         "@type": "ListItem",
         "position": index + 1,
         "item": {
@@ -57,7 +134,7 @@ const Catalog = () => {
 
   // Filter products based on search and category
   useEffect(() => {
-    let filteredProducts = [...sampleProducts];
+    let filteredProducts = [...allProducts];
 
     if (searchTerm) {
       filteredProducts = filteredProducts.filter((product) =>
@@ -98,7 +175,7 @@ const Catalog = () => {
     }
 
     setProducts(filteredProducts);
-  }, [searchTerm, selectedCategory, sortBy]);
+  }, [searchTerm, selectedCategory, sortBy, allProducts]);
 
   // Reset filters
   const resetFilters = () => {
@@ -197,7 +274,11 @@ const Catalog = () => {
 
         {/* Products Grid */}
         <div className="product-grid">
-          {products.length > 0 ? (
+          {isLoading ? (
+            <div className="col-span-full text-center py-12">
+              <p className="text-xl">טוען מוצרים...</p>
+            </div>
+          ) : products.length > 0 ? (
             products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))

@@ -44,6 +44,8 @@ import Settings from "@/pages/Settings";
 import EditProfile from "@/pages/EditProfile";
 import ServiceRequest from "@/pages/ServiceRequest";
 import RouteOptimization from "@/pages/Admin/RouteOptimization";
+import DeliveryDays from "@/pages/Admin/DeliveryDays";
+import PriceLists from "@/pages/Admin/PriceLists";
 
 
 // HomePage component - now shows login page directly
@@ -98,10 +100,12 @@ function AppContent() {
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="orders/manage" element={<OrdersManagement />} />
                   <Route path="customers" element={<Customers />} />
+                  <Route path="price-lists" element={<PriceLists />} />
                   <Route path="service-requests" element={<ServiceRequests />} />
                   <Route path="settings" element={<AdminSettings />} />
                   <Route path="reports" element={<AdminReports />} />
                   <Route path="routes" element={<RouteOptimization />} />
+                  <Route path="delivery-days" element={<DeliveryDays />} />
                 </Routes>
               </AdminLayout>
             }

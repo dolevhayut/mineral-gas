@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import OrderSuccessModal from "@/components/order/OrderSuccessModal";
+import DaySelector from "@/components/order/DaySelector";
 
 // Type for simple product summary
 interface ProductSummary {
@@ -46,6 +47,9 @@ const OrderSummaryPage = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [submittedOrderId, setSubmittedOrderId] = useState<string>("");
   const [submittedOrderNumber, setSubmittedOrderNumber] = useState<number>(0);
+  const [selectedDay, setSelectedDay] = useState<number | undefined>(undefined);
+  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
+  const [adminSelectedCustomer, setAdminSelectedCustomer] = useState<{id: string, name: string, phone: string} | null>(null);
 
   useEffect(() => {
     // Get quantities and products from location state
@@ -53,11 +57,13 @@ const OrderSummaryPage = () => {
       const { 
         quantities: stateQuantities, 
         products: stateProducts,
-        deliveryPreferences: stateDeliveryPreferences 
+        deliveryPreferences: stateDeliveryPreferences,
+        adminSelectedCustomer: stateAdminCustomer
       } = location.state;
       if (stateQuantities) setQuantities(stateQuantities);
       if (stateProducts) setProducts(stateProducts);
       if (stateDeliveryPreferences) setDeliveryPreferences(stateDeliveryPreferences);
+      if (stateAdminCustomer) setAdminSelectedCustomer(stateAdminCustomer);
     } else {
       // If no state, redirect back to the new order page
       navigate("/orders/new");
@@ -67,12 +73,15 @@ const OrderSummaryPage = () => {
   // Fetch customer info
   useEffect(() => {
     const fetchCustomerInfo = async () => {
-      if (user?.id) {
+      // If admin selected a customer, use their ID; otherwise use logged-in user's ID
+      const customerId = adminSelectedCustomer?.id || user?.id;
+      
+      if (customerId) {
         try {
           const { data, error } = await supabase
             .from('customers')
             .select('name, phone, address, city')
-            .eq('id', user.id)
+            .eq('id', customerId)
             .single();
           
           if (!error && data) {
@@ -90,7 +99,7 @@ const OrderSummaryPage = () => {
     };
     
     fetchCustomerInfo();
-  }, [user]);
+  }, [user, adminSelectedCustomer]);
 
   // Process quantities to create simple product summary
   const productSummary: ProductSummary[] = [];
@@ -120,11 +129,19 @@ const OrderSummaryPage = () => {
     navigate("/orders/new");
   };
 
+  const handleDaySelect = (dayOfWeek: number, date: Date) => {
+    setSelectedDay(dayOfWeek);
+    setTargetDate(date);
+  };
+
   const handleSubmitOrder = async () => {
-    if (!user) {
+    // Get the customer ID - either from admin selection or logged-in user
+    const customerId = adminSelectedCustomer?.id || user?.id;
+    
+    if (!customerId) {
       toast({
-        title: "אינך מחובר למערכת",
-        description: "יש להתחבר כדי לבצע הזמנה",
+        title: "לא נבחר לקוח",
+        description: "יש לבחור לקוח או להתחבר כדי לבצע הזמנה",
         variant: "destructive",
       });
       return;
@@ -139,11 +156,26 @@ const OrderSummaryPage = () => {
       return;
     }
 
+    if (!targetDate) {
+      toast({
+        title: "לא נבחר יום אספקה",
+        description: "יש לבחור יום אספקה לפני שליחת ההזמנה",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      // Create a user object for the order submission
+      // If admin is creating the order, use admin-selected customer's data
+      const orderUser = adminSelectedCustomer 
+        ? { id: adminSelectedCustomer.id, phone: adminSelectedCustomer.phone } 
+        : user;
+      
       // Submit the order
-      const orderResult = await submitOrder(quantities, products, user);
+      const orderResult = await submitOrder(quantities, products, orderUser!, targetDate);
       
       if (orderResult) {
         // Show success modal
@@ -151,9 +183,13 @@ const OrderSummaryPage = () => {
         setSubmittedOrderNumber(orderResult.orderNumber || 0);
         setShowSuccessModal(true);
         
-        // Navigate after delay
+        // Navigate after delay - admin goes to orders page, customer to dashboard
         setTimeout(() => {
-          navigate("/dashboard", { replace: true });
+          if (adminSelectedCustomer) {
+            navigate("/admin/orders", { replace: true });
+          } else {
+            navigate("/dashboard", { replace: true });
+          }
         }, 4000);
       } else {
         toast({
@@ -243,6 +279,15 @@ const OrderSummaryPage = () => {
                 </div>
               )}
 
+              {/* Delivery Day Selection */}
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-medium text-lg mb-3 text-right">יום אספקה:</h3>
+                <DaySelector 
+                  selectedDay={selectedDay}
+                  onDaySelect={handleDaySelect}
+                />
+              </div>
+
               {/* Order Summary */}
               <div className="space-y-4">
                 <h3 className="font-medium text-xl mb-4 text-right">סיכום הזמנה:</h3>
@@ -277,7 +322,7 @@ const OrderSummaryPage = () => {
           >
             <Button 
               size="lg" 
-              disabled={isSubmitting || !hasItems}
+              disabled={isSubmitting || !hasItems || !targetDate}
               onClick={handleSubmitOrder}
               className="min-w-[200px] bg-bottle-600 hover:bg-bottle-700 text-white font-medium transition-all"
             >

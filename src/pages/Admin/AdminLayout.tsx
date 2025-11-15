@@ -13,7 +13,9 @@ import {
   Wrench,
   Menu,
   X,
-  Route
+  Route,
+  CalendarDays,
+  DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +59,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { path: "/admin/products", label: "מוצרים", icon: Fuel },
     { path: "/admin/orders", label: "הזמנות", icon: ShoppingCart },
     { path: "/admin/customers", label: "לקוחות", icon: Users },
+    { path: "/admin/price-lists", label: "מחירונים", icon: DollarSign },
     { path: "/admin/routes", label: "ניהול מסלולים", icon: Route },
+    { path: "/admin/delivery-days", label: "ימי אספקה", icon: CalendarDays },
     { path: "/admin/service-requests", label: "קריאות שירות", icon: Wrench },
     { path: "/admin/reports", label: "דוחות", icon: FileText },
     { path: "/admin/settings", label: "הגדרות", icon: Settings },

@@ -13,7 +13,7 @@ import { hebrewDays, OrderProduct } from "@/components/order/orderConstants";
 import { submitOrder } from "@/services/orderService";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowRight, UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Define the Product interface based on our new schema
@@ -36,16 +36,33 @@ const NewOrder = () => {
     date?: Date;
     time?: string;
   }>>({});
+  const [adminSelectedCustomer, setAdminSelectedCustomer] = useState<{id: string, name: string, phone: string} | null>(null);
   
   useEffect(() => {
-    // Check if we're coming from the EditOrder page
+    // Check if we're coming from the EditOrder page or Admin
     if (location.state) {
-      const { existingQuantities, existingProducts, fromOrderEdit, orderId } = location.state;
+      const { existingQuantities, existingProducts, fromOrderEdit, orderId, adminSelectedCustomerId } = location.state;
       
       if (fromOrderEdit && existingQuantities) {
         setQuantities(existingQuantities);
         setIsFromOrderEdit(true);
         if (orderId) setOrderId(orderId);
+      }
+
+      // If admin selected a customer, fetch their details
+      if (adminSelectedCustomerId) {
+        const fetchCustomerDetails = async () => {
+          const { data, error } = await supabase
+            .from('customers')
+            .select('id, name, phone')
+            .eq('id', adminSelectedCustomerId)
+            .single();
+
+          if (!error && data) {
+            setAdminSelectedCustomer(data);
+          }
+        };
+        fetchCustomerDetails();
       }
     }
   }, [location.state]);
@@ -59,13 +76,43 @@ const NewOrder = () => {
         if (user && user.id) {
           setCanOrderFresh(true); // All customers can order all products
           
-          // Fetch all products
-          const { data, error } = await supabase.from('products').select('*');
+          // First, fetch the customer's price list
+          const { data: customerData, error: customerError } = await supabase
+            .from('customers')
+            .select('price_list_id')
+            .eq('id', user.id)
+            .single();
           
-          if (error) {
-            console.error("Error fetching products:", error);
+          if (customerError) {
+            console.error("Error fetching customer:", customerError);
+          }
+          
+          const priceListId = customerData?.price_list_id;
+          
+          // Fetch all products
+          const { data: productsData, error: productsError } = await supabase.from('products').select('*');
+          
+          if (productsError) {
+            console.error("Error fetching products:", productsError);
             toast.error("לא ניתן לטעון את רשימת המוצרים");
           } else {
+            // Fetch custom prices for this customer's price list
+            let customPrices: Record<string, number> = {};
+            
+            if (priceListId) {
+              const { data: priceListItems, error: priceListError } = await supabase
+                .from('price_list_items')
+                .select('product_id, price')
+                .eq('price_list_id', priceListId);
+              
+              if (!priceListError && priceListItems) {
+                customPrices = priceListItems.reduce((acc, item) => {
+                  acc[item.product_id] = item.price;
+                  return acc;
+                }, {} as Record<string, number>);
+              }
+            }
+            
             // Convert database products to our Product interface
             interface DatabaseProduct {
               id: string;
@@ -85,11 +132,12 @@ const NewOrder = () => {
               quantity_increment?: number;
             }
             
-            const formattedProducts: Product[] = (data || []).map((product: DatabaseProduct) => ({
+            const formattedProducts: Product[] = (productsData || []).map((product: DatabaseProduct) => ({
               id: product.id,
               name: product.name,
               description: product.description || '',
-              price: product.price,
+              // Use custom price if available, otherwise use default price
+              price: customPrices[product.id] !== undefined ? customPrices[product.id] : product.price,
               image: product.image || '/placeholder.png',
               category: product.category || '',
               cylinder_type: product.cylinder_type,
@@ -136,7 +184,8 @@ const NewOrder = () => {
     fetchUserPermissionsAndProducts();
   }, [user, isFromOrderEdit]);
   
-  if (!isAuthenticated) {
+  // Allow access if authenticated OR if admin selected a customer
+  if (!isAuthenticated && !adminSelectedCustomer) {
     return <Navigate to="/login" />;
   }
 
@@ -279,6 +328,23 @@ const NewOrder = () => {
               </Alert>
             </motion.div>
           )}
+
+          {adminSelectedCustomer && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Alert className="my-4 bg-green-50 border-green-200">
+                <UserIcon className="h-4 w-4" />
+                <AlertTitle>יצירת הזמנה עבור לקוח</AlertTitle>
+                <AlertDescription>
+                  אתה יוצר הזמנה עבור: <strong>{adminSelectedCustomer.name}</strong> ({adminSelectedCustomer.phone})
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
         </AnimatePresence>
         
         {isLoading ? (
@@ -331,6 +397,7 @@ const NewOrder = () => {
           isFromOrderEdit={isFromOrderEdit}
           onReturnToEdit={handleReturnToEdit}
           deliveryPreferences={deliveryPreferences}
+          adminSelectedCustomer={adminSelectedCustomer}
         />
       </div>
     </MainLayout>

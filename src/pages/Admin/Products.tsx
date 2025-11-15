@@ -1,13 +1,13 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { 
   PlusIcon, 
@@ -17,13 +17,12 @@ import {
   Loader2Icon,
   ImageIcon,
   XIcon,
-  CheckIcon,
-  XCircleIcon,
   FilterIcon,
   AlertTriangleIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -416,99 +415,103 @@ export default function Products() {
           <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProducts?.map((product) => (
-            <Card key={product.id} className="overflow-hidden">
-              <div className="relative h-48 bg-gray-100">
-                {product.image ? (
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = DEFAULT_IMAGE;
-                    }}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full w-full bg-gray-100">
-                    <ImageIcon className="h-12 w-12 text-gray-400" />
-                  </div>
-                )}
-                <div className="absolute top-2 left-2">
-                  <Badge
-                    variant={product.available ? "default" : "secondary"}
-                    className="cursor-pointer"
-                    onClick={() => toggleAvailability.mutate({
-                      id: product.id,
-                      available: !product.available
-                    })}
-                  >
-                    {product.available ? "זמין" : "לא זמין"}
-                  </Badge>
-                </div>
-              </div>
-              
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl">{product.name}</CardTitle>
-                  <p className="text-xl font-bold">₪{product.price}</p>
-                </div>
-                <CardDescription className="flex justify-between">
-                  <span>מק״ט: {product.sku}</span>
-                  <Badge variant="outline">{product.category}</Badge>
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="pb-0">
-                {product.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                    {product.description}
-                  </p>
-                )}
-                {product.quantity_increment && product.quantity_increment > 1 && (
-                  <p className="text-sm font-medium">
-                    קפיצות כמות: {product.quantity_increment}
-                  </p>
-                )}
-                <p className="text-sm font-medium flex items-center mt-1">
-                  <Badge variant={product.is_frozen ? "secondary" : "default"} className="mr-1">
-                    {product.is_frozen ? "גדול" : "קטן"}
-                  </Badge>
-                </p>
-              </CardContent>
-              
-              <CardFooter className="flex justify-end gap-2 pt-4">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleEdit(product)}
-                >
-                  <PencilIcon className="h-4 w-4 ml-2" />
-                  עריכה
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => handleDelete(product)}
-                >
-                  <TrashIcon className="h-4 w-4 ml-2" />
-                  מחיקה
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {filteredProducts?.length === 0 && !isProductsLoading && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <p className="text-xl font-medium text-muted-foreground">לא נמצאו מוצרים</p>
-          <p className="text-sm text-muted-foreground mb-6">נסה לשנות את החיפוש או להוסיף מוצרים חדשים</p>
-          <Button onClick={handleAddNew}>
-            <PlusIcon className="h-4 w-4 ml-2" />
-            הוסף מוצר חדש
-          </Button>
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[80px] text-right">תמונה</TableHead>
+                <TableHead className="text-right">שם המוצר</TableHead>
+                <TableHead className="text-right">מק״ט</TableHead>
+                <TableHead className="text-right">קטגוריה</TableHead>
+                <TableHead className="text-right">מחיר</TableHead>
+                <TableHead className="text-right">כמות</TableHead>
+                <TableHead className="text-right">סוג</TableHead>
+                <TableHead className="text-right">זמין</TableHead>
+                <TableHead className="w-[180px] text-right">פעולות</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts?.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="text-right">
+                    <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 mr-auto">
+                      {product.image ? (
+                        <img 
+                          src={product.image} 
+                          alt={product.name} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = DEFAULT_IMAGE;
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full w-full">
+                          <ImageIcon className="h-6 w-6 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium text-right">{product.sku}</TableCell>
+                  <TableCell className="text-muted-foreground text-right">{product.name}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant="outline">{product.category}</Badge>
+                  </TableCell>
+                  <TableCell className="font-semibold text-right">₪{product.price}</TableCell>
+                  <TableCell className="text-right">
+                    {product.quantity_increment && product.quantity_increment > 1 ? (
+                      <span className="text-sm">×{product.quantity_increment}</span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">יחידות</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={product.is_frozen ? "secondary" : "default"}>
+                      {product.is_frozen ? "גדול" : "קטן"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end">
+                      <Switch
+                        checked={product.available}
+                        onCheckedChange={() => toggleAvailability.mutate({
+                          id: product.id,
+                          available: !product.available
+                        })}
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-2 justify-end">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEdit(product)}
+                      >
+                        <PencilIcon className="h-4 w-4 ml-2" />
+                        עריכה
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDelete(product)}
+                      >
+                        <TrashIcon className="h-4 w-4 ml-2" />
+                        מחיקה
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredProducts?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-12">
+                    <p className="text-muted-foreground">לא נמצאו מוצרים</p>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       )}
 

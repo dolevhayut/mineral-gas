@@ -31,13 +31,16 @@ export type Database = {
           id: string
           is_verified: boolean | null
           last_login_at: string | null
+          last_safety_inspection_date: string | null
           locked_until: string | null
           login_attempts: number | null
           name: string | null
+          notes: string | null
           phone: string
           phone_verified: boolean | null
           preferred_cylinder_types: string[] | null
           preferred_delivery_time: string | null
+          price_list_id: string | null
           role: string | null
           safety_certifications: string[] | null
           special_requirements: string | null
@@ -61,13 +64,16 @@ export type Database = {
           id?: string
           is_verified?: boolean | null
           last_login_at?: string | null
+          last_safety_inspection_date?: string | null
           locked_until?: string | null
           login_attempts?: number | null
           name?: string | null
+          notes?: string | null
           phone: string
           phone_verified?: boolean | null
           preferred_cylinder_types?: string[] | null
           preferred_delivery_time?: string | null
+          price_list_id?: string | null
           role?: string | null
           safety_certifications?: string[] | null
           special_requirements?: string | null
@@ -91,19 +97,54 @@ export type Database = {
           id?: string
           is_verified?: boolean | null
           last_login_at?: string | null
+          last_safety_inspection_date?: string | null
           locked_until?: string | null
           login_attempts?: number | null
           name?: string | null
+          notes?: string | null
           phone?: string
           phone_verified?: boolean | null
           preferred_cylinder_types?: string[] | null
           preferred_delivery_time?: string | null
+          price_list_id?: string | null
           role?: string | null
-          safety_certifications?: string | null
+          safety_certifications?: string[] | null
           special_requirements?: string | null
           updated_at?: string | null
           verification_code?: string | null
           verification_code_expires_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_days: {
+        Row: {
+          cities: string[]
+          created_at: string | null
+          day_of_week: number
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          cities?: string[]
+          created_at?: string | null
+          day_of_week: number
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          cities?: string[]
+          created_at?: string | null
+          day_of_week?: number
+          id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -112,7 +153,6 @@ export type Database = {
           created_at: string | null
           cylinder_condition: string | null
           cylinder_serial_number: string | null
-          day_of_week: string
           delivery_instructions: string | null
           id: string
           installation_notes: string | null
@@ -126,7 +166,6 @@ export type Database = {
           created_at?: string | null
           cylinder_condition?: string | null
           cylinder_serial_number?: string | null
-          day_of_week: string
           delivery_instructions?: string | null
           id?: string
           installation_notes?: string | null
@@ -140,7 +179,6 @@ export type Database = {
           created_at?: string | null
           cylinder_condition?: string | null
           cylinder_serial_number?: string | null
-          day_of_week?: string
           delivery_instructions?: string | null
           id?: string
           installation_notes?: string | null
@@ -226,6 +264,7 @@ export type Database = {
           emergency_contact?: string | null
           id?: string
           installation_required?: boolean | null
+          order_number?: number
           safety_inspection_required?: boolean | null
           service_type?: string | null
           special_instructions?: string | null
@@ -245,6 +284,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      price_list_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          price: number
+          price_list_id: string
+          product_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          price: number
+          price_list_id: string
+          product_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          price?: number
+          price_list_id?: string
+          product_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_list_items_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_list_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_lists: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -503,26 +611,15 @@ export type Database = {
         }
         Returns: Json
       }
-      generate_verification_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_customer_orders: {
-        Args: { p_customer_id: string }
-        Returns: Json
-      }
-      get_customer_profile: {
-        Args: { p_customer_id: string }
-        Returns: Json
-      }
+      format_order_number: { Args: { order_num: number }; Returns: string }
+      generate_verification_code: { Args: Record<PropertyKey, never>; Returns: string }
+      get_customer_orders: { Args: { p_customer_id: string }; Returns: Json }
+      get_customer_profile: { Args: { p_customer_id: string }; Returns: Json }
       get_customer_service_requests: {
         Args: { p_customer_id: string }
         Returns: Json
       }
-      get_order_with_items: {
-        Args: { p_order_id: string }
-        Returns: Json
-      }
+      get_order_with_items: { Args: { p_order_id: string }; Returns: Json }
       get_reorderable_orders: {
         Args: { p_customer_id: string; p_limit?: number }
         Returns: Json
@@ -550,10 +647,7 @@ export type Database = {
         }
         Returns: Json
       }
-      send_verification_code: {
-        Args: { p_phone: string }
-        Returns: string
-      }
+      send_verification_code: { Args: { p_phone: string }; Returns: string }
       update_customer_profile: {
         Args: {
           p_address?: string

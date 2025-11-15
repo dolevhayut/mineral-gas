@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { OrderProduct, hebrewDays } from "./orderConstants";
-import DateSelector from "./DateSelector";
+import DaySelector from "./DaySelector";
 import EmptyOrderMessage from "./EmptyOrderMessage";
 
 interface OrderSummaryProps {
@@ -13,8 +13,9 @@ interface OrderSummaryProps {
   products: OrderProduct[];
   onSubmit: () => void;
   isSubmitting?: boolean;
+  selectedDay?: number;
   targetDate?: Date;
-  onTargetDateChange: (date: Date | undefined) => void;
+  onDaySelect: (dayOfWeek: number, date: Date) => void;
 }
 
 // Type for simple product summary
@@ -33,8 +34,9 @@ export default function OrderSummary({
   products, 
   onSubmit,
   isSubmitting = false,
+  selectedDay,
   targetDate,
-  onTargetDateChange
+  onDaySelect
 }: OrderSummaryProps) {
 
   // Process quantities to create simple product summary
@@ -92,13 +94,13 @@ export default function OrderSummary({
               </div>
 
               <div>
-                <h3 className="font-medium mb-2 text-right">תאריך אספקה:</h3>
-                <DateSelector 
-                  targetDate={targetDate} 
-                  setTargetDate={onTargetDateChange} 
+                <h3 className="font-medium mb-2 text-right">יום אספקה:</h3>
+                <DaySelector 
+                  selectedDay={selectedDay} 
+                  onDaySelect={onDaySelect} 
                 />
                 <p className="text-sm text-gray-500 mt-2 text-right">
-                  בחר את התאריך הרצוי לאספקת ההזמנה
+                  בחר את היום הרצוי לאספקת ההזמנה
                 </p>
               </div>
             </div>
@@ -110,7 +112,7 @@ export default function OrderSummary({
           <Button 
             className="flex-1 bg-green-500 hover:bg-green-600 mx-2" 
             onClick={onSubmit}
-            disabled={!hasItems || !targetDate || isSubmitting}
+            disabled={!hasItems || selectedDay === undefined || !targetDate || isSubmitting}
           >
             {isSubmitting ? (
               <>

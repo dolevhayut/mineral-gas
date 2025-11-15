@@ -14,6 +14,7 @@ interface OrderActionsProps {
     date?: Date;
     time?: string;
   }>;
+  adminSelectedCustomer?: {id: string, name: string, phone: string} | null;
 }
 
 export default function OrderActions({ 
@@ -21,7 +22,8 @@ export default function OrderActions({
   products, 
   isFromOrderEdit = false,
   onReturnToEdit,
-  deliveryPreferences = {}
+  deliveryPreferences = {},
+  adminSelectedCustomer = null
 }: OrderActionsProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +45,8 @@ export default function OrderActions({
       state: {
         quantities,
         products,
-        deliveryPreferences
+        deliveryPreferences,
+        adminSelectedCustomer
       }
     });
   };

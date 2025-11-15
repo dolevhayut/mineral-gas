@@ -9,8 +9,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { SearchIcon, EyeIcon, Loader2Icon, FilterIcon, UserIcon, CalendarIcon, PackageIcon, Phone, MapPin, Trash2, Edit3 } from "lucide-react";
+import { SearchIcon, EyeIcon, Loader2Icon, FilterIcon, UserIcon, CalendarIcon, PackageIcon, Phone, MapPin, Trash2, Edit3, PlusIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -102,9 +103,26 @@ export default function Orders() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  // Fetch customers for new order
+  const { data: customers } = useQuery({
+    queryKey: ["customers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name, phone, city")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // Fetch orders
   const { data: orders, isLoading } = useQuery({
@@ -245,12 +263,39 @@ export default function Orders() {
     return name[0];
   };
 
+  const handleCreateOrderForCustomer = () => {
+    if (!selectedCustomer) {
+      toast({
+        title: "בחר לקוח",
+        description: "יש לבחור לקוח לפני יצירת הזמנה",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Navigate to new order page with customer context
+    navigate("/orders/new", {
+      state: {
+        adminSelectedCustomerId: selectedCustomer
+      }
+    });
+  };
+
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">ניהול הזמנות</h1>
-        <p className="text-muted-foreground">צפה ונהל את ההזמנות בחנות שלך</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">ניהול הזמנות</h1>
+          <p className="text-muted-foreground">צפה ונהל את ההזמנות בחנות שלך</p>
+        </div>
+        <Button
+          onClick={() => setIsCreateOrderOpen(true)}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          <PlusIcon className="ml-2 h-4 w-4" />
+          הזמנה חדשה
+        </Button>
       </div>
 
       {(!orders || orders.length === 0) && !isLoading && (
@@ -729,6 +774,81 @@ export default function Orders() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Order Dialog - Select Customer */}
+      <Dialog open={isCreateOrderOpen} onOpenChange={setIsCreateOrderOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>יצירת הזמנה חדשה</DialogTitle>
+            <DialogDescription>
+              בחר לקוח ממערכת כדי ליצור עבורו הזמנה
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="customer-select" className="text-sm font-medium text-right">
+                בחר לקוח
+              </label>
+              {customers && customers.length > 0 ? (
+                <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                  <SelectTrigger id="customer-select">
+                    <SelectValue placeholder="בחר לקוח מהרשימה" />
+                  </SelectTrigger>
+                  <SelectContent align="end" className="text-right">
+                    <div className="p-2">
+                      <Input
+                        placeholder="חפש לקוח..."
+                        className="h-8 mb-2 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          const search = e.target.value.toLowerCase();
+                          const items = document.querySelectorAll('[role="option"]');
+                          items.forEach((item) => {
+                            const text = item.textContent?.toLowerCase() || '';
+                            (item as HTMLElement).style.display = text.includes(search) ? '' : 'none';
+                          });
+                        }}
+                      />
+                    </div>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id} className="text-right">
+                        <div className="flex flex-col items-end w-full">
+                          <span className="font-medium">{customer.name}</span>
+                          <span className="text-xs text-gray-500">
+                            {customer.phone} {customer.city && `• ${customer.city}`}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="text-center text-sm text-gray-500 py-4">
+                  טוען לקוחות...
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreateOrderOpen(false);
+                setSelectedCustomer("");
+              }}
+            >
+              ביטול
+            </Button>
+            <Button
+              onClick={handleCreateOrderForCustomer}
+              disabled={!selectedCustomer}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              המשך ליצירת הזמנה
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
