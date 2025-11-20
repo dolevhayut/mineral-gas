@@ -11,9 +11,12 @@ import {
   PlusCircleIcon,
   WrenchIcon,
   BellIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  AlertCircle,
+  X
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Define interface for Order type
 interface OrderItem {
@@ -50,6 +53,31 @@ const UserDashboard = () => {
   const [systemUpdates, setSystemUpdates] = useState<SystemUpdate[]>([]);
   const [isLoadingUpdates, setIsLoadingUpdates] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showAddressAlert, setShowAddressAlert] = useState(true);
+  const [customerAddress, setCustomerAddress] = useState<string | null>(null);
+
+  // Fetch customer address
+  useEffect(() => {
+    const fetchCustomerAddress = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('address')
+          .eq('id', user.id)
+          .single();
+          
+        if (!error && data) {
+          setCustomerAddress(data.address);
+        }
+      } catch (error) {
+        console.error("Error fetching customer address:", error);
+      }
+    };
+    
+    fetchCustomerAddress();
+  }, [user?.id]);
 
   // Fetch system updates
   useEffect(() => {
@@ -246,6 +274,31 @@ const UserDashboard = () => {
   return (
     <MainLayoutWithFooter>
       <div className="container mx-auto px-4 py-6">
+        {/* Address Missing Alert */}
+        {showAddressAlert && !customerAddress && (
+          <Alert className="mb-6 border-2 border-amber-500 bg-amber-50 relative">
+            <button
+              onClick={() => setShowAddressAlert(false)}
+              className="absolute top-3 left-3 text-amber-700 hover:text-amber-900 transition-colors"
+              aria-label="סגור התראה"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <AlertCircle className="h-5 w-5 text-amber-600" />
+            <AlertTitle className="text-lg font-bold text-amber-900">חסרה כתובת למשלוח</AlertTitle>
+            <AlertDescription className="text-base text-amber-800 mt-2">
+              כדי לבצע הזמנות, נא להוסיף כתובת למשלוח בפרופיל שלך.{" "}
+              <Button
+                variant="link"
+                className="p-0 h-auto text-base font-semibold text-amber-900 hover:text-amber-950 underline"
+                onClick={() => navigate("/edit-profile")}
+              >
+                לחץ כאן להוספת כתובת
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Welcome Section - Simplified */}
         <div className="bg-gradient-to-r from-bottle-50 to-bottle-100 rounded-lg p-4 mb-6 shadow-sm">
           <div className="flex flex-col md:flex-row justify-between items-center md:items-start">

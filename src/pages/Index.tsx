@@ -22,17 +22,13 @@ const Index = () => {
   const { isAuthenticated } = useAuth();
   
   // Modal states
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   
   // Form states
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showCodeInput, setShowCodeInput] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   // If already authenticated, redirect to dashboard
   useEffect(() => {
@@ -45,10 +41,7 @@ const Index = () => {
   const resetForm = () => {
     setPhone("");
     setName("");
-    setVerificationCode("");
-    setShowCodeInput(false);
     setErrorMessage(null);
-    setIsRegisterMode(false);
   };
 
   // Handle phone number input
@@ -60,58 +53,7 @@ const Index = () => {
     setPhone(value);
   };
 
-  // Handle existing customer login
-  const handleExistingCustomerLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!phone.match(/^0[0-9]{9}$/)) {
-      setErrorMessage("מספר טלפון חייב להיות בפורמט ישראלי (10 ספרות)");
-      toast({
-        title: "שגיאת קלט",
-        description: "מספר טלפון חייב להיות בפורמט ישראלי (10 ספרות)",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    setErrorMessage(null);
-    
-    try {
-      const { data, error } = await supabase.rpc('send_verification_code', {
-        p_phone: phone
-      });
-      
-      if (error) throw error;
-      
-      setShowCodeInput(true);
-      setIsRegisterMode(false);
-      toast({
-        title: "קוד נשלח בהצלחה",
-        description: `קוד אימות נשלח למספר ${phone}`,
-      });
-      
-      if (data) {
-        console.log("Verification code:", data);
-        toast({
-          title: "קוד אימות (למטרות פיתוח)",
-          description: `הקוד שלך: ${data}`,
-        });
-      }
-    } catch (error) {
-      console.error("Send code error:", error);
-      setErrorMessage(`אירעה שגיאה: ${error instanceof Error ? error.message : String(error)}`);
-      toast({
-        title: "שגיאה",
-        description: `אירעה שגיאה: ${error instanceof Error ? error.message : String(error)}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle new customer registration
+// Handle new customer registration
   const handleNewCustomerRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -154,9 +96,10 @@ const Index = () => {
         setErrorMessage("מספר הטלפון כבר רשום במערכת. נא להתחבר כלקוח קיים.");
         toast({
           title: "לקוח קיים",
-          description: "מספר הטלפון כבר רשום במערכת. נא להתחבר כלקוח קיים.",
+          description: "מספר הטלפון כבר רשום במערכת. מעביר אותך להתחברות...",
           variant: "destructive"
         });
+        setTimeout(() => navigate("/login"), 2000);
         return;
       }
 
@@ -171,27 +114,23 @@ const Index = () => {
       if (createError) throw createError;
 
       if (createData?.customer) {
-        // Send verification code
-        const { data: codeData, error: codeError } = await supabase.rpc('send_verification_code', {
-          p_phone: phone
-        });
+        const customer = createData.customer;
         
-        if (codeError) throw codeError;
+        // Save customer data and set session
+        const expiryTime = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
+        localStorage.setItem('mineral_gas_customer', JSON.stringify(customer));
+        localStorage.setItem('mineral_gas_session_expiry', expiryTime.toString());
         
-        setShowCodeInput(true);
-        setIsRegisterMode(true);
         toast({
-          title: "נרשמת בהצלחה!",
-          description: `קוד אימות נשלח למספר ${phone}`,
+          title: "ברוך הבא!",
+          description: `נרשמת בהצלחה ${customer.name}! מעביר אותך ל-Dashboard...`,
         });
         
-        if (codeData) {
-          console.log("Verification code:", codeData);
-          toast({
-            title: "קוד אימות (למטרות פיתוח)",
-            description: `הקוד שלך: ${codeData}`,
-          });
-        }
+        // Close modal and navigate to dashboard
+        setShowRegisterModal(false);
+        setTimeout(() => {
+          window.location.href = '/dashboard'; // Force full page reload to ensure auth state is updated
+        }, 1000);
       } else {
         throw new Error("Failed to create customer");
       }
@@ -208,53 +147,7 @@ const Index = () => {
     }
   };
 
-  // Verify code
-  const handleVerifyCode = async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    
-    try {
-      const { data, error } = await supabase.rpc('verify_phone_number', {
-        p_phone: phone,
-        p_code: verificationCode
-      });
-      
-      if (error) throw error;
-      
-      const result = data as { success?: boolean; customer?: any; message?: string } | null;
-      
-      if (result?.success) {
-        const customer = result.customer;
-        localStorage.setItem('mineral_gas_customer', JSON.stringify(customer));
-        
-        toast({
-          title: isRegisterMode ? "ברוך הבא!" : "התחברות הצליחה",
-          description: `${isRegisterMode ? 'נרשמת בהצלחה' : 'ברוך הבא'} ${customer.name || 'לקוח יקר'}!`,
-        });
-
-        navigate(customer.role === 'admin' ? '/admin/dashboard' : '/dashboard');
-      } else {
-        setErrorMessage(result?.message || "קוד אימות שגוי");
-        toast({
-          title: "שגיאה",
-          description: result?.message || "קוד אימות שגוי",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Verify code error:", error);
-      setErrorMessage(`אירעה שגיאה: ${error instanceof Error ? error.message : String(error)}`);
-      toast({
-        title: "שגיאה",
-        description: `אירעה שגיאה: ${error instanceof Error ? error.message : String(error)}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Business structured data for SEO
+// Business structured data for SEO
   const businessStructuredData = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -315,10 +208,7 @@ const Index = () => {
                 <Button
                   size="default"
                   className="w-full bg-bottle-600 hover:bg-bottle-700 text-white"
-                  onClick={() => {
-                    resetForm();
-                    setShowLoginModal(true);
-                  }}
+                  onClick={() => navigate("/login")}
                 >
                   התחבר למערכת
                 </Button>
@@ -379,136 +269,7 @@ const Index = () => {
           </span>
         </a>
 
-        {/* Login Modal - Existing Customer */}
-        <Dialog open={showLoginModal} onOpenChange={(open) => {
-          setShowLoginModal(open);
-          if (!open) resetForm();
-        }}>
-          <DialogContent className="sm:max-w-md p-0 gap-0">
-            {/* Header with Logo */}
-            <div className="text-center pt-6 pb-4 px-6">
-              <div className="flex justify-center mb-3">
-                <img src="/assets/logo.png" alt="מינרל גז - אביגל טורג'מן" className="h-16 w-auto" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-1">מינרל גז</h2>
-              <p className="text-base text-stone-600 mb-1">אביגל טורג'מן</p>
-              <p className="text-xs text-stone-500">
-                שירות מקצועי למכירת בלוני גז ומוצרי חימום
-              </p>
-            </div>
-            
-            <div className="px-6 pb-6">
-              <div className="text-center mb-4">
-                <h3 className="text-xl font-semibold">התחברות למערכת</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {showCodeInput 
-                    ? "הזן את קוד האימות שנשלח אליך" 
-                    : "הזן את מספר הטלפון שלך"}
-                </p>
-              </div>
-              
-              <div className="space-y-4">
-                {errorMessage && (
-                  <Alert variant="destructive">
-                    <AlertTitle>שגיאה</AlertTitle>
-                    <AlertDescription>{errorMessage}</AlertDescription>
-                  </Alert>
-                )}
-                
-                {!showCodeInput ? (
-                  <form onSubmit={handleExistingCustomerLogin}>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="login-phone" className="text-right block">
-                          מספר טלפון
-                        </Label>
-                        <Input
-                          id="login-phone"
-                          type="tel"
-                          value={phone}
-                          onChange={handlePhoneChange}
-                          required
-                          className="text-right"
-                          dir="ltr"
-                          placeholder="05XXXXXXXX"
-                          inputMode="tel"
-                          maxLength={10}
-                        />
-                        <div className="text-xs text-right text-muted-foreground">
-                          הזן מספר טלפון ישראלי (10 ספרות)
-                        </div>
-                      </div>
-                      <Button
-                        type="submit"
-                        className="w-full bg-bottle-600 hover:bg-bottle-700"
-                        disabled={isLoading || phone.length !== 10}
-                      >
-                        {isLoading ? "שולח קוד..." : "שלח קוד אימות"}
-                      </Button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="login-code" className="text-center block">
-                        קוד אימות
-                      </Label>
-                      <Input
-                        id="login-code"
-                        type="text"
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value)}
-                        required
-                        className="text-center text-2xl tracking-widest"
-                        dir="ltr"
-                        placeholder="------"
-                        inputMode="numeric"
-                        maxLength={6}
-                      />
-                      <div className="text-xs text-center text-muted-foreground">
-                        קוד בן 6 ספרות נשלח ל-{phone}
-                      </div>
-                    </div>
-                    <Button
-                      onClick={handleVerifyCode}
-                      className="w-full bg-bottle-600 hover:bg-bottle-700"
-                      disabled={isLoading || verificationCode.length !== 6}
-                    >
-                      {isLoading ? "מאמת..." : "אמת והתחבר"}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setShowCodeInput(false);
-                        setVerificationCode("");
-                        setErrorMessage(null);
-                      }}
-                      className="w-full"
-                    >
-                      חזור לשינוי מספר טלפון
-                    </Button>
-                  </div>
-                )}
-
-                <div className="pt-4 border-t text-center text-sm text-stone-600">
-                  לקוח חדש?{" "}
-                  <button
-                    onClick={() => {
-                      setShowLoginModal(false);
-                      resetForm();
-                      setShowRegisterModal(true);
-                    }}
-                    className="text-amber-600 hover:text-amber-700 font-medium underline"
-                  >
-                    הירשם כאן
-                  </button>
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Register Modal - New Customer */}
+{/* Register Modal - New Customer */}
         <Dialog open={showRegisterModal} onOpenChange={(open) => {
           setShowRegisterModal(open);
           if (!open) resetForm();
@@ -530,9 +291,7 @@ const Index = () => {
               <div className="text-center mb-4">
                 <h3 className="text-xl font-semibold">הרשמה למערכת</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {showCodeInput 
-                    ? "הזן את קוד האימות שנשלח אליך" 
-                    : "הזן את הפרטים שלך כדי להירשם"}
+                  הזן את הפרטים שלך כדי להירשם
                 </p>
               </div>
               
@@ -544,98 +303,55 @@ const Index = () => {
                   </Alert>
                 )}
                 
-                {!showCodeInput ? (
-                  <form onSubmit={handleNewCustomerRegister}>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="register-name" className="text-right block">
-                          שם מלא
-                        </Label>
-                        <Input
-                          id="register-name"
-                          type="text"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          required
-                          className="text-right"
-                          placeholder="הזן שם מלא"
-                          autoComplete="name"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="register-phone" className="text-right block">
-                          מספר טלפון
-                        </Label>
-                        <Input
-                          id="register-phone"
-                          type="tel"
-                          value={phone}
-                          onChange={handlePhoneChange}
-                          required
-                          className="text-right"
-                          dir="ltr"
-                          placeholder="05XXXXXXXX"
-                          inputMode="tel"
-                          maxLength={10}
-                          autoComplete="tel"
-                        />
-                        <div className="text-xs text-right text-muted-foreground">
-                          הזן מספר טלפון ישראלי (10 ספרות)
-                        </div>
-                      </div>
-
-                      <Button
-                        type="submit"
-                        className="w-full bg-amber-600 hover:bg-amber-700"
-                        disabled={isLoading || phone.length !== 10 || !name.trim()}
-                      >
-                        {isLoading ? "מבצע רישום..." : "הירשם והמשך"}
-                      </Button>
-                    </div>
-                  </form>
-                ) : (
+                <form onSubmit={handleNewCustomerRegister}>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="register-code" className="text-center block">
-                        קוד אימות
+                      <Label htmlFor="register-name" className="text-right block">
+                        שם מלא
                       </Label>
                       <Input
-                        id="register-code"
+                        id="register-name"
                         type="text"
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value)}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
                         required
-                        className="text-center text-2xl tracking-widest"
-                        dir="ltr"
-                        placeholder="------"
-                        inputMode="numeric"
-                        maxLength={6}
+                        className="text-right"
+                        placeholder="הזן שם מלא"
+                        autoComplete="name"
                       />
-                      <div className="text-xs text-center text-muted-foreground">
-                        קוד בן 6 ספרות נשלח ל-{phone}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="register-phone" className="text-right block">
+                        מספר טלפון
+                      </Label>
+                      <Input
+                        id="register-phone"
+                        type="tel"
+                        value={phone}
+                        onChange={handlePhoneChange}
+                        required
+                        className="text-right"
+                        dir="ltr"
+                        placeholder="05XXXXXXXX"
+                        inputMode="tel"
+                        maxLength={10}
+                        autoComplete="tel"
+                      />
+                      <div className="text-xs text-right text-muted-foreground">
+                        הזן מספר טלפון ישראלי (10 ספרות)
                       </div>
                     </div>
+
                     <Button
-                      onClick={handleVerifyCode}
+                      type="submit"
                       className="w-full bg-amber-600 hover:bg-amber-700"
-                      disabled={isLoading || verificationCode.length !== 6}
+                      disabled={isLoading || phone.length !== 10 || !name.trim()}
                     >
-                      {isLoading ? "מאמת..." : "אמת והשלם רישום"}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setShowCodeInput(false);
-                        setVerificationCode("");
-                        setErrorMessage(null);
-                      }}
-                      className="w-full"
-                    >
-                      חזור לשינוי פרטים
+                      {isLoading ? "מבצע רישום..." : "הירשם והמשך"}
                     </Button>
                   </div>
-                )}
+                </form>
 
                 <div className="pt-4 border-t text-center text-sm text-stone-600">
                   כבר רשום?{" "}
@@ -643,7 +359,7 @@ const Index = () => {
                     onClick={() => {
                       setShowRegisterModal(false);
                       resetForm();
-                      setShowLoginModal(true);
+                      navigate("/login");
                     }}
                     className="text-bottle-600 hover:text-bottle-700 font-medium underline"
                   >

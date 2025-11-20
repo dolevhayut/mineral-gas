@@ -70,15 +70,6 @@ const Login = () => {
         title: "קוד נשלח בהצלחה",
         description: `קוד אימות נשלח למספר ${phone}`,
       });
-      
-      // In development, show the code (remove in production)
-      if (data) {
-        console.log("Verification code:", data);
-        toast({
-          title: "קוד אימות (למטרות פיתוח)",
-          description: `הקוד שלך: ${data}`,
-        });
-      }
     } catch (error) {
       console.error("Send code error:", error);
       setErrorMessage(`אירעה שגיאה: ${error instanceof Error ? error.message : String(error)}`);
