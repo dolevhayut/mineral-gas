@@ -11,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 export const APP_VERSION = "1.0.0"; // מינרל גז - אביגל טורג'מן
 
 // Pages
+import Index from "@/pages/Index";
 import PhoneLogin from "@/pages/PhoneLogin";
 import ProductDetail from "@/pages/ProductDetail";
 import Cart from "@/pages/Cart";
@@ -51,10 +52,10 @@ import Payment from "@/pages/Payment";
 import AdminPayment from "@/pages/Admin/AdminPayment";
 
 
-// HomePage component - now shows login page directly
+// HomePage component - shows the new welcome page
 function HomePage() {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <PhoneLogin />;
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Index />;
 }
 
 const queryClient = new QueryClient();

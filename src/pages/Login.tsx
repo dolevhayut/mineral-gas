@@ -12,7 +12,7 @@ import {
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
-import { KeyIcon } from "lucide-react";
+import { KeyIcon, Phone as PhoneIcon, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -274,6 +274,29 @@ const Login = () => {
                 </Button>
                 </div>
               )}
+
+              {/* Back to Home */}
+              <div className="pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/")}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  חזור לדף הבית
+                </Button>
+              </div>
+
+              {/* Link to Register */}
+              <div className="text-center text-sm text-stone-600">
+                לקוח חדש?{" "}
+                <button
+                  onClick={() => navigate("/register")}
+                  className="text-amber-600 hover:text-amber-700 font-medium underline"
+                >
+                  הירשם כאן
+                </button>
+              </div>
             </CardContent>
           </Card>
           
@@ -282,7 +305,7 @@ const Login = () => {
             <div className="flex justify-center space-x-6 text-sm text-stone-500">
               <div className="flex items-center">
                 <span className="ml-1">📞</span>
-                <span>+972-XX-XXXXXXX</span>
+                <span>054-3831333</span>
               </div>
               <div className="flex items-center">
                 <span className="ml-1">🕒</span>
@@ -291,6 +314,18 @@ const Login = () => {
             </div>
           </div>
         </div>
+
+        {/* Floating Call Button */}
+        <a
+          href="tel:0543831333"
+          className="fixed bottom-6 left-6 bg-green-500 hover:bg-green-600 text-white rounded-full p-5 shadow-2xl hover:shadow-3xl transition-all duration-300 z-50 animate-pulse hover:animate-none group"
+          aria-label="התקשר אלינו"
+        >
+          <PhoneIcon className="h-7 w-7 group-hover:scale-110 transition-transform" />
+          <span className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+            054-3831333
+          </span>
+        </a>
       </div>
     </>
   );
