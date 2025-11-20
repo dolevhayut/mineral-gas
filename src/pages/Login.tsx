@@ -318,10 +318,10 @@ const Login = () => {
         {/* Floating Call Button */}
         <a
           href="tel:0543831333"
-          className="fixed bottom-6 left-6 bg-green-500 hover:bg-green-600 text-white rounded-full p-5 shadow-2xl hover:shadow-3xl transition-all duration-300 z-50 animate-pulse hover:animate-none group"
+          className="fixed bottom-6 left-6 bg-green-500 hover:bg-green-600 text-white rounded-full p-5 shadow-2xl hover:shadow-3xl transition-all duration-300 z-50 hover:scale-95 group"
           aria-label="התקשר אלינו"
         >
-          <PhoneIcon className="h-7 w-7 group-hover:scale-110 transition-transform" />
+          <PhoneIcon className="h-7 w-7 transition-transform" />
           <span className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
             054-3831333
           </span>

@@ -4,6 +4,7 @@ import { Fuel, ShoppingCartIcon, UsersIcon, TrendingUpIcon, Loader2, Package, Al
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { SystemUpdatesManager } from "@/components/SystemUpdatesManager";
+import { AIQueryAssistant } from "@/components/AIQueryAssistant";
 
 export default function Dashboard() {
   // הגדרת שאילתות לנתונים אמיתיים
@@ -196,6 +197,9 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold tracking-tight">לוח בקרה</h1>
         <p className="text-muted-foreground font-noto">ברוכים הבאים לפאנל הניהול של מינרל גז</p>
       </div>
+
+      {/* AI Query Assistant */}
+      <AIQueryAssistant />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

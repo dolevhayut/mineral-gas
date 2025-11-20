@@ -284,37 +284,37 @@ const Index = () => {
         <div className="w-full max-w-2xl mx-auto">
           {/* Header Section */}
           <div className="text-center mb-12">
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-3">
               <img 
                 src="/assets/logo.png" 
                 alt="מינרל גז - אביגל טורג'מן" 
-                className="h-32 w-auto drop-shadow-lg" 
+                className="h-20 w-auto drop-shadow-lg" 
               />
             </div>
-            <h1 className="text-5xl font-bold text-gray-800 mb-3">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
               <span className="text-bottle-600">מינרל גז</span>
             </h1>
-            <p className="text-2xl text-stone-700 mb-2">אביגל טורג'מן</p>
-            <p className="text-lg text-stone-600 max-w-xl mx-auto">
+            <p className="text-xl text-stone-700 mb-1">אביגל טורג'מן</p>
+            <p className="text-sm text-stone-600 max-w-xl mx-auto">
               שירות מקצועי למכירת בלוני גז, מחממי מים על גז וציוד היקפי
             </p>
           </div>
 
           {/* Main Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Existing Customer */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 border-2 border-bottle-100 hover:border-bottle-300">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-20 h-20 bg-bottle-100 rounded-full flex items-center justify-center">
-                  <UserCheck className="h-10 w-10 text-bottle-600" />
+            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-2 border-bottle-100 hover:border-bottle-300">
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="w-16 h-16 bg-bottle-100 rounded-full flex items-center justify-center">
+                  <UserCheck className="h-8 w-8 text-bottle-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">לקוח קיים</h2>
+                <h2 className="text-xl font-bold text-gray-800">לקוח קיים</h2>
                 <p className="text-stone-600 text-sm">
                   כבר רשום במערכת? התחבר כדי לבצע הזמנה חדשה
                 </p>
                 <Button
-                  size="lg"
-                  className="w-full bg-bottle-600 hover:bg-bottle-700 text-white text-lg py-6"
+                  size="default"
+                  className="w-full bg-bottle-600 hover:bg-bottle-700 text-white"
                   onClick={() => {
                     resetForm();
                     setShowLoginModal(true);
@@ -326,18 +326,18 @@ const Index = () => {
             </div>
 
             {/* New Customer */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 border-2 border-amber-100 hover:border-amber-300">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
-                  <UserPlus className="h-10 w-10 text-amber-600" />
+            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-2 border-amber-100 hover:border-amber-300">
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+                  <UserPlus className="h-8 w-8 text-amber-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">לקוח חדש</h2>
+                <h2 className="text-xl font-bold text-gray-800">לקוח חדש</h2>
                 <p className="text-stone-600 text-sm">
                   לקוח חדש? הירשם עכשיו והתחל להזמין בקלות
                 </p>
                 <Button
-                  size="lg"
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white text-lg py-6"
+                  size="default"
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
                   onClick={() => {
                     resetForm();
                     setShowRegisterModal(true);
@@ -350,18 +350,18 @@ const Index = () => {
           </div>
 
           {/* Contact Info */}
-          <div className="text-center space-y-3">
-            <div className="flex items-center justify-center gap-2 text-stone-600">
-              <Phone className="h-5 w-5" />
-              <span className="text-lg">צריך עזרה? התקשר אלינו:</span>
+          <div className="text-center space-y-2">
+            <div className="flex items-center justify-center gap-2 text-stone-600 text-sm">
+              <Phone className="h-4 w-4" />
+              <span>צריך עזרה? התקשר אלינו:</span>
               <a 
                 href="tel:0543831333" 
-                className="text-bottle-600 font-semibold hover:text-bottle-700 text-lg"
+                className="text-bottle-600 font-semibold hover:text-bottle-700"
               >
                 054-3831333
               </a>
             </div>
-            <p className="text-sm text-stone-500">
+            <p className="text-xs text-stone-500">
               שעות פעילות: א׳-ה׳ 08:00-17:00 | ו׳ 08:00-14:00
             </p>
           </div>
@@ -370,10 +370,10 @@ const Index = () => {
         {/* Floating Call Button */}
         <a
           href="tel:0543831333"
-          className="fixed bottom-6 left-6 bg-green-500 hover:bg-green-600 text-white rounded-full p-5 shadow-2xl hover:shadow-3xl transition-all duration-300 z-50 animate-pulse hover:animate-none group"
+          className="fixed bottom-6 left-6 bg-green-500 hover:bg-green-600 text-white rounded-full p-5 shadow-2xl hover:shadow-3xl transition-all duration-300 z-50 hover:scale-95 group"
           aria-label="התקשר אלינו"
         >
-          <Phone className="h-7 w-7 group-hover:scale-110 transition-transform" />
+          <Phone className="h-7 w-7 transition-transform" />
           <span className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
             054-3831333
           </span>
@@ -384,118 +384,125 @@ const Index = () => {
           setShowLoginModal(open);
           if (!open) resetForm();
         }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <div className="flex justify-center mb-2">
-                <div className="w-12 h-12 bg-bottle-100 rounded-full flex items-center justify-center">
-                  <UserCheck className="h-6 w-6 text-bottle-600" />
-                </div>
+          <DialogContent className="sm:max-w-md p-0 gap-0">
+            {/* Header with Logo */}
+            <div className="text-center pt-6 pb-4 px-6">
+              <div className="flex justify-center mb-3">
+                <img src="/assets/logo.png" alt="מינרל גז - אביגל טורג'מן" className="h-16 w-auto" />
               </div>
-              <DialogTitle className="text-center text-2xl">התחברות למערכת</DialogTitle>
-              <DialogDescription className="text-center">
-                {showCodeInput 
-                  ? "הזן את קוד האימות שנשלח אליך" 
-                  : "הזן את מספר הטלפון שלך"}
-              </DialogDescription>
-            </DialogHeader>
+              <h2 className="text-2xl font-bold text-gray-800 mb-1">מינרל גז</h2>
+              <p className="text-base text-stone-600 mb-1">אביגל טורג'מן</p>
+              <p className="text-xs text-stone-500">
+                שירות מקצועי למכירת בלוני גז ומוצרי חימום
+              </p>
+            </div>
             
-            <div className="space-y-4">
-              {errorMessage && (
-                <Alert variant="destructive">
-                  <AlertTitle>שגיאה</AlertTitle>
-                  <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-              )}
+            <div className="px-6 pb-6">
+              <div className="text-center mb-4">
+                <h3 className="text-xl font-semibold">התחברות למערכת</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {showCodeInput 
+                    ? "הזן את קוד האימות שנשלח אליך" 
+                    : "הזן את מספר הטלפון שלך"}
+                </p>
+              </div>
               
-              {!showCodeInput ? (
-                <form onSubmit={handleExistingCustomerLogin}>
+              <div className="space-y-4">
+                {errorMessage && (
+                  <Alert variant="destructive">
+                    <AlertTitle>שגיאה</AlertTitle>
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                  </Alert>
+                )}
+                
+                {!showCodeInput ? (
+                  <form onSubmit={handleExistingCustomerLogin}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="login-phone" className="text-right block">
+                          מספר טלפון
+                        </Label>
+                        <Input
+                          id="login-phone"
+                          type="tel"
+                          value={phone}
+                          onChange={handlePhoneChange}
+                          required
+                          className="text-right"
+                          dir="ltr"
+                          placeholder="05XXXXXXXX"
+                          inputMode="tel"
+                          maxLength={10}
+                        />
+                        <div className="text-xs text-right text-muted-foreground">
+                          הזן מספר טלפון ישראלי (10 ספרות)
+                        </div>
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full bg-bottle-600 hover:bg-bottle-700"
+                        disabled={isLoading || phone.length !== 10}
+                      >
+                        {isLoading ? "שולח קוד..." : "שלח קוד אימות"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-phone" className="flex items-center gap-2 justify-end">
-                        <span>מספר טלפון</span>
-                        <KeyIcon className="h-4 w-4" />
+                      <Label htmlFor="login-code" className="text-center block">
+                        קוד אימות
                       </Label>
                       <Input
-                        id="login-phone"
-                        type="tel"
-                        value={phone}
-                        onChange={handlePhoneChange}
+                        id="login-code"
+                        type="text"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
                         required
-                        className="text-right"
+                        className="text-center text-2xl tracking-widest"
                         dir="ltr"
-                        placeholder="05XXXXXXXX"
-                        inputMode="tel"
-                        maxLength={10}
+                        placeholder="------"
+                        inputMode="numeric"
+                        maxLength={6}
                       />
-                      <div className="text-xs text-right text-muted-foreground">
-                        הזן מספר טלפון ישראלי (10 ספרות)
+                      <div className="text-xs text-center text-muted-foreground">
+                        קוד בן 6 ספרות נשלח ל-{phone}
                       </div>
                     </div>
                     <Button
-                      type="submit"
+                      onClick={handleVerifyCode}
                       className="w-full bg-bottle-600 hover:bg-bottle-700"
-                      disabled={isLoading || phone.length !== 10}
+                      disabled={isLoading || verificationCode.length !== 6}
                     >
-                      {isLoading ? "שולח קוד..." : "שלח קוד אימות"}
+                      {isLoading ? "מאמת..." : "אמת והתחבר"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setShowCodeInput(false);
+                        setVerificationCode("");
+                        setErrorMessage(null);
+                      }}
+                      className="w-full"
+                    >
+                      חזור לשינוי מספר טלפון
                     </Button>
                   </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-code" className="flex items-center gap-2 justify-end">
-                      <span>קוד אימות</span>
-                      <KeyIcon className="h-4 w-4" />
-                    </Label>
-                    <Input
-                      id="login-code"
-                      type="text"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
-                      required
-                      className="text-center text-2xl tracking-widest"
-                      dir="ltr"
-                      placeholder="------"
-                      inputMode="numeric"
-                      maxLength={6}
-                    />
-                    <div className="text-xs text-center text-muted-foreground">
-                      קוד בן 6 ספרות נשלח ל-{phone}
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleVerifyCode}
-                    className="w-full bg-bottle-600 hover:bg-bottle-700"
-                    disabled={isLoading || verificationCode.length !== 6}
-                  >
-                    {isLoading ? "מאמת..." : "אמת והתחבר"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setShowCodeInput(false);
-                      setVerificationCode("");
-                      setErrorMessage(null);
-                    }}
-                    className="w-full"
-                  >
-                    חזור לשינוי מספר טלפון
-                  </Button>
-                </div>
-              )}
+                )}
 
-              <div className="pt-4 border-t text-center text-sm text-stone-600">
-                לקוח חדש?{" "}
-                <button
-                  onClick={() => {
-                    setShowLoginModal(false);
-                    resetForm();
-                    setShowRegisterModal(true);
-                  }}
-                  className="text-amber-600 hover:text-amber-700 font-medium underline"
-                >
-                  הירשם כאן
-                </button>
+                <div className="pt-4 border-t text-center text-sm text-stone-600">
+                  לקוח חדש?{" "}
+                  <button
+                    onClick={() => {
+                      setShowLoginModal(false);
+                      resetForm();
+                      setShowRegisterModal(true);
+                    }}
+                    className="text-amber-600 hover:text-amber-700 font-medium underline"
+                  >
+                    הירשם כאן
+                  </button>
+                </div>
               </div>
             </div>
           </DialogContent>
@@ -506,137 +513,143 @@ const Index = () => {
           setShowRegisterModal(open);
           if (!open) resetForm();
         }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <div className="flex justify-center mb-2">
-                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                  <UserPlus className="h-6 w-6 text-amber-600" />
-                </div>
+          <DialogContent className="sm:max-w-md p-0 gap-0">
+            {/* Header with Logo */}
+            <div className="text-center pt-6 pb-4 px-6">
+              <div className="flex justify-center mb-3">
+                <img src="/assets/logo.png" alt="מינרל גז - אביגל טורג'מן" className="h-16 w-auto" />
               </div>
-              <DialogTitle className="text-center text-2xl">הרשמה למערכת</DialogTitle>
-              <DialogDescription className="text-center">
-                {showCodeInput 
-                  ? "הזן את קוד האימות שנשלח אליך" 
-                  : "הזן את הפרטים שלך כדי להירשם"}
-              </DialogDescription>
-            </DialogHeader>
+              <h2 className="text-2xl font-bold text-gray-800 mb-1">מינרל גז</h2>
+              <p className="text-base text-stone-600 mb-1">אביגל טורג'מן</p>
+              <p className="text-xs text-stone-500">
+                שירות מקצועי למכירת בלוני גז ומוצרי חימום
+              </p>
+            </div>
             
-            <div className="space-y-4">
-              {errorMessage && (
-                <Alert variant="destructive">
-                  <AlertTitle>שגיאה</AlertTitle>
-                  <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-              )}
+            <div className="px-6 pb-6">
+              <div className="text-center mb-4">
+                <h3 className="text-xl font-semibold">הרשמה למערכת</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {showCodeInput 
+                    ? "הזן את קוד האימות שנשלח אליך" 
+                    : "הזן את הפרטים שלך כדי להירשם"}
+                </p>
+              </div>
               
-              {!showCodeInput ? (
-                <form onSubmit={handleNewCustomerRegister}>
+              <div className="space-y-4">
+                {errorMessage && (
+                  <Alert variant="destructive">
+                    <AlertTitle>שגיאה</AlertTitle>
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                  </Alert>
+                )}
+                
+                {!showCodeInput ? (
+                  <form onSubmit={handleNewCustomerRegister}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="register-name" className="text-right block">
+                          שם מלא
+                        </Label>
+                        <Input
+                          id="register-name"
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                          className="text-right"
+                          placeholder="הזן שם מלא"
+                          autoComplete="name"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="register-phone" className="text-right block">
+                          מספר טלפון
+                        </Label>
+                        <Input
+                          id="register-phone"
+                          type="tel"
+                          value={phone}
+                          onChange={handlePhoneChange}
+                          required
+                          className="text-right"
+                          dir="ltr"
+                          placeholder="05XXXXXXXX"
+                          inputMode="tel"
+                          maxLength={10}
+                          autoComplete="tel"
+                        />
+                        <div className="text-xs text-right text-muted-foreground">
+                          הזן מספר טלפון ישראלי (10 ספרות)
+                        </div>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full bg-amber-600 hover:bg-amber-700"
+                        disabled={isLoading || phone.length !== 10 || !name.trim()}
+                      >
+                        {isLoading ? "מבצע רישום..." : "הירשם והמשך"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="register-name" className="flex items-center gap-2 justify-end">
-                        <span>שם מלא</span>
-                        <User className="h-4 w-4" />
+                      <Label htmlFor="register-code" className="text-center block">
+                        קוד אימות
                       </Label>
                       <Input
-                        id="register-name"
+                        id="register-code"
                         type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
                         required
-                        className="text-right"
-                        placeholder="הזן שם מלא"
-                        autoComplete="name"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="register-phone" className="flex items-center gap-2 justify-end">
-                        <span>מספר טלפון</span>
-                        <Phone className="h-4 w-4" />
-                      </Label>
-                      <Input
-                        id="register-phone"
-                        type="tel"
-                        value={phone}
-                        onChange={handlePhoneChange}
-                        required
-                        className="text-right"
+                        className="text-center text-2xl tracking-widest"
                         dir="ltr"
-                        placeholder="05XXXXXXXX"
-                        inputMode="tel"
-                        maxLength={10}
-                        autoComplete="tel"
+                        placeholder="------"
+                        inputMode="numeric"
+                        maxLength={6}
                       />
-                      <div className="text-xs text-right text-muted-foreground">
-                        הזן מספר טלפון ישראלי (10 ספרות)
+                      <div className="text-xs text-center text-muted-foreground">
+                        קוד בן 6 ספרות נשלח ל-{phone}
                       </div>
                     </div>
-
                     <Button
-                      type="submit"
+                      onClick={handleVerifyCode}
                       className="w-full bg-amber-600 hover:bg-amber-700"
-                      disabled={isLoading || phone.length !== 10 || !name.trim()}
+                      disabled={isLoading || verificationCode.length !== 6}
                     >
-                      {isLoading ? "מבצע רישום..." : "הירשם והמשך"}
+                      {isLoading ? "מאמת..." : "אמת והשלם רישום"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setShowCodeInput(false);
+                        setVerificationCode("");
+                        setErrorMessage(null);
+                      }}
+                      className="w-full"
+                    >
+                      חזור לשינוי פרטים
                     </Button>
                   </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="register-code" className="flex items-center gap-2 justify-end">
-                      <span>קוד אימות</span>
-                      <Phone className="h-4 w-4" />
-                    </Label>
-                    <Input
-                      id="register-code"
-                      type="text"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
-                      required
-                      className="text-center text-2xl tracking-widest"
-                      dir="ltr"
-                      placeholder="------"
-                      inputMode="numeric"
-                      maxLength={6}
-                    />
-                    <div className="text-xs text-center text-muted-foreground">
-                      קוד בן 6 ספרות נשלח ל-{phone}
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleVerifyCode}
-                    className="w-full bg-amber-600 hover:bg-amber-700"
-                    disabled={isLoading || verificationCode.length !== 6}
-                  >
-                    {isLoading ? "מאמת..." : "אמת והשלם רישום"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setShowCodeInput(false);
-                      setVerificationCode("");
-                      setErrorMessage(null);
-                    }}
-                    className="w-full"
-                  >
-                    חזור לשינוי פרטים
-                  </Button>
-                </div>
-              )}
+                )}
 
-              <div className="pt-4 border-t text-center text-sm text-stone-600">
-                כבר רשום?{" "}
-                <button
-                  onClick={() => {
-                    setShowRegisterModal(false);
-                    resetForm();
-                    setShowLoginModal(true);
-                  }}
-                  className="text-bottle-600 hover:text-bottle-700 font-medium underline"
-                >
-                  התחבר כאן
-                </button>
+                <div className="pt-4 border-t text-center text-sm text-stone-600">
+                  כבר רשום?{" "}
+                  <button
+                    onClick={() => {
+                      setShowRegisterModal(false);
+                      resetForm();
+                      setShowLoginModal(true);
+                    }}
+                    className="text-bottle-600 hover:text-bottle-700 font-medium underline"
+                  >
+                    התחבר כאן
+                  </button>
+                </div>
               </div>
             </div>
           </DialogContent>
