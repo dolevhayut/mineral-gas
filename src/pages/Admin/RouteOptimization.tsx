@@ -206,13 +206,13 @@ export default function RouteOptimization() {
       }
       
       // First, get ALL orders to debug
-      console.log('Fetching orders with target_date =', formattedDate);
+      console.log('Fetching orders with delivery_date =', formattedDate);
       const { data: allOrdersDebug, error: debugError } = await supabase
         .from('orders')
-        .select('id, target_date, delivery_date, status, customer_id')
-        .not('target_date', 'is', null);
+        .select('id, target_date, delivery_date, delivery_status, payment_status, customer_id')
+        .not('delivery_date', 'is', null);
       
-      console.log('All orders in DB with target_date:', allOrdersDebug);
+      console.log('All orders in DB with delivery_date:', allOrdersDebug);
       
       // Now get orders with customer info for the selected date
       const { data: ordersData, error: ordersError } = await supabase
@@ -220,10 +220,12 @@ export default function RouteOptimization() {
         .select(`
           id,
           delivery_address,
+          delivery_date,
           target_date,
           total,
           customer_id,
-          status,
+          delivery_status,
+          payment_status,
           order_items (
             quantity,
             products (
@@ -231,8 +233,8 @@ export default function RouteOptimization() {
             )
           )
         `)
-        .eq('target_date', formattedDate)
-        .in('status', ['pending', 'confirmed']);
+        .eq('delivery_date', formattedDate)
+        .in('delivery_status', ['pending', 'delivered']);
 
       console.log('Orders matching date and status:', ordersData);
       if (ordersError) {

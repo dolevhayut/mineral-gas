@@ -25,8 +25,9 @@ interface OrderItem {
 interface OrderGroup {
   id: string;
   order_number: string;
-  target_date: string;
-  status: string;
+  delivery_date: string;
+  payment_status: string;
+  delivery_status: string;
   total: number;
   items: OrderItem[];
   totalItems: number;
@@ -52,12 +53,12 @@ const CurrentOrders = () => {
           .from('order_items')
           .select(`
             *,
-            orders!inner(id, customer_id, status, total, target_date, created_at),
+            orders!inner(id, customer_id, payment_status, delivery_status, total, delivery_date, created_at),
             customers!inner(user_id),
             products(name)
           `)
           .eq('customers.user_id', user.id)
-          .eq('orders.status', 'pending')
+          .in('orders.delivery_status', ['pending'])
           .order('orders.created_at', { ascending: false });
 
         if (error) {
@@ -84,8 +85,8 @@ const CurrentOrders = () => {
         const groupedOrders: Record<string, OrderGroup> = {};
         
         orderItems.forEach(item => {
-          const orderId = item.orders.id;
-          const order = item.orders;
+          const orderId = (item.orders as any).id;
+          const order = item.orders as any;
           
           console.log("[CurrentOrders] Processing item:", { orderId, productName: item.products.name });
           
@@ -93,8 +94,9 @@ const CurrentOrders = () => {
             groupedOrders[orderId] = {
               id: orderId,
               order_number: orderId.slice(-6), // Use last 6 characters as order number
-              target_date: order.target_date || new Date().toISOString().split('T')[0],
-              status: order.status,
+              delivery_date: order.delivery_date || new Date().toISOString().split('T')[0],
+              payment_status: order.payment_status || 'pending',
+              delivery_status: order.delivery_status || 'pending',
               total: order.total || 0,
               items: [],
               totalItems: 0
@@ -105,11 +107,11 @@ const CurrentOrders = () => {
           const orderItem: OrderItem = {
             id: item.id,
             product_id: item.product_id,
-            product_name: item.products.name || 'Unknown Product',
+            product_name: (item.products as any).name || 'Unknown Product',
             quantity: item.quantity,
             price: item.price,
             total: item.quantity * item.price,
-            day_of_week: item.day_of_week
+            day_of_week: (item as any).day_of_week || ''
           };
           
           groupedOrders[orderId].items.push(orderItem);
@@ -123,17 +125,17 @@ const CurrentOrders = () => {
           totalItems: groupedOrders[key].totalItems
         })));
         
-        // Sort orders by target date (most recent first)
+        // Sort orders by delivery date (most recent first)
         const sortedOrders = Object.values(groupedOrders).sort((a, b) => {
-          const dateA = new Date(a.target_date);
-          const dateB = new Date(b.target_date);
+          const dateA = new Date(a.delivery_date);
+          const dateB = new Date(b.delivery_date);
           return dateB.getTime() - dateA.getTime();
         });
         
         console.log("[CurrentOrders] Final sorted orders:", sortedOrders.map(order => ({
           id: order.id,
           order_number: order.order_number,
-          target_date: order.target_date,
+          delivery_date: order.delivery_date,
           itemCount: order.items.length
         })));
         
@@ -308,7 +310,7 @@ const CurrentOrders = () => {
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            תאריך אספקה: {formatDate(order.target_date)}
+                            תאריך אספקה: {formatDate(order.delivery_date)}
                           </p>
                           <p className="text-sm">
                             סה"כ פריטים: {order.totalItems}

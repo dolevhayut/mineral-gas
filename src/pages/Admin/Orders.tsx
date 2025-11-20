@@ -398,7 +398,6 @@ export default function Orders() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="text-right">מספר הזמנה</TableHead>
                       <TableHead className="text-right">לקוח</TableHead>
                       <TableHead className="text-right">טלפון</TableHead>
                       <TableHead className="text-right min-w-[200px]">כתובת</TableHead>
@@ -417,18 +416,6 @@ export default function Orders() {
                   <TableBody>
                     {filteredOrders?.map((order) => (
                       <TableRow key={order.id} className="hover:bg-muted/20 transition-colors">
-                        {/* מספר הזמנה */}
-                        <TableCell className="font-medium">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="cursor-help">...{order.id.slice(-8)}</span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="font-mono text-xs">{order.id}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TableCell>
-                        
                         {/* לקוח */}
                         <TableCell>
                           <div className="flex items-center gap-2">

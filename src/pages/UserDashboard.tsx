@@ -28,10 +28,11 @@ interface OrderItem {
 interface Order {
   id: string;
   customer_id: string;
-  status: string;
+  payment_status: string;
+  delivery_status: string;
   created_at: string;
   order_items?: OrderItem[];
-  target_date?: string;
+  delivery_date?: string;
 }
 
 // Define interface for system updates
@@ -158,11 +159,12 @@ const UserDashboard = () => {
             
             // Then fetch orders using customer ID
             console.log("Querying orders with customer_id:", matchingCustomer.id);
+            // @ts-ignore - Complex type inference issue with nested relations
             const { data, error } = await supabase
               .from('orders')
               .select('*, order_items(*)')
               .eq('customer_id', matchingCustomer.id)
-              .eq('status', 'pending')
+              .eq('delivery_status', 'pending')
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
@@ -172,7 +174,7 @@ const UserDashboard = () => {
             }
     
             console.log("Orders query result:", data);
-            setActiveOrder(data || null);
+            setActiveOrder(data as any || null);
             setIsLoading(false);
             return;
           }
@@ -187,7 +189,7 @@ const UserDashboard = () => {
           .from('orders')
           .select('*, order_items(*)')
           .eq('customer_id', customerData.id)
-          .eq('status', 'pending')
+          .eq('delivery_status', 'pending')
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -197,7 +199,7 @@ const UserDashboard = () => {
         }
 
         console.log("Orders query result:", data);
-        setActiveOrder(data || null);
+        setActiveOrder(data as any || null);
       } catch (error) {
         console.error("Unexpected error:", error);
       } finally {

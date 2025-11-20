@@ -5,9 +5,10 @@ import { toast } from "@/hooks/use-toast";
 // Define interface for order data
 interface OrderData {
   customer_id: string;
-  status: string;
+  payment_status: string;
+  delivery_status: string;
   total: number;
-  target_date?: string;
+  delivery_date?: string;
 }
 
 export const submitOrder = async (
@@ -49,11 +50,12 @@ export const submitOrder = async (
     // Prepare order data
     const orderData: OrderData = {
       customer_id: customerId,
-      status: 'pending',
+      payment_status: 'pending',
+      delivery_status: 'pending',
       total: total
     };
     
-    // Add target date if provided
+    // Add delivery date if provided
     // Use local date to avoid timezone issues (e.g., Sunday in Israel becoming Saturday in UTC)
     // IMPORTANT: Use local date methods to ensure we get the correct day regardless of timezone
     if (targetDate) {
@@ -62,13 +64,13 @@ export const submitOrder = async (
       const year = localDate.getFullYear();
       const month = String(localDate.getMonth() + 1).padStart(2, '0');
       const day = String(localDate.getDate()).padStart(2, '0');
-      orderData.target_date = `${year}-${month}-${day}`;
+      orderData.delivery_date = `${year}-${month}-${day}`;
       
       // Debug logging
-      console.log("Saving target_date:", {
+      console.log("Saving delivery_date:", {
         originalDate: targetDate,
         localDate: localDate,
-        dateString: orderData.target_date,
+        dateString: orderData.delivery_date,
         dayOfWeek: localDate.getDay()
       });
     }
