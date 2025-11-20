@@ -64,6 +64,8 @@ interface Order {
   order_number: number;
   customer_id: string;
   status: string;
+  payment_status: string;
+  delivery_status: string;
   total: number;
   created_at: string;
   delivery_address?: string;
@@ -73,15 +75,20 @@ interface Order {
   customers: {
     name: string;
     phone: string;
+    last_safety_inspection_date?: string | null;
   };
   order_items: OrderItem[];
 }
 
-const statusMap: Record<string, { label: string; color: "default" | "secondary" | "outline" | "destructive" }> = {
-  pending: { label: "ממתינה", color: "default" },
-  in_progress: { label: "בטיפול", color: "secondary" },
-  completed: { label: "הושלמה", color: "outline" },
-  cancelled: { label: "בוטלה", color: "destructive" },
+const paymentStatusMap: Record<string, { label: string; color: "default" | "secondary" | "outline" | "destructive"; bgColor: string; textColor: string }> = {
+  pending: { label: "ממתין לתשלום", color: "destructive", bgColor: "bg-red-100", textColor: "text-red-700" },
+  paid: { label: "שולם", color: "outline", bgColor: "bg-green-100", textColor: "text-green-700" },
+};
+
+const deliveryStatusMap: Record<string, { label: string; color: "default" | "secondary" | "outline" | "destructive"; bgColor: string; textColor: string }> = {
+  pending: { label: "טרם סופק", color: "secondary", bgColor: "bg-yellow-100", textColor: "text-yellow-700" },
+  delivered: { label: "סופק ללקוח", color: "outline", bgColor: "bg-green-100", textColor: "text-green-700" },
+  cancelled: { label: "בוטל", color: "destructive", bgColor: "bg-red-100", textColor: "text-red-700" },
 };
 
 // חישוב מע"מ - ברירת מחדל 17%
@@ -102,7 +109,8 @@ const calculateVAT = (total: number, vatPercentage: number = VAT_PERCENTAGE) => 
 
 export default function Orders() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>("all");
+  const [filterDeliveryStatus, setFilterDeliveryStatus] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
@@ -137,7 +145,8 @@ export default function Orders() {
           customers!inner(
             id,
             name,
-            phone
+            phone,
+            last_safety_inspection_date
           ),
           order_items(
             id,
@@ -163,16 +172,20 @@ export default function Orders() {
         return [];
       }
 
-      return data as Order[];
+      return data as any as Order[];
     },
   });
 
   // Update order status mutation
   const updateOrderStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, payment_status, delivery_status }: { id: string; payment_status?: string; delivery_status?: string }) => {
+      const updateData: any = {};
+      if (payment_status !== undefined) updateData.payment_status = payment_status;
+      if (delivery_status !== undefined) updateData.delivery_status = delivery_status;
+      
       const { error } = await supabase
         .from("orders")
-        .update({ status })
+        .update(updateData)
         .eq("id", id);
 
       if (error) throw error;
@@ -198,9 +211,10 @@ export default function Orders() {
       order.customers.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.id.includes(searchQuery);
       
-    const matchesStatus = filterStatus === "all" || order.status === filterStatus;
+    const matchesPaymentStatus = filterPaymentStatus === "all" || order.payment_status === filterPaymentStatus;
+    const matchesDeliveryStatus = filterDeliveryStatus === "all" || order.delivery_status === filterDeliveryStatus;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesPaymentStatus && matchesDeliveryStatus;
   });
 
   const formatDate = (dateString: string, includeTime: boolean = true) => {
@@ -336,16 +350,34 @@ export default function Orders() {
         
         <div className="w-full sm:w-auto">
           <Select
-            value={filterStatus}
-            onValueChange={setFilterStatus}
+            value={filterPaymentStatus}
+            onValueChange={setFilterPaymentStatus}
           >
             <SelectTrigger className="w-full sm:w-[180px] text-right flex flex-row-reverse justify-between">
               <FilterIcon className="h-4 w-4 ml-2" />
-              <SelectValue placeholder="סנן לפי סטטוס" />
+              <SelectValue placeholder="סטטוס תשלום" />
             </SelectTrigger>
             <SelectContent align="end" className="text-right">
-              <SelectItem value="all" className="text-right">כל הסטטוסים</SelectItem>
-              {Object.entries(statusMap).map(([key, { label }]) => (
+              <SelectItem value="all" className="text-right">כל סטטוסי התשלום</SelectItem>
+              {Object.entries(paymentStatusMap).map(([key, { label }]) => (
+                <SelectItem key={key} value={key} className="text-right">{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="w-full sm:w-auto">
+          <Select
+            value={filterDeliveryStatus}
+            onValueChange={setFilterDeliveryStatus}
+          >
+            <SelectTrigger className="w-full sm:w-[180px] text-right flex flex-row-reverse justify-between">
+              <FilterIcon className="h-4 w-4 ml-2" />
+              <SelectValue placeholder="סטטוס אספקה" />
+            </SelectTrigger>
+            <SelectContent align="end" className="text-right">
+              <SelectItem value="all" className="text-right">כל סטטוסי האספקה</SelectItem>
+              {Object.entries(deliveryStatusMap).map(([key, { label }]) => (
                 <SelectItem key={key} value={key} className="text-right">{label}</SelectItem>
               ))}
             </SelectContent>
@@ -370,10 +402,12 @@ export default function Orders() {
                       <TableHead className="text-right">לקוח</TableHead>
                       <TableHead className="text-right">טלפון</TableHead>
                       <TableHead className="text-right min-w-[200px]">כתובת</TableHead>
-                      <TableHead className="text-center">סטטוס</TableHead>
+                      <TableHead className="text-center">סטטוס תשלום</TableHead>
+                      <TableHead className="text-center">סטטוס אספקה</TableHead>
                       <TableHead className="text-right">תאריך הזמנה</TableHead>
                       <TableHead className="text-right">תאריך אספקה</TableHead>
                       <TableHead className="text-right">יום אספקה</TableHead>
+                      <TableHead className="text-right">בדיקת תקנות</TableHead>
                       <TableHead className="text-right">הערות</TableHead>
                       <TableHead className="text-center w-16">פריטים</TableHead>
                       <TableHead className="text-right">סה"כ</TableHead>
@@ -428,10 +462,21 @@ export default function Orders() {
                           </div>
                         </TableCell>
                         
-                        {/* סטטוס */}
+                        {/* סטטוס תשלום */}
                         <TableCell>
-                          <Badge variant={statusMap[order.status]?.color || "default"} className="w-full justify-center">
-                            {statusMap[order.status]?.label || order.status}
+                          <Badge 
+                            className={`w-full justify-center ${paymentStatusMap[order.payment_status]?.bgColor || "bg-gray-100"} ${paymentStatusMap[order.payment_status]?.textColor || "text-gray-700"} border-0`}
+                          >
+                            {paymentStatusMap[order.payment_status]?.label || order.payment_status}
+                          </Badge>
+                        </TableCell>
+                        
+                        {/* סטטוס אספקה */}
+                        <TableCell>
+                          <Badge 
+                            className={`w-full justify-center ${deliveryStatusMap[order.delivery_status]?.bgColor || "bg-gray-100"} ${deliveryStatusMap[order.delivery_status]?.textColor || "text-gray-700"} border-0`}
+                          >
+                            {deliveryStatusMap[order.delivery_status]?.label || order.delivery_status}
                           </Badge>
                         </TableCell>
                         
@@ -491,6 +536,30 @@ export default function Orders() {
                                 return getHebrewDayName(date.getDay());
                               })()}
                             </span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        
+                        {/* בדיקת תקנות */}
+                        <TableCell>
+                          {order.customers.last_safety_inspection_date ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help font-medium">
+                                  {(() => {
+                                    // Parse date string as local date to avoid timezone issues
+                                    const dateStr = order.customers.last_safety_inspection_date;
+                                    const [year, month, day] = dateStr.split('-').map(Number);
+                                    const date = new Date(year, month - 1, day);
+                                    return date.toLocaleDateString("he-IL");
+                                  })()}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{formatDate(order.customers.last_safety_inspection_date, false)}</p>
+                              </TooltipContent>
+                            </Tooltip>
                           ) : (
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
@@ -593,9 +662,16 @@ export default function Orders() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <CardTitle className="text-lg">{order.customers.name}</CardTitle>
-                      <CardDescription className="flex items-center mt-1 gap-2">
-                        <Badge variant={statusMap[order.status]?.color || "default"}>
-                          {statusMap[order.status]?.label || order.status}
+                      <CardDescription className="flex items-center mt-1 gap-2 flex-wrap">
+                        <Badge 
+                          className={`${paymentStatusMap[order.payment_status]?.bgColor || "bg-gray-100"} ${paymentStatusMap[order.payment_status]?.textColor || "text-gray-700"} border-0`}
+                        >
+                          {paymentStatusMap[order.payment_status]?.label || order.payment_status}
+                        </Badge>
+                        <Badge 
+                          className={`${deliveryStatusMap[order.delivery_status]?.bgColor || "bg-gray-100"} ${deliveryStatusMap[order.delivery_status]?.textColor || "text-gray-700"} border-0`}
+                        >
+                          {deliveryStatusMap[order.delivery_status]?.label || order.delivery_status}
                         </Badge>
                         <span className="text-xs">₪{order.total}</span>
                       </CardDescription>
@@ -641,6 +717,21 @@ export default function Orders() {
                             const date = new Date(year, month - 1, day);
                             return date.toLocaleDateString("he-IL");
                           })()})
+                        </span>
+                      </div>
+                    )}
+                    
+                    {order.customers.last_safety_inspection_date && (
+                      <div className="flex items-center text-sm gap-1 text-orange-600">
+                        <CalendarIcon className="h-4 w-4" />
+                        <span className="font-medium">בדיקת תקנות:</span>
+                        <span>
+                          {(() => {
+                            const dateStr = order.customers.last_safety_inspection_date;
+                            const [year, month, day] = dateStr.split('-').map(Number);
+                            const date = new Date(year, month - 1, day);
+                            return date.toLocaleDateString("he-IL");
+                          })()}
                         </span>
                       </div>
                     )}
@@ -722,9 +813,18 @@ export default function Orders() {
                       {selectedOrder.customers.name} • {selectedOrder.customers.phone}
                     </DialogDescription>
                   </div>
-                  <Badge variant={statusMap[selectedOrder.status as keyof typeof statusMap].color as "default" | "secondary" | "outline" | "destructive"}>
-                    {statusMap[selectedOrder.status as keyof typeof statusMap].label}
-                  </Badge>
+                  <div className="flex gap-2">
+                    <Badge 
+                      className={`${paymentStatusMap[selectedOrder.payment_status]?.bgColor || "bg-gray-100"} ${paymentStatusMap[selectedOrder.payment_status]?.textColor || "text-gray-700"} border-0`}
+                    >
+                      {paymentStatusMap[selectedOrder.payment_status]?.label || selectedOrder.payment_status}
+                    </Badge>
+                    <Badge 
+                      className={`${deliveryStatusMap[selectedOrder.delivery_status]?.bgColor || "bg-gray-100"} ${deliveryStatusMap[selectedOrder.delivery_status]?.textColor || "text-gray-700"} border-0`}
+                    >
+                      {deliveryStatusMap[selectedOrder.delivery_status]?.label || selectedOrder.delivery_status}
+                    </Badge>
+                  </div>
                 </div>
               </DialogHeader>
               
@@ -812,23 +912,49 @@ export default function Orders() {
                   </div>
                 </Card>
                 
-                <div className="border rounded-lg p-4 bg-muted/20">
-                  <p className="font-medium mb-3">עדכון סטטוס הזמנה:</p>
+                {/* Payment Status Section */}
+                <div className="border rounded-lg p-4 bg-blue-50/50">
+                  <p className="font-medium mb-3 flex items-center gap-2">
+                    <span className="text-blue-700">💳</span>
+                    עדכון סטטוס תשלום:
+                  </p>
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(statusMap).map(([value, { label, color }]) => (
+                    {Object.entries(paymentStatusMap).map(([value, { label, bgColor, textColor }]) => (
                       <Button
                         key={value}
-                        variant={selectedOrder.status === value ? "default" : "outline"}
+                        variant={selectedOrder.payment_status === value ? "default" : "outline"}
                         size="sm"
                         onClick={() => {
-                          updateOrderStatus.mutate({ id: selectedOrder.id, status: value });
-                          setSelectedOrder({...selectedOrder, status: value});
+                          updateOrderStatus.mutate({ id: selectedOrder.id, payment_status: value });
+                          setSelectedOrder({...selectedOrder, payment_status: value});
                         }}
-                        className="transition-all"
+                        className={`transition-all ${selectedOrder.payment_status === value ? `${bgColor} ${textColor} hover:opacity-90` : ""}`}
                       >
-                        <Badge variant={color as "default" | "secondary" | "outline" | "destructive"} className="mr-2">
-                          {label}
-                        </Badge>
+                        {label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Delivery Status Section */}
+                <div className="border rounded-lg p-4 bg-green-50/50">
+                  <p className="font-medium mb-3 flex items-center gap-2">
+                    <span className="text-green-700">🚚</span>
+                    עדכון סטטוס אספקה:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(deliveryStatusMap).map(([value, { label, bgColor, textColor }]) => (
+                      <Button
+                        key={value}
+                        variant={selectedOrder.delivery_status === value ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          updateOrderStatus.mutate({ id: selectedOrder.id, delivery_status: value });
+                          setSelectedOrder({...selectedOrder, delivery_status: value});
+                        }}
+                        className={`transition-all ${selectedOrder.delivery_status === value ? `${bgColor} ${textColor} hover:opacity-90` : ""}`}
+                      >
+                        {label}
                       </Button>
                     ))}
                   </div>

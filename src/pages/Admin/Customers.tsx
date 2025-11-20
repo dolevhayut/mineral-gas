@@ -69,6 +69,7 @@ interface Customer {
   created_at?: string;
   updated_at?: string;
   open_balance?: number;
+  manual_balance?: number;
 }
 
 interface PriceList {
@@ -181,10 +182,14 @@ export default function Customers() {
         // Calculate total orders count
         const totalOrdersCount = orders.length;
         
-        // Calculate open balance (orders that are not completed or cancelled)
-        const openBalance = orders
-          .filter(order => ['pending', 'delivered'].includes(order.status))
+        // Calculate open balance (orders where payment_status is 'pending')
+        const calculatedBalance = orders
+          .filter(order => (order as any).payment_status === 'pending' || order.status === 'pending')
           .reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+        
+        // Add manual balance to calculated balance
+        const manualBalance = Number((customer as any).manual_balance) || 0;
+        const totalOpenBalance = calculatedBalance + manualBalance;
         
         // Remove the orders array from the customer object
         const { orders: _, ...customerWithoutOrders } = customer;
@@ -193,7 +198,7 @@ export default function Customers() {
           ...customerWithoutOrders,
           active_orders_count: activeOrdersCount,
           total_orders_count: totalOrdersCount,
-          open_balance: openBalance,
+          open_balance: totalOpenBalance,
         };
       });
       
@@ -248,12 +253,18 @@ export default function Customers() {
             special_requirements: customer.special_requirements,
             business_type: customer.business_type || 'residential',
             customer_type: customer.customer_type || 'active',
-            discount_percentage: discount
+            discount_percentage: discount,
+            last_safety_inspection_date: customer.last_safety_inspection_date || null,
+            price_list_id: customer.price_list_id || null
           }]);
           
         if (error) throw error;
       } else {
         // Update existing customer
+        const manualBalance = customer.manual_balance !== undefined 
+          ? Number(customer.manual_balance) 
+          : 0;
+          
         const { error } = await supabase
           .from("customers")
           .update({ 
@@ -264,7 +275,10 @@ export default function Customers() {
             special_requirements: customer.special_requirements,
             business_type: customer.business_type,
             customer_type: customer.customer_type,
-            discount_percentage: discount
+            discount_percentage: discount,
+            last_safety_inspection_date: customer.last_safety_inspection_date || null,
+            price_list_id: customer.price_list_id || null,
+            manual_balance: manualBalance
           })
           .eq("id", customer.id);
           
@@ -516,6 +530,24 @@ export default function Customers() {
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="manual_balance">חוב קיים (ידני)</Label>
+              <Input
+                id="manual_balance"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="הכנס חוב קיים"
+                value={currentCustomer.manual_balance !== undefined ? currentCustomer.manual_balance : ""}
+                onChange={(e) => {
+                  const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
+                  setCurrentCustomer({ ...currentCustomer, manual_balance: value });
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                חוב זה יתווסף לחוב המחושב מההזמנות הפתוחות
+              </p>
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="price_list">מחירון</Label>
               <Select
                 value={currentCustomer.price_list_id || "none"}
@@ -624,29 +656,29 @@ export default function Customers() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="whitespace-nowrap">שם הלקוח</TableHead>
-                      <TableHead className="whitespace-nowrap">טלפון</TableHead>
-                      <TableHead className="whitespace-nowrap">עיר</TableHead>
-                      <TableHead className="whitespace-nowrap">סוג לקוח</TableHead>
-                      <TableHead className="whitespace-nowrap">סטטוס</TableHead>
-                      <TableHead className="whitespace-nowrap">בדיקה תקנית</TableHead>
-                      <TableHead className="whitespace-nowrap">חוב פתוח</TableHead>
-                      <TableHead className="whitespace-nowrap">הנחה</TableHead>
-                      <TableHead className="whitespace-nowrap">הזמנות פעילות</TableHead>
-                      <TableHead className="whitespace-nowrap">דרישות מיוחדות</TableHead>
-                      <TableHead className="whitespace-nowrap">פעולות</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">שם הלקוח</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">טלפון</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">עיר</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">סוג לקוח</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">סטטוס</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">בדיקה תקנית</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">חוב פתוח</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">הנחה</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">הזמנות פעילות</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">דרישות מיוחדות</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">פעולות</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCustomers?.map((customer) => (
                       <TableRow key={customer.id}>
-                        <TableCell className="font-medium whitespace-nowrap">
+                        <TableCell className="font-medium whitespace-nowrap text-right">
                           <div className="flex items-center gap-2">
                             <BuildingIcon className="h-4 w-4 text-muted-foreground" />
                             {customer.name}
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-right">
                           {customer.phone ? (
                             <div className="flex items-center gap-2">
                               <PhoneIcon className="h-4 w-4 text-muted-foreground" />
@@ -654,15 +686,15 @@ export default function Customers() {
                             </div>
                           ) : "-"}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-right">
                           {customer.city || "-"}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-right">
                           <Badge variant={customer.business_type === "residential" ? "secondary" : "default"}>
                             {customer.business_type === "residential" ? "פרטי" : "עסקי"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-right">
                           <Badge 
                             variant={customer.customer_type === "active" ? "default" : 
                                    customer.customer_type === "suspended" ? "destructive" : "secondary"}
@@ -671,36 +703,41 @@ export default function Customers() {
                              customer.customer_type === "suspended" ? "מושעה" : "לא פעיל"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-right">
                           {(() => {
                             const safetyStatus = checkSafetyInspectionStatus(customer.last_safety_inspection_date);
                             if (!customer.last_safety_inspection_date) {
                               return <span className="text-muted-foreground">לא נרשם</span>;
                             }
+                            
+                            // Format the date
+                            const dateStr = customer.last_safety_inspection_date;
+                            const [year, month, day] = dateStr.split('-').map(Number);
+                            const date = new Date(year, month - 1, day);
+                            const formattedDate = date.toLocaleDateString("he-IL");
+                            
                             if (safetyStatus?.isOverdue) {
                               return (
-                                <Badge variant="destructive" className="bg-red-600">
-                                  <AlertCircle className="h-3 w-3 ml-1" />
-                                  דחוף!
-                                </Badge>
+                                <div className="flex items-center gap-1 justify-end">
+                                  <span className="font-medium text-red-600">{formattedDate}</span>
+                                  <AlertCircle className="h-4 w-4 text-red-600" />
+                                </div>
                               );
                             }
                             if (safetyStatus) {
                               return (
-                                <Badge variant="outline" className="border-orange-400 text-orange-600">
-                                  <AlertCircle className="h-3 w-3 ml-1" />
-                                  התקרב
-                                </Badge>
+                                <div className="flex items-center gap-1 justify-end">
+                                  <span className="font-medium text-orange-600">{formattedDate}</span>
+                                  <AlertCircle className="h-4 w-4 text-orange-600" />
+                                </div>
                               );
                             }
                             return (
-                              <Badge variant="outline" className="border-green-400 text-green-600">
-                                תקין
-                              </Badge>
+                              <span className="font-medium text-green-600">{formattedDate}</span>
                             );
                           })()}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-right">
                           {customer.open_balance ? (
                             <span className="text-red-600 font-medium">
                               ₪{customer.open_balance.toFixed(2)}
@@ -709,24 +746,24 @@ export default function Customers() {
                             <span className="text-green-600">₪0.00</span>
                           )}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-right">
                           {customer.discount_percentage ? 
                             <span className="text-green-600 font-medium">{customer.discount_percentage}%</span> : 
                             <span className="text-muted-foreground">0%</span>
                           }
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-right">
                           <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                             {customer.active_orders_count}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-[200px]">
+                        <TableCell className="max-w-[200px] text-right">
                           <span className="text-sm text-muted-foreground truncate block" title={customer.special_requirements || ""}>
                             {customer.special_requirements || "-"}
                           </span>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div className="flex gap-2">
+                        <TableCell className="whitespace-nowrap text-right">
+                          <div className="flex gap-2 justify-end">
                             <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer)}>
                               <PencilIcon className="h-4 w-4 ml-2" />
                               עריכה

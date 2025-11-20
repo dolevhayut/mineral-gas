@@ -24,6 +24,7 @@ export type Database = {
           delivery_area: string | null
           delivery_instructions: string | null
           discount_percentage: number | null
+          email: string | null
           emergency_contact: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
@@ -57,6 +58,7 @@ export type Database = {
           delivery_area?: string | null
           delivery_instructions?: string | null
           discount_percentage?: number | null
+          email?: string | null
           emergency_contact?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -90,6 +92,7 @@ export type Database = {
           delivery_area?: string | null
           delivery_instructions?: string | null
           discount_percentage?: number | null
+          email?: string | null
           emergency_contact?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -612,7 +615,7 @@ export type Database = {
         Returns: Json
       }
       format_order_number: { Args: { order_num: number }; Returns: string }
-      generate_verification_code: { Args: Record<PropertyKey, never>; Returns: string }
+      generate_verification_code: { Args: never; Returns: string }
       get_customer_orders: { Args: { p_customer_id: string }; Returns: Json }
       get_customer_profile: { Args: { p_customer_id: string }; Returns: Json }
       get_customer_service_requests: {

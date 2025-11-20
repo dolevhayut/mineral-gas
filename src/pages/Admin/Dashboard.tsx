@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { SystemUpdatesManager } from "@/components/SystemUpdatesManager";
 import { AIQueryAssistant } from "@/components/AIQueryAssistant";
+import Chart from 'react-apexcharts';
+import type { Tables } from "@/lib/database.types";
 
 export default function Dashboard() {
   // הגדרת שאילתות לנתונים אמיתיים
@@ -103,8 +105,8 @@ export default function Dashboard() {
       // חישוב מוצרים פופולריים
       const productStats: Record<string, { id: string, name: string, price: number, count: number }> = {};
       
-      orderItemsData?.forEach(item => {
-        const productId = item.product_id;
+      orderItemsData?.forEach((item: any) => {
+        const productId = item.product_id || "";
         // נטפל בתוצאות כמו שהן מוחזרות מsupabase בפורמט של foreign key join
         const product = Array.isArray(item.products) ? item.products[0] : item.products;
         const productName = product?.name || "מוצר לא ידוע";
@@ -130,7 +132,7 @@ export default function Dashboard() {
       // הזמנות אחרונות עם פרטי לקוח
       const recentOrders = ordersData?.slice(0, 3).map(order => {
         // We'll use a simpler approach for getting the product name to avoid type errors
-        const orderItems = orderItemsData?.filter(item => item.product_id === order.id) || [];
+        const orderItems = orderItemsData?.filter((item: any) => item.product_id === order.id) || [];
         let mainProduct = "הזמנה מעורבת";
         
         if (orderItems.length > 0 && orderItems[0].products) {
@@ -138,8 +140,7 @@ export default function Dashboard() {
           // Check if it's an array and handle appropriately
           if (Array.isArray(product) && product.length > 0) {
             mainProduct = product[0].name || "מוצר לא ידוע";
-          } else if (typeof product === 'object' && product !== null) {
-            // @ts-expect-error - We know the structure might be different
+          } else if (typeof product === 'object' && product !== null && 'name' in product) {
             mainProduct = product.name || "מוצר לא ידוע";
           }
         }
@@ -147,8 +148,8 @@ export default function Dashboard() {
         return {
           id: order.id,
           productName: mainProduct,
-          total: order.total,
-          customer_id: order.customer_id
+          total: order.total || 0,
+          customer_id: order.customer_id || ""
         };
       }) || [];
       
@@ -168,6 +169,42 @@ export default function Dashboard() {
         })
       );
       
+      // נתוני גרפים - הכנסות לפי חודשים (6 חודשים אחרונים)
+      const last6Months = Array.from({ length: 6 }, (_, i) => {
+        const date = new Date();
+        date.setMonth(date.getMonth() - (5 - i));
+        return {
+          month: date.getMonth(),
+          year: date.getFullYear(),
+          name: date.toLocaleDateString('he-IL', { month: 'short' })
+        };
+      });
+      
+      const revenueByMonth = last6Months.map(({ month, year, name }) => {
+        const monthOrders = ordersData?.filter(order => {
+          const orderDate = new Date(order.created_at);
+          return orderDate.getMonth() === month && orderDate.getFullYear() === year;
+        }) || [];
+        
+        const revenue = monthOrders.reduce((sum, order) => sum + Number(order.total), 0);
+        const ordersCount = monthOrders.length;
+        
+        return {
+          name,
+          הכנסות: revenue,
+          הזמנות: ordersCount
+        };
+      });
+      
+      // נתוני גרף עוגה - התפלגות מוצרים
+      const pieChartData = Object.values(productStats)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+        .map(product => ({
+          name: product.name,
+          value: product.count
+        }));
+      
       return {
         productsCount: productsData?.length || 0,
         newProductsCount: newProductsCount || 0,
@@ -178,7 +215,9 @@ export default function Dashboard() {
         totalRevenue,
         revenueChangePercent,
         popularProducts,
-        recentOrders: recentOrdersWithCustomers.slice(0, 3)
+        recentOrders: recentOrdersWithCustomers.slice(0, 3),
+        revenueByMonth,
+        pieChartData
       };
     }
   });
@@ -256,7 +295,184 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* AI Query Assistant - Moved below metrics */}
+      {/* Charts Section */}
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+        {/* Revenue Trend Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>מגמת הכנסות והזמנות</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Chart
+              options={{
+                chart: {
+                  id: 'revenue-chart',
+                  fontFamily: 'inherit',
+                  toolbar: {
+                    show: false
+                  },
+                  animations: {
+                    enabled: true,
+                    speed: 800,
+                  }
+                },
+                colors: ['#10b981', '#3b82f6'],
+                dataLabels: {
+                  enabled: false
+                },
+                stroke: {
+                  curve: 'smooth',
+                  width: 3
+                },
+                fill: {
+                  type: 'gradient',
+                  gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.7,
+                    opacityTo: 0.2,
+                    stops: [0, 90, 100]
+                  }
+                },
+                xaxis: {
+                  categories: dashboardData?.revenueByMonth?.map(d => d.name) || [],
+                  labels: {
+                    style: {
+                      fontSize: '12px',
+                      fontFamily: 'inherit'
+                    }
+                  }
+                },
+                yaxis: {
+                  labels: {
+                    style: {
+                      fontSize: '12px',
+                      fontFamily: 'inherit'
+                    }
+                  }
+                },
+                legend: {
+                  position: 'top',
+                  horizontalAlign: 'right',
+                  fontFamily: 'inherit',
+                  fontSize: '14px'
+                },
+                grid: {
+                  borderColor: '#e5e7eb',
+                  strokeDashArray: 3
+                },
+                tooltip: {
+                  theme: 'light',
+                  style: {
+                    fontSize: '12px',
+                    fontFamily: 'inherit'
+                  }
+                }
+              }}
+              series={[
+                {
+                  name: 'הכנסות',
+                  data: dashboardData?.revenueByMonth?.map(d => d.הכנסות) || []
+                },
+                {
+                  name: 'הזמנות',
+                  data: dashboardData?.revenueByMonth?.map(d => d.הזמנות) || []
+                }
+              ]}
+              type="area"
+              height={300}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Products Distribution Bar Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>מוצרים מובילים</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Chart
+              options={{
+                chart: {
+                  id: 'products-chart',
+                  fontFamily: 'inherit',
+                  toolbar: {
+                    show: false
+                  },
+                  animations: {
+                    enabled: true,
+                    speed: 800,
+                  }
+                },
+                colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'],
+                plotOptions: {
+                  bar: {
+                    borderRadius: 8,
+                    distributed: true,
+                    horizontal: false,
+                    columnWidth: '60%'
+                  }
+                },
+                dataLabels: {
+                  enabled: false
+                },
+                xaxis: {
+                  categories: dashboardData?.pieChartData?.map(d => d.name) || [],
+                  labels: {
+                    style: {
+                      fontSize: '11px',
+                      fontFamily: 'inherit'
+                    },
+                    rotate: -45,
+                    rotateAlways: false
+                  }
+                },
+                yaxis: {
+                  labels: {
+                    style: {
+                      fontSize: '12px',
+                      fontFamily: 'inherit'
+                    }
+                  },
+                  title: {
+                    text: 'כמות הזמנות',
+                    style: {
+                      fontSize: '12px',
+                      fontFamily: 'inherit'
+                    }
+                  }
+                },
+                legend: {
+                  show: false
+                },
+                grid: {
+                  borderColor: '#e5e7eb',
+                  strokeDashArray: 3
+                },
+                tooltip: {
+                  theme: 'light',
+                  style: {
+                    fontSize: '12px',
+                    fontFamily: 'inherit'
+                  },
+                  y: {
+                    formatter: (val) => `${val} הזמנות`
+                  }
+                }
+              }}
+              series={[
+                {
+                  name: 'הזמנות',
+                  data: dashboardData?.pieChartData?.map(d => d.value) || []
+                }
+              ]}
+              type="bar"
+              height={300}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* AI Query Assistant - Moved below charts */}
       <AIQueryAssistant />
 
       <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
